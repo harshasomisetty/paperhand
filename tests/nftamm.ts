@@ -119,8 +119,33 @@ describe("nftamm", () => {
       .rpc();
 
     let postTokenBal = await getAccount(provider.connection, userRedeemWallet);
-    // console.log("post bal", Number(postTokenBal.amount));
+    console.log("post bal", Number(postTokenBal.amount));
+
     assert.ok(Number(postTokenBal.amount) == 1);
+  });
+
+  it("Withdrew from vault!", async () => {
+    const tx = await program.methods
+      .vaultWithdraw(collectionId, collectionBump)
+      .accounts({
+        collectionPool: collectionPool,
+        redeemMint: redeemMint,
+        user: user.publicKey,
+        userRedeemWallet: userRedeemWallet,
+        user2: user2.publicKey,
+        user2RedeemWallet: user2RedeemWallet,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .signers([user])
+      .rpc();
+
+    let postTokenBal = await getAccount(provider.connection, userRedeemWallet);
+    console.log("post bal", Number(postTokenBal.amount));
+
+    assert.ok(Number(postTokenBal.amount) == 0);
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {

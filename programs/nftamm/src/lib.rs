@@ -74,6 +74,46 @@ pub mod nftamm {
         msg!("msg here: {}", 3);
         Ok(())
     }
+
+    pub fn vault_withdraw(
+        ctx: Context<Vault_Withdraw>,
+        collection_id: String,
+        collection_bump: u8,
+    ) -> Result<()> {
+        msg!("msg here: {}", 1);
+        let collection_pool = &mut ctx.accounts.collection_pool;
+        // let nft_vault = &mut ctx.accounts.nft_vault;
+        let redeem_mint = &mut ctx.accounts.redeem_mint;
+
+        let user = &mut ctx.accounts.user;
+        let user_redeem_wallet = &mut ctx.accounts.user_redeem_wallet;
+        let user2_redeem_wallet = &mut ctx.accounts.user2_redeem_wallet;
+        // take in nft address to withdraw?
+        // send out nft from pda to user account
+        // decrement pool address counter or method of tracking stored count of nfts
+
+        msg!("msg here: {}", 2);
+        // burn user redeem tokens
+        anchor_spl::token::burn(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info().clone(),
+                anchor_spl::token::Burn {
+                    from: user_redeem_wallet.to_account_info().clone(),
+                    mint: redeem_mint.to_account_info().clone(),
+                    authority: user.to_account_info().clone(),
+                },
+                &[&[
+                    b"collection_pool".as_ref(),
+                    collection_id.as_ref(),
+                    &[collection_bump],
+                ]],
+            ),
+            1,
+        )?;
+
+        msg!("msg here: {}", 3);
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
