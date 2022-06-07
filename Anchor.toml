@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-nftamm = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+nftamm = "5bT8jS7JqHwpA6m5aC1PtJgpHGoZ9R9MxyZptkoPDJp8"
 
 [registry]
 url = "https://anchor.projectserum.com"

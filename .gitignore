@@ -8,3 +8,5 @@ test-ledger
 yarn.lock
 
 migrations/*
+*.log
+Cargo.lock
