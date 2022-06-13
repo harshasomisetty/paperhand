@@ -87,7 +87,7 @@ pub mod nftamm {
 
         let user = &mut ctx.accounts.user;
         let user_redeem_wallet = &mut ctx.accounts.user_redeem_wallet;
-        let user2_redeem_wallet = &mut ctx.accounts.user2_redeem_wallet;
+
         // take in nft address to withdraw?
         // send out nft from pda to user account
         // decrement pool address counter or method of tracking stored count of nfts
