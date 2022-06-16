@@ -27,15 +27,11 @@ import {
   Metaplex,
   bundlrStorage,
   keypairIdentity,
+  findMetadataPda,
+  TransactionBuilder,
+  createCreateMetadataAccountV2InstructionWithSigners,
+  createMintAndMintToAssociatedTokenBuilder,
 } from "@metaplex-foundation/js";
-
-// import {sendTransactionWithRetryWithKeypair} from "../cli/src/helpers/transactions";
-// import {
-//   createMetadataAccount,
-//   validateMetadata,
-// } from "../cli/src/commands/mint-nft";
-
-// import {getMetadata} from "../cli/src/helpers/accounts";
 
 import {Metadata} from "@metaplex-foundation/mpl-token-metadata";
 
@@ -56,7 +52,7 @@ const wallet = Keypair.fromSecretKey(
   )
 );
 
-const metaplex = Metaplex.make(connection)
+const metaplex = Metaplex.make(provider.connection)
   .use(keypairIdentity(wallet))
   .use(bundlrStorage());
 
@@ -91,27 +87,114 @@ describe("nftamm", () => {
   let mintSize = 3;
   let collection_mints: PublicKey[][] = Array(2);
 
-  it("init variables", async () => {
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(wallet.publicKey, airdropVal),
-      "confirmed"
-    );
-    const {nft} = await metaplex.nfts().create({
-      symbol: "NC1",
-      uri: "https://arweave.net/123",
-    });
+  before("init variables", async () => {
+    let airdropees = [wallet.publicKey, creator.publicKey, user[0].publicKey];
+    // , user[1].publicKey
+    for (const pubkey of airdropees) {
+      await provider.connection.confirmTransaction(
+        await provider.connection.requestAirdrop(pubkey, airdropVal),
+        "confirmed"
+      );
+    }
 
-    console.log("mint", nft.mint.toString());
-    console.log("nft data ", nft.metadataAccount.publicKey.toString());
-
-    // let mdataPubkey = await Metadata.getPDA(nft.metadataAccount.publicKey);
-    const metadataData = await Metadata.load(
-      connection,
-      nft.metadataAccount.publicKey
+    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("collection_pool"), Buffer.from(collectionId)],
+      programID
     );
 
-    console.log(metadataData);
-    console.log(metadataData.data.data.creators);
+    [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
+      programID
+    );
+
+    userRedeemWallet = await getAssociatedTokenAddress(
+      redeemMint,
+      user[0].publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    user2RedeemWallet = await getAssociatedTokenAddress(
+      redeemMint,
+      user[1].publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    for (let i = 0; i < 2; i++) {
+      collection_mints[i] = Array(mintSize);
+
+      for (let j = 0; j < mintSize; j++) {
+        console.log("loop", i, j);
+
+        let mintKey = await createMint(
+          connection,
+          creator,
+          creator.publicKey,
+          creator.publicKey,
+          0
+        );
+
+        const metadata = findMetadataPda(mintKey);
+
+        let jsonData = {
+          symbol: "NC" + i.toString(),
+          name: "nft " + j.toString(),
+          uri: "https://arweave.net/123",
+          description: "nft number" + j.toString(),
+          creators: [
+            {
+              address: creator.publicKey,
+              share: 100,
+              verified: false,
+            },
+          ],
+          sellerFeeBasisPoints: 500,
+          collection: null,
+          uses: null,
+        };
+
+        const tx = TransactionBuilder.make().add(
+          createCreateMetadataAccountV2InstructionWithSigners({
+            data: jsonData,
+            isMutable: false,
+            mintAuthority: creator,
+            payer: creator,
+            mint: mintKey,
+            metadata: metadata,
+            updateAuthority: creator.publicKey,
+          })
+        );
+
+        // And send it with confirmation.
+        await metaplex.rpc().sendAndConfirmTransaction(tx);
+
+        collection_mints[i][j] = mintKey;
+        console.log("created", i, j);
+      }
+    }
+
+    // print out all nft data
+    // for (let i = 0; i < 2; i++) {
+    //   for (let j = 0; j < mintSize; j++) {
+    //     let mintKey = collection_mints[i][j];
+    //     console.log("mint:", collection_mints[i][j].toString());
+
+    //     const nft = await metaplex.nfts().findByMint(mintKey);
+    //     console.log("nft data ", nft.metadataAccount.publicKey.toString());
+
+    //     const metadataData = await Metadata.load(
+    //       connection,
+    //       nft.metadataAccount.publicKey
+    //     );
+
+    //     console.log(metadataData.data.data, "\n\n\n");
+    //   }
+    // }
+
+    assert(0 === 1);
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {
