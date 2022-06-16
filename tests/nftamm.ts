@@ -78,16 +78,17 @@ describe("nftamm", () => {
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
 
-  let collectionId = "test";
+  let colName = "NC";
+  let nftName = "nft n";
 
   let collectionPool, collectionBump;
   let redeemMint, redeemTokenBump;
   let userRedeemWallet, user2RedeemWallet;
 
-  let mintSize = 3;
+  let mintSize = 1;
   let collection_mints: PublicKey[][] = Array(2);
 
-  before("init variables", async () => {
+  it("init variables", async () => {
     let airdropees = [wallet.publicKey, creator.publicKey, user[0].publicKey];
     // , user[1].publicKey
     for (const pubkey of airdropees) {
@@ -96,32 +97,6 @@ describe("nftamm", () => {
         "confirmed"
       );
     }
-
-    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("collection_pool"), Buffer.from(collectionId)],
-      programID
-    );
-
-    [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
-      programID
-    );
-
-    userRedeemWallet = await getAssociatedTokenAddress(
-      redeemMint,
-      user[0].publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-
-    user2RedeemWallet = await getAssociatedTokenAddress(
-      redeemMint,
-      user[1].publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
 
     for (let i = 0; i < 2; i++) {
       collection_mints[i] = Array(mintSize);
@@ -140,10 +115,10 @@ describe("nftamm", () => {
         const metadata = findMetadataPda(mintKey);
 
         let jsonData = {
-          symbol: "NC" + i.toString(),
-          name: "nft " + j.toString(),
+          symbol: colName + i.toString(),
+          name: nftName + j.toString(),
           uri: "https://arweave.net/123",
-          description: "nft number" + j.toString(),
+          description: "description of nft number" + j.toString(),
           creators: [
             {
               address: creator.publicKey,
@@ -194,7 +169,18 @@ describe("nftamm", () => {
     //   }
     // }
 
-    assert(0 === 1);
+    let mintKey = collection_mints[0][0];
+
+    const nft = await metaplex.nfts().findByMint(mintKey);
+
+    const metadataData = await Metadata.load(
+      connection,
+      nft.metadataAccount.publicKey
+    );
+
+    console.log(metadataData.data.data, "\n\n\n");
+    assert(metadataData.data.data.symbol === colName + "0");
+    assert(metadataData.data.data.name === nftName + "0");
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {
