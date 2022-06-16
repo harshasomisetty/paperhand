@@ -8,22 +8,77 @@ import {
   getMint,
   getAssociatedTokenAddress,
   getAccount,
+  createMint,
+  createAccount,
 } from "@solana/spl-token";
 
+import {
+  DataV2,
+  Collection,
+  Uses,
+  VerifyCollection,
+  CreateMetadataV2,
+  CreateMasterEditionV3,
+  UpdateMetadataV2,
+  SetAndVerifyCollectionCollection,
+} from "@metaplex-foundation/mpl-token-metadata";
+
+import {
+  Metaplex,
+  bundlrStorage,
+  keypairIdentity,
+} from "@metaplex-foundation/js";
+
+// import {sendTransactionWithRetryWithKeypair} from "../cli/src/helpers/transactions";
+// import {
+//   createMetadataAccount,
+//   validateMetadata,
+// } from "../cli/src/commands/mint-nft";
+
+// import {getMetadata} from "../cli/src/helpers/accounts";
+
+import {Metadata} from "@metaplex-foundation/mpl-token-metadata";
+
+const fs = require("fs");
 const {SystemProgram, SYSVAR_RENT_PUBKEY} = anchor.web3;
 const assert = require("assert");
 
-describe("nftamm", () => {
-  // Configure the client to use the local cluster.
-  const provider = anchor.AnchorProvider.env();
-  anchor.setProvider(provider);
+const provider = anchor.AnchorProvider.env();
+anchor.setProvider(provider);
 
-  const program = anchor.workspace.Nftamm as Program<Nftamm>;
-  const programID = new PublicKey(program.idl["metadata"]["address"]);
+const connection = provider.connection;
+
+const wallet = Keypair.fromSecretKey(
+  Uint8Array.from(
+    JSON.parse(
+      fs.readFileSync("/Users/harshasomisetty/.config/solana/devnet2.json")
+    )
+  )
+);
+
+const metaplex = Metaplex.make(connection)
+  .use(keypairIdentity(wallet))
+  .use(bundlrStorage());
+
+const program = anchor.workspace.Nftamm as Program<Nftamm>;
+const programID = new PublicKey(program.idl["metadata"]["address"]);
+
+function bro(pubkey: PublicKey) {
+  console.log(pubkey);
+}
+describe("nftamm", () => {
+  /*
+    This test suite will test the process of:
+    1) Creating a pool
+    - will airdrop creator and users sol, will instantiate 2 mock collections
+    2) Inserting valid and invalid nfts into the pool
+    3) Withdrawing nfts given a user has and doesn't have a redeem token
+    TODO 
+    4) Swapping
+   */
 
   const creator = Keypair.generate();
-  const user = Keypair.generate();
-  const user2 = Keypair.generate();
+  const user = [Keypair.generate(), Keypair.generate()];
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
 
@@ -33,119 +88,30 @@ describe("nftamm", () => {
   let redeemMint, redeemTokenBump;
   let userRedeemWallet, user2RedeemWallet;
 
-  let a;
-  before("init variables", async () => {
+  let mintSize = 3;
+  let collection_mints: PublicKey[][] = Array(2);
+
+  it("init variables", async () => {
     await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(creator.publicKey, airdropVal),
+      await provider.connection.requestAirdrop(wallet.publicKey, airdropVal),
       "confirmed"
     );
+    const {nft} = await metaplex.nfts().create({
+      symbol: "NC1",
+      uri: "https://arweave.net/123",
+    });
 
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(user.publicKey, airdropVal),
-      "confirmed"
+    console.log("mint", nft.mint.toString());
+    console.log("nft data ", nft.metadataAccount.publicKey.toString());
+
+    // let mdataPubkey = await Metadata.getPDA(nft.metadataAccount.publicKey);
+    const metadataData = await Metadata.load(
+      connection,
+      nft.metadataAccount.publicKey
     );
 
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(user2.publicKey, airdropVal),
-      "confirmed"
-    );
-
-    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("collection_pool"), Buffer.from(collectionId)],
-      programID
-    );
-
-    [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
-      programID
-    );
-
-    userRedeemWallet = await getAssociatedTokenAddress(
-      redeemMint,
-      user.publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-
-    user2RedeemWallet = await getAssociatedTokenAddress(
-      redeemMint,
-      user2.publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-  });
-
-  it("Initialized Pool!", async () => {
-    // Add your test here.
-    const tx = await program.methods
-      .initializePool(collectionId)
-      .accounts({
-        collectionPool: collectionPool,
-        redeemMint: redeemMint,
-        creator: creator.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([creator])
-      .rpc();
-    console.log("Your transaction signature", tx);
-
-    let collectionPoolInfo = await program.account.collectionPool.fetch(
-      collectionPool
-    );
-
-    // console.log("col id", collectionPoolInfo.collectionId);
-
-    assert.ok(collectionPoolInfo.collectionId === collectionId);
-  });
-
-  it("Inserted into vault!", async () => {
-    const tx = await program.methods
-      .vaultInsert(collectionId, collectionBump)
-      .accounts({
-        collectionPool: collectionPool,
-        redeemMint: redeemMint,
-        userRedeemWallet: userRedeemWallet,
-        user: user.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      })
-      .signers([user])
-      .rpc();
-
-    let postTokenBal = await getAccount(provider.connection, userRedeemWallet);
-    console.log("post bal", Number(postTokenBal.amount));
-
-    assert.ok(Number(postTokenBal.amount) == 1);
-  });
-
-  it("Withdrew from vault!", async () => {
-    const tx = await program.methods
-      .vaultWithdraw(collectionId, collectionBump)
-      .accounts({
-        collectionPool: collectionPool,
-        redeemMint: redeemMint,
-        user: user.publicKey,
-        userRedeemWallet: userRedeemWallet,
-        user2: user2.publicKey,
-        user2RedeemWallet: user2RedeemWallet,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      })
-      .signers([user])
-      .rpc();
-
-    let postTokenBal = await getAccount(provider.connection, userRedeemWallet);
-    console.log("post bal", Number(postTokenBal.amount));
-
-    assert.ok(Number(postTokenBal.amount) == 0);
+    console.log(metadataData);
+    console.log(metadataData.data.data.creators);
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {
