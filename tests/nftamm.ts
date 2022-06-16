@@ -86,7 +86,8 @@ describe("nftamm", () => {
   let userRedeemWallet, user2RedeemWallet;
 
   let mintSize = 1;
-  let collection_mints: PublicKey[][] = Array(2);
+  let mintCount = 1;
+  let collection_mints: PublicKey[][] = Array(mintCount);
 
   it("init variables", async () => {
     let airdropees = [wallet.publicKey, creator.publicKey, user[0].publicKey];
@@ -98,15 +99,19 @@ describe("nftamm", () => {
       );
     }
 
-    // [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
-    //   [Buffer.from("collection_pool"), Buffer.from(collectionId)],
-    //   programID
-    // );
+    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("collection_pool"),
+        Buffer.from(colName),
+        creator.publicKey.toBuffer(),
+      ],
+      programID
+    );
 
-    // [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
-    //   [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
-    //   programID
-    // );
+    [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
+      programID
+    );
 
     // userRedeemWallet = await getAssociatedTokenAddress(
     //   redeemMint,
@@ -124,7 +129,7 @@ describe("nftamm", () => {
     //   ASSOCIATED_TOKEN_PROGRAM_ID
     // );
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < mintCount; i++) {
       collection_mints[i] = Array(mintSize);
 
       for (let j = 0; j < mintSize; j++) {
@@ -207,6 +212,32 @@ describe("nftamm", () => {
     console.log(metadataData.data.data, "\n\n\n");
     assert(metadataData.data.data.symbol === colName + "0");
     assert(metadataData.data.data.name === nftName + "0");
+  });
+
+  it("Initialized Pool!", async () => {
+    // Add your test here.
+    const tx = await program.methods
+      .initializePool(creator.publicKey, colName)
+      .accounts({
+        collectionPool: collectionPool,
+        redeemMint: redeemMint,
+        creator: creator.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([creator])
+      .rpc();
+    console.log("Your transaction signature", tx);
+
+    let collectionPoolInfo: program.account.collectionPool =
+      await program.account.collectionPool.fetch(collectionPool);
+
+    // console.log("col id", collectionPoolInfo.collectionId);
+    assert.ok(collectionPoolInfo.colName === colName);
+    assert.ok(
+      collectionPoolInfo.colCreator.toString() === creator.publicKey.toString()
+    );
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {

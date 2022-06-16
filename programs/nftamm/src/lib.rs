@@ -127,10 +127,13 @@ pub mod nftamm {
     }
 }
 
+// col_creator: Pubkey,
+// col_name: String
+
 #[derive(Accounts)]
-#[instruction(collection_id: String)]
+#[instruction(col_creator: Pubkey, col_name: String)]
 pub struct Initialize_Pool<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<CollectionPool>(), seeds = [b"collection_pool".as_ref(), collection_id.as_ref()], bump)]
+    #[account(init, payer = creator, space = std::mem::size_of::<CollectionPool>(), seeds = [b"collection_pool".as_ref(), col_name.as_ref(), col_creator.as_ref()], bump)]
     pub collection_pool: Account<'info, CollectionPool>,
 
     #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), collection_pool.key().as_ref()], bump, mint::decimals = 1, mint::authority = collection_pool, mint::freeze_authority = collection_pool) ]
