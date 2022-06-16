@@ -98,6 +98,32 @@ describe("nftamm", () => {
       );
     }
 
+    // [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
+    //   [Buffer.from("collection_pool"), Buffer.from(collectionId)],
+    //   programID
+    // );
+
+    // [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
+    //   [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
+    //   programID
+    // );
+
+    // userRedeemWallet = await getAssociatedTokenAddress(
+    //   redeemMint,
+    //   user[0].publicKey,
+    //   false,
+    //   TOKEN_PROGRAM_ID,
+    //   ASSOCIATED_TOKEN_PROGRAM_ID
+    // );
+
+    // user2RedeemWallet = await getAssociatedTokenAddress(
+    //   redeemMint,
+    //   user[1].publicKey,
+    //   false,
+    //   TOKEN_PROGRAM_ID,
+    //   ASSOCIATED_TOKEN_PROGRAM_ID
+    // );
+
     for (let i = 0; i < 2; i++) {
       collection_mints[i] = Array(mintSize);
 
