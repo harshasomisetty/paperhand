@@ -31,11 +31,11 @@ pub mod nftamm {
     pub fn initialize_pool(
         ctx: Context<Initialize_Pool>,
         col_creator: Pubkey,
-        col_name: String,
+        col_symbol: String,
     ) -> Result<()> {
         let collection_pool = &mut ctx.accounts.collection_pool;
         collection_pool.col_creator = col_creator;
-        collection_pool.col_name = col_name;
+        collection_pool.col_symbol = col_symbol;
 
         msg!("msg in initialize here: {}", 2);
         println!("print init here");
@@ -50,7 +50,8 @@ pub mod nftamm {
 
     pub fn vault_insert(
         ctx: Context<Vault_Insert>,
-        collection_id: String,
+        col_creator: Pubkey,
+        col_symbol: String,
         collection_bump: u8,
     ) -> Result<()> {
         let collection_pool = &mut ctx.accounts.collection_pool;
@@ -60,7 +61,18 @@ pub mod nftamm {
         let user = &mut ctx.accounts.user;
         let user_redeem_wallet = &mut ctx.accounts.user_redeem_wallet;
 
+        let nft_metadata = &mut ctx.accounts.nft_metadata;
+
         msg!("msg here: {}", 2);
+
+        // msg!("metadata symbol: {:?}", nft_metadata.data.symbol);
+        // msg!("col pool symbol: {:?}", collection_pool.col_symbol);
+
+        // msg!(
+        //     "metadata creator: {:?}",
+        //     nft_metadata.data.creators.as_ref().unwrap()[0].address
+        // );
+        // msg!("col pool creator: {:?}", collection_pool.col_creator);
 
         // send user redeem tokens
         anchor_spl::token::mint_to(
@@ -73,7 +85,8 @@ pub mod nftamm {
                 },
                 &[&[
                     b"collection_pool".as_ref(),
-                    collection_id.as_ref(),
+                    col_symbol.as_ref(),
+                    col_creator.as_ref(),
                     &[collection_bump],
                 ]],
             ),
@@ -88,7 +101,8 @@ pub mod nftamm {
 
     pub fn vault_withdraw(
         ctx: Context<Vault_Withdraw>,
-        collection_id: String,
+        col_creator: Pubkey,
+        col_symbol: String,
         collection_bump: u8,
     ) -> Result<()> {
         msg!("msg here: {}", 1);
@@ -115,7 +129,8 @@ pub mod nftamm {
                 },
                 &[&[
                     b"collection_pool".as_ref(),
-                    collection_id.as_ref(),
+                    col_symbol.as_ref(),
+                    col_creator.as_ref(),
                     &[collection_bump],
                 ]],
             ),
@@ -128,12 +143,12 @@ pub mod nftamm {
 }
 
 // col_creator: Pubkey,
-// col_name: String
+// col_symbol: String
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_name: String)]
+#[instruction(col_creator: Pubkey, col_symbol: String)]
 pub struct Initialize_Pool<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<CollectionPool>(), seeds = [b"collection_pool".as_ref(), col_name.as_ref(), col_creator.as_ref()], bump)]
+    #[account(init, payer = creator, space = std::mem::size_of::<CollectionPool>(), seeds = [b"collection_pool".as_ref(), col_symbol.as_ref(), col_creator.as_ref()], bump)]
     pub collection_pool: Account<'info, CollectionPool>,
 
     #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), collection_pool.key().as_ref()], bump, mint::decimals = 1, mint::authority = collection_pool, mint::freeze_authority = collection_pool) ]
@@ -146,11 +161,8 @@ pub struct Initialize_Pool<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(collection_id: String, collection_bump: u8)]
+#[instruction(col_creator: Pubkey, col_symbol: String, collection_bump: u8)]
 pub struct Vault_Insert<'info> {
-    #[account(mut)]
-    pub collection_pool: Account<'info, CollectionPool>,
-
     #[account(mut, constraint = redeem_mint.mint_authority == COption::Some(collection_pool.key()))]
     pub redeem_mint: Account<'info, Mint>,
     #[account(init_if_needed, payer = user, associated_token::mint = redeem_mint, associated_token::authority = user)]
@@ -160,8 +172,10 @@ pub struct Vault_Insert<'info> {
     pub nft_mint: Account<'info, Mint>,
     #[account(mut)]
     pub nft_metadata: Account<'info, TokenMetadata>,
-    #[account(mut)]
-    pub nft_user_token: Account<'info, TokenAccount>,
+    // #[account(mut)]
+    // pub nft_user_token: Account<'info, TokenAccount>,
+    #[account(mut, constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_pool.col_symbol, constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_pool.col_creator)]
+    pub collection_pool: Account<'info, CollectionPool>,
 
     // // TODO make vault seeds better
     // #[account(init, payer = user, space = std::mem::size_of::<VaultAccount>(), seeds = [b"vault".as_ref(), collection_pool.key().as_ref()], bump)]
@@ -187,7 +201,7 @@ need to transfer token from user's associated token account to pool's pda
 */
 
 #[derive(Accounts)]
-#[instruction(collection_id: String, collection_bump: u8)]
+#[instruction(col_creator: Pubkey, col_symbol: String, collection_bump: u8)]
 pub struct Vault_Withdraw<'info> {
     #[account(mut)]
     pub collection_pool: Account<'info, CollectionPool>,
@@ -212,7 +226,7 @@ pub struct Vault_Withdraw<'info> {
 #[derive(Default)]
 pub struct CollectionPool {
     pub col_creator: Pubkey,
-    pub col_name: String,
+    pub col_symbol: String,
 }
 
 #[account]

@@ -78,7 +78,10 @@ describe("nftamm", () => {
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
 
-  let colName = "NC";
+  let colBaseSymbol = "NC";
+  let colRightSymbol = colBaseSymbol + "0";
+  let colWrongSymbol = colBaseSymbol + "1";
+  let colCurSymbol = colRightSymbol;
   let nftName = "nft n";
 
   let collectionPool, collectionBump;
@@ -99,36 +102,6 @@ describe("nftamm", () => {
       );
     }
 
-    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
-      [
-        Buffer.from("collection_pool"),
-        Buffer.from(colName),
-        creator.publicKey.toBuffer(),
-      ],
-      programID
-    );
-
-    [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
-      programID
-    );
-
-    // userRedeemWallet = await getAssociatedTokenAddress(
-    //   redeemMint,
-    //   user[0].publicKey,
-    //   false,
-    //   TOKEN_PROGRAM_ID,
-    //   ASSOCIATED_TOKEN_PROGRAM_ID
-    // );
-
-    // user2RedeemWallet = await getAssociatedTokenAddress(
-    //   redeemMint,
-    //   user[1].publicKey,
-    //   false,
-    //   TOKEN_PROGRAM_ID,
-    //   ASSOCIATED_TOKEN_PROGRAM_ID
-    // );
-
     for (let i = 0; i < mintCount; i++) {
       collection_mints[i] = Array(mintSize);
 
@@ -146,7 +119,7 @@ describe("nftamm", () => {
         const metadata = findMetadataPda(mintKey);
 
         let jsonData = {
-          symbol: colName + i.toString(),
+          symbol: colBaseSymbol + i.toString(),
           name: nftName + j.toString(),
           uri: "https://arweave.net/123",
           description: "description of nft number" + j.toString(),
@@ -210,14 +183,43 @@ describe("nftamm", () => {
     );
 
     console.log(metadataData.data.data, "\n\n\n");
-    assert(metadataData.data.data.symbol === colName + "0");
+    assert(metadataData.data.data.symbol === colBaseSymbol + "0");
     assert(metadataData.data.data.name === nftName + "0");
   });
 
   it("Initialized Pool!", async () => {
-    // Add your test here.
+    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("collection_pool"),
+        Buffer.from(colCurSymbol),
+        creator.publicKey.toBuffer(),
+      ],
+      programID
+    );
+
+    [redeemMint, redeemTokenBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
+      programID
+    );
+
+    userRedeemWallet = await getAssociatedTokenAddress(
+      redeemMint,
+      user[0].publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    // user2RedeemWallet = await getAssociatedTokenAddress(
+    //   redeemMint,
+    //   user[1].publicKey,
+    //   false,
+    //   TOKEN_PROGRAM_ID,
+    //   ASSOCIATED_TOKEN_PROGRAM_ID
+    // );
+
     const tx = await program.methods
-      .initializePool(creator.publicKey, colName)
+      .initializePool(creator.publicKey, colCurSymbol)
       .accounts({
         collectionPool: collectionPool,
         redeemMint: redeemMint,
@@ -234,10 +236,54 @@ describe("nftamm", () => {
       await program.account.collectionPool.fetch(collectionPool);
 
     // console.log("col id", collectionPoolInfo.collectionId);
-    assert.ok(collectionPoolInfo.colName === colName);
+    assert.ok(collectionPoolInfo.colSymbol === colCurSymbol);
     assert.ok(
       collectionPoolInfo.colCreator.toString() === creator.publicKey.toString()
     );
+  });
+
+  it("Inserted into vault!", async () => {
+    let mintKey = collection_mints[0][0];
+
+    const nft = await metaplex.nfts().findByMint(mintKey);
+
+    const metadataData = await Metadata.load(
+      connection,
+      nft.metadataAccount.publicKey
+    );
+
+    let nftAccount = await getAssociatedTokenAddress(
+      mintKey,
+      user[0].publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    console.log("nft meta", nft.metadataAccount.publicKey.toString());
+    console.log("metadataaa", metadataData);
+    const tx = await program.methods
+      .vaultInsert(creator.publicKey, colCurSymbol, collectionBump)
+      .accounts({
+        collectionPool: collectionPool,
+        redeemMint: redeemMint,
+        userRedeemWallet: userRedeemWallet,
+        nftMint: mintKey,
+        nftMetadata: nft.metadataAccount.publicKey,
+        // nftUserToken: nftAccount,
+        user: user[0].publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .signers([user[0]])
+      .rpc();
+
+    let postTokenBal = await getAccount(provider.connection, userRedeemWallet);
+    console.log("post bal", Number(postTokenBal.amount));
+
+    assert.ok(Number(postTokenBal.amount) == 1);
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {
