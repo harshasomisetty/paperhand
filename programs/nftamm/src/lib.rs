@@ -62,8 +62,10 @@ pub mod nftamm {
         let user_redeem_wallet = &mut ctx.accounts.user_redeem_wallet;
 
         let nft_metadata = &mut ctx.accounts.nft_metadata;
+        let nft_user_token = &mut ctx.accounts.nft_user_token;
 
         msg!("msg here: {}", 2);
+        // msg!("user nft count {}", nft_user_token.amount);
 
         // msg!("metadata symbol: {:?}", nft_metadata.data.symbol);
         // msg!("col pool symbol: {:?}", collection_pool.col_symbol);
@@ -169,13 +171,13 @@ pub struct Vault_Insert<'info> {
     pub user_redeem_wallet: Account<'info, TokenAccount>,
 
     #[account(mut)]
-    pub nft_mint: Account<'info, Mint>,
+    pub nft_mint: Box<Account<'info, Mint>>,
     #[account(mut)]
-    pub nft_metadata: Account<'info, TokenMetadata>,
-    // #[account(mut)]
-    // pub nft_user_token: Account<'info, TokenAccount>,
+    pub nft_metadata: Box<Account<'info, TokenMetadata>>,
+    #[account(mut)]
+    pub nft_user_token: Account<'info, TokenAccount>,
     #[account(mut, constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_pool.col_symbol, constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_pool.col_creator)]
-    pub collection_pool: Account<'info, CollectionPool>,
+    pub collection_pool: Box<Account<'info, CollectionPool>>,
 
     // // TODO make vault seeds better
     // #[account(init, payer = user, space = std::mem::size_of::<VaultAccount>(), seeds = [b"vault".as_ref(), collection_pool.key().as_ref()], bump)]

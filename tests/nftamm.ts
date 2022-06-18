@@ -7,9 +7,11 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getMint,
   getAssociatedTokenAddress,
+  getOrCreateAssociatedTokenAccount,
   getAccount,
   createMint,
   createAccount,
+  mintTo,
 } from "@solana/spl-token";
 
 import {
@@ -116,6 +118,22 @@ describe("nftamm", () => {
           0
         );
 
+        let associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
+          connection,
+          user[0],
+          mintKey,
+          user[0].publicKey
+        );
+
+        await mintTo(
+          connection,
+          user[0],
+          mintKey,
+          associatedTokenAccount.address,
+          creator,
+          1
+        );
+
         const metadata = findMetadataPda(mintKey);
 
         let jsonData = {
@@ -156,22 +174,30 @@ describe("nftamm", () => {
     }
 
     // print out all nft data
-    // for (let i = 0; i < 2; i++) {
-    //   for (let j = 0; j < mintSize; j++) {
-    //     let mintKey = collection_mints[i][j];
-    //     console.log("mint:", collection_mints[i][j].toString());
 
-    //     const nft = await metaplex.nfts().findByMint(mintKey);
-    //     console.log("nft data ", nft.metadataAccount.publicKey.toString());
+    for (let i = 0; i < mintCount; i++) {
+      for (let j = 0; j < mintSize; j++) {
+        let mintKey = collection_mints[i][j];
+        console.log("mint:", collection_mints[i][j].toString());
 
-    //     const metadataData = await Metadata.load(
-    //       connection,
-    //       nft.metadataAccount.publicKey
-    //     );
+        const nft = await metaplex.nfts().findByMint(mintKey);
+        console.log("nft data ", nft.metadataAccount.publicKey.toString());
 
-    //     console.log(metadataData.data.data, "\n\n\n");
-    //   }
-    // }
+        let associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
+          connection,
+          user[0],
+          mintKey,
+          user[0].publicKey
+        );
+
+        let accountInfo = await getAccount(
+          connection,
+          associatedTokenAccount.address
+        );
+
+        console.log("token bal: ", accountInfo.amount);
+      }
+    }
 
     let mintKey = collection_mints[0][0];
 
@@ -182,7 +208,6 @@ describe("nftamm", () => {
       nft.metadataAccount.publicKey
     );
 
-    console.log(metadataData.data.data, "\n\n\n");
     assert(metadataData.data.data.symbol === colBaseSymbol + "0");
     assert(metadataData.data.data.name === nftName + "0");
   });
@@ -252,7 +277,14 @@ describe("nftamm", () => {
       nft.metadataAccount.publicKey
     );
 
-    let nftAccount = await getAssociatedTokenAddress(
+    let nftUserToken = await getOrCreateAssociatedTokenAccount(
+      connection,
+      user[0],
+      mintKey,
+      user[0].publicKey
+    );
+
+    let wal2 = await getAssociatedTokenAddress(
       mintKey,
       user[0].publicKey,
       false,
@@ -260,8 +292,11 @@ describe("nftamm", () => {
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
-    console.log("nft meta", nft.metadataAccount.publicKey.toString());
-    console.log("metadataaa", metadataData);
+    console.log("the associated accs: ", nftUserToken.address, wal2);
+
+    // console.log("nft meta", nft.metadataAccount.publicKey.toString());
+    // console.log("metadataaa", metadataData);
+
     const tx = await program.methods
       .vaultInsert(creator.publicKey, colCurSymbol, collectionBump)
       .accounts({
@@ -270,7 +305,7 @@ describe("nftamm", () => {
         userRedeemWallet: userRedeemWallet,
         nftMint: mintKey,
         nftMetadata: nft.metadataAccount.publicKey,
-        // nftUserToken: nftAccount,
+        nftUserToken: nftUserToken.address,
         user: user[0].publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
