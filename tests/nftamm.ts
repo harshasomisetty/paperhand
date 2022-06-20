@@ -404,8 +404,7 @@ describe("nftamm", () => {
     );
     assert.ok(Number(postUserNftTokenBal.amount) == 1);
 
-    // let postNftVaultBal = await getAccount(provider.connection, nftVault);
-    // assert.ok(Number(postNftVaultBal.amount) == 1);
+    assert.ok((await connection.getAccountInfo(nftVault)) == null);
   });
 
   program.provider.connection.onLogs("all", ({logs}) => {
