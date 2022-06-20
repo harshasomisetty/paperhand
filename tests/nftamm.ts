@@ -346,6 +346,68 @@ describe("nftamm", () => {
     assert.ok(collectionPoolInfo2.nftCount == 1);
   });
 
+  it("Withdrew from vault!", async () => {
+    let mintKey = collection_mints[0][0];
+
+    let nftUserToken = await getOrCreateAssociatedTokenAccount(
+      connection,
+      user[0],
+      mintKey,
+      user[0].publicKey
+    );
+
+    const nft = await metaplex.nfts().findByMint(mintKey);
+
+    let collectionPoolInfo: program.account.collectionPool =
+      await program.account.collectionPool.fetch(collectionPool);
+
+    let [nftVault] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("nft_vault"),
+        collectionPool.toBuffer(),
+        new anchor.BN(0).toArrayLike(Buffer, "le", 4),
+      ],
+      programID
+    );
+
+    try {
+      const tx = await program.methods
+        .vaultWithdraw(creator.publicKey, colCurSymbol, 0, collectionBump)
+        .accounts({
+          collectionPool: collectionPool,
+          redeemMint: redeemMint,
+          user: user[0].publicKey,
+          userRedeemWallet: userRedeemWallet,
+          nftMint: mintKey,
+          nftMetadata: nft.metadataAccount.publicKey,
+          nftUserToken: nftUserToken.address,
+          nftVault: nftVault,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        })
+        .signers([user[0]])
+        .rpc();
+    } catch (error) {
+      console.log("fuck withdraw ", error);
+    }
+    let postUserRedeemTokenBal = await getAccount(
+      provider.connection,
+      userRedeemWallet
+    );
+    assert.ok(Number(postUserRedeemTokenBal.amount) == 0);
+
+    let postUserNftTokenBal = await getAccount(
+      provider.connection,
+      nftUserToken.address
+    );
+    assert.ok(Number(postUserNftTokenBal.amount) == 1);
+
+    // let postNftVaultBal = await getAccount(provider.connection, nftVault);
+    // assert.ok(Number(postNftVaultBal.amount) == 1);
+  });
+
   program.provider.connection.onLogs("all", ({logs}) => {
     console.log(logs);
   });
