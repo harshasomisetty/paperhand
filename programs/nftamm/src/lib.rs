@@ -33,8 +33,6 @@ pub mod nftamm {
         collection_pool.col_symbol = col_symbol;
         collection_pool.nft_count = 0;
 
-        msg!("msg in initialize here: {}", 2);
-
         Ok(())
     }
 
@@ -42,21 +40,12 @@ pub mod nftamm {
         ctx: Context<Vault_Insert>,
         col_creator: Pubkey,
         col_symbol: String,
-        nft_index: u32,
         collection_bump: u8,
     ) -> Result<()> {
-        let redeem_mint = &mut ctx.accounts.redeem_mint;
-
-        let user = &mut ctx.accounts.user;
-        let user_redeem_wallet = &mut ctx.accounts.user_redeem_wallet;
-
-        let nft_user_token = &mut ctx.accounts.nft_user_token;
-        let nft_vault = &mut ctx.accounts.nft_vault;
-
-        let vault_metadata = &mut ctx.accounts.vault_metadata;
-
-        require!(nft_user_token.amount > 0, MyError::UserLacksNFT);
-        msg!("msg here: {}", 2);
+        require!(
+            ctx.accounts.nft_user_token.amount > 0,
+            MyError::UserLacksNFT
+        );
 
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
@@ -88,15 +77,9 @@ pub mod nftamm {
             1,
         );
 
-        let collection_pool = &mut ctx.accounts.collection_pool;
-        collection_pool.nft_count = collection_pool.nft_count + 1;
+        ctx.accounts.collection_pool.nft_count = ctx.accounts.collection_pool.nft_count + 1;
+        ctx.accounts.vault_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
-        let vault_metadata = &mut ctx.accounts.vault_metadata;
-        let nft_metadata = &mut ctx.accounts.nft_metadata;
-
-        vault_metadata.nft_metadata = nft_metadata.key();
-
-        msg!("msg here: {}", 3);
         Ok(())
     }
 
@@ -104,29 +87,11 @@ pub mod nftamm {
         ctx: Context<Vault_Withdraw>,
         col_creator: Pubkey,
         col_symbol: String,
-        nft_index: u32,
         collection_bump: u8,
     ) -> Result<()> {
         msg!("msg here: {}", 1);
 
-        let redeem_mint = &mut ctx.accounts.redeem_mint;
-
-        let user = &mut ctx.accounts.user;
-        let user_redeem_wallet = &mut ctx.accounts.user_redeem_wallet;
-
-        let nft_user_token = &mut ctx.accounts.nft_user_token;
-        let nft_vault = &mut ctx.accounts.nft_vault;
-
         // 1) transfer nft from pda to user nft account
-
-        let collection_pool = &mut ctx.accounts.collection_pool;
-
-        msg!("msg here: {}", 2);
-        msg!(
-            "user bal: {}, nft_vault bal: {}",
-            user.lamports(),
-            nft_vault.amount
-        );
 
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
@@ -146,7 +111,6 @@ pub mod nftamm {
             1,
         );
 
-        msg!("msg here: {}", 3);
         // 2) burn redeem token from user
         anchor_spl::token::burn(
             CpiContext::new_with_signer(
@@ -167,7 +131,6 @@ pub mod nftamm {
         )?;
 
         // 3) close pda nft vault
-        msg!("msg here: {}", 4);
         anchor_spl::token::close_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
             anchor_spl::token::CloseAccount {
@@ -183,22 +146,7 @@ pub mod nftamm {
             ]],
         ))?;
 
-        // msg!("msg here: {}", 5);
-        // anchor_spl::token::close_account(CpiContext::new_with_signer(
-        //     ctx.accounts.token_program.to_account_info().clone(),
-        //     anchor_spl::token::CloseAccount {
-        //         account: ctx.accounts.vault_metadata.to_account_info(),
-        //         destination: ctx.accounts.collection_pool.to_account_info(),
-        //         authority: ctx.accounts.collection_pool.to_account_info(),
-        //     },
-        //     &[&[
-        //         b"collection_pool".as_ref(),
-        //         col_symbol.as_ref(),
-        //         col_creator.as_ref(),
-        //         &[collection_bump],
-        //     ]],
-        // ))?;
-
+        ctx.accounts.collection_pool.nft_count = ctx.accounts.collection_pool.nft_count - 1;
         Ok(())
     }
 }
@@ -220,7 +168,7 @@ pub struct Initialize_Pool<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String, nft_index: u32, collection_bump: u8)]
+#[instruction(col_creator: Pubkey, col_symbol: String, collection_bump: u8)]
 pub struct Vault_Insert<'info> {
     #[account(
         mut,
@@ -276,7 +224,7 @@ pub struct Vault_Insert<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String, nft_index: u32, collection_bump: u8)]
+#[instruction(col_creator: Pubkey, col_symbol: String, collection_bump: u8)]
 pub struct Vault_Withdraw<'info> {
     #[account(
         mut,
