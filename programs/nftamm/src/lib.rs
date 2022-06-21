@@ -34,7 +34,6 @@ pub mod nftamm {
         collection_pool.nft_count = 0;
 
         msg!("msg in initialize here: {}", 2);
-        println!("print init here");
 
         Ok(())
     }
@@ -53,6 +52,8 @@ pub mod nftamm {
 
         let nft_user_token = &mut ctx.accounts.nft_user_token;
         let nft_vault = &mut ctx.accounts.nft_vault;
+
+        let vault_metadata = &mut ctx.accounts.vault_metadata;
 
         require!(nft_user_token.amount > 0, MyError::UserLacksNFT);
         msg!("msg here: {}", 2);
@@ -89,6 +90,11 @@ pub mod nftamm {
 
         let collection_pool = &mut ctx.accounts.collection_pool;
         collection_pool.nft_count = collection_pool.nft_count + 1;
+
+        let vault_metadata = &mut ctx.accounts.vault_metadata;
+        let nft_metadata = &mut ctx.accounts.nft_metadata;
+
+        vault_metadata.nft_metadata = nft_metadata.key();
 
         msg!("msg here: {}", 3);
         Ok(())
@@ -161,7 +167,7 @@ pub mod nftamm {
         )?;
 
         // 3) close pda nft vault
-
+        msg!("msg here: {}", 4);
         anchor_spl::token::close_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
             anchor_spl::token::CloseAccount {
@@ -177,7 +183,22 @@ pub mod nftamm {
             ]],
         ))?;
 
-        msg!("msg here: {}", 4);
+        // msg!("msg here: {}", 5);
+        // anchor_spl::token::close_account(CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info().clone(),
+        //     anchor_spl::token::CloseAccount {
+        //         account: ctx.accounts.vault_metadata.to_account_info(),
+        //         destination: ctx.accounts.collection_pool.to_account_info(),
+        //         authority: ctx.accounts.collection_pool.to_account_info(),
+        //     },
+        //     &[&[
+        //         b"collection_pool".as_ref(),
+        //         col_symbol.as_ref(),
+        //         col_creator.as_ref(),
+        //         &[collection_bump],
+        //     ]],
+        // ))?;
+
         Ok(())
     }
 }
@@ -190,6 +211,7 @@ pub struct Initialize_Pool<'info> {
 
     #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), collection_pool.key().as_ref()], bump, mint::decimals = 1, mint::authority = collection_pool, mint::freeze_authority = collection_pool) ]
     pub redeem_mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub creator: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
@@ -229,13 +251,21 @@ pub struct Vault_Insert<'info> {
     #[account(
         init,
         payer = user,
-        seeds = [b"nft_vault".as_ref(), collection_pool.key().as_ref(), nft_index.to_le_bytes().as_ref()],
-        constraint = collection_pool.nft_count == nft_index,
+        seeds = [b"nft_vault".as_ref(), collection_pool.key().as_ref(), nft_mint.key().as_ref()],
         token::mint = nft_mint,
         token::authority = collection_pool,
         bump
     )]
     pub nft_vault: Account<'info, TokenAccount>,
+
+    #[account(
+        init,
+        space = std::mem::size_of::<VaultMetadata>() + 8,
+        payer = user,
+        seeds = [b"vault_metadata".as_ref(), collection_pool.key().as_ref(), nft_vault.key().as_ref()],
+        bump
+    )]
+    pub vault_metadata: Account<'info, VaultMetadata>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -275,12 +305,20 @@ pub struct Vault_Withdraw<'info> {
 
     #[account(
         mut,
-        seeds = [b"nft_vault".as_ref(), collection_pool.key().as_ref(), nft_index.to_le_bytes().as_ref()],
+        seeds = [b"nft_vault".as_ref(), collection_pool.key().as_ref(), nft_mint.key().as_ref()],
         token::mint = nft_mint,
         token::authority = collection_pool,
         bump
     )]
     pub nft_vault: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault_metadata".as_ref(), collection_pool.key().as_ref(), nft_vault.key().as_ref()],
+        close = collection_pool,
+        bump
+    )]
+    pub vault_metadata: Account<'info, VaultMetadata>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -300,8 +338,8 @@ pub struct CollectionPool {
 
 #[account]
 #[derive(Default)]
-pub struct VaultAccount {
-    pub nft_index: u32,
+pub struct VaultMetadata {
+    pub nft_metadata: Pubkey,
 }
 
 #[error_code]
