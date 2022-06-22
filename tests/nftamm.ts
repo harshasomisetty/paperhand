@@ -1,76 +1,67 @@
-import * as anchor from "@project-serum/anchor";
-import {Program} from "@project-serum/anchor";
-import {Nftamm} from "../target/types/nftamm";
-import {PublicKey, LAMPORTS_PER_SOL, Keypair} from "@solana/web3.js";
 import {
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  getMint,
-  getAssociatedTokenAddress,
-  getOrCreateAssociatedTokenAccount,
-  getAccount,
-  createMint,
-  createAccount,
-  mintTo,
-} from "@solana/spl-token";
-import {
-  DataV2,
-  Collection,
-  Uses,
-  VerifyCollection,
-  CreateMetadataV2,
-  CreateMasterEditionV3,
-  UpdateMetadataV2,
-  SetAndVerifyCollectionCollection,
-  Metadata,
-} from "@metaplex-foundation/mpl-token-metadata";
-import {
-  Metaplex,
   bundlrStorage,
-  keypairIdentity,
-  findMetadataPda,
-  TransactionBuilder,
   createCreateMetadataAccountV2InstructionWithSigners,
-  createMintAndMintToAssociatedTokenBuilder,
-} from "@metaplex-foundation/js";
-
-const fs = require("fs");
-const assert = require("assert");
-const {SystemProgram, SYSVAR_RENT_PUBKEY} = anchor.web3;
+  findMetadataPda,
+  keypairIdentity,
+  Metaplex,
+  TransactionBuilder,
+} from '@metaplex-foundation/js';
+import { Metadata } from '@metaplex-foundation/mpl-token-metadata';
+import * as anchor from '@project-serum/anchor';
+import { Program } from '@project-serum/anchor';
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createMint,
+  getAccount,
+  getAssociatedTokenAddress,
+  getMint,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { Displaycase } from '../target/types/displaycase';
+import { Bazaar } from '../target/types/bazaar';
+const fs = require('fs');
+const assert = require('assert');
+const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
-const program = anchor.workspace.Nftamm as Program<Nftamm>;
-const programID = new PublicKey(program.idl["metadata"]["address"]);
+const Displaycase = anchor.workspace.Displaycase as Program<Displaycase>;
+const DisplaycaseID = new PublicKey(Displaycase.idl['metadata']['address']);
+
+const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
+const BazaarID = new PublicKey(Bazaar.idl['metadata']['address']);
 
 async function getVaultData(collectionPool: PublicKey, mintKey: PublicKey) {
   let [nftVault] = await PublicKey.findProgramAddress(
-    [Buffer.from("nft_vault"), collectionPool.toBuffer(), mintKey.toBuffer()],
-    programID
+    [Buffer.from('nft_vault'), collectionPool.toBuffer(), mintKey.toBuffer()],
+    DisplaycaseID
   );
 
   let [vaultMetadata] = await PublicKey.findProgramAddress(
     [
-      Buffer.from("vault_metadata"),
+      Buffer.from('vault_metadata'),
       collectionPool.toBuffer(),
       nftVault.toBuffer(),
     ],
-    programID
+    DisplaycaseID
   );
 
   return [nftVault, vaultMetadata];
 }
-describe("nftamm", () => {
+describe('displaycase', () => {
   /*
     This test suite will involve 2 users, and consist of:
     1) First init a 2 nfts for 2 collections.
-    2) Init the collection pool with parameters
-    3) Have each user insert an NFT into the pool
-    4) Fail user 1 from inserting an NFT from a wrong collection into this pool
+    2) Init the collection case with parameters
+    3) Have each user insert an NFT into the case
+    4) Fail user 1 from inserting an NFT from a wrong collection into this case
     5) Have user 1 use a redeem token to withdraw an NFT
     6) Have user 1 fail to withdraw another NFT
-    7) Verify that the pool still has 1 NFT, and ensure we can retrieve the NFT metadata
+    7) Verify that the case still has 1 NFT, and ensure we can retrieve the NFT metadata
   */
 
   const creator = Keypair.generate();
@@ -82,13 +73,13 @@ describe("nftamm", () => {
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
 
-  let colBaseSymbol = "NC";
-  let colRightSymbol = colBaseSymbol + "0";
-  let colWrongSymbol = colBaseSymbol + "1";
+  let colBaseSymbol = 'NC';
+  let colRightSymbol = colBaseSymbol + '0';
+  let colWrongSymbol = colBaseSymbol + '1';
   let colCurSymbol = colRightSymbol;
-  let nftName = "nft n";
+  let nftName = 'nft n';
 
-  let collectionPool, collectionBump;
+  let collectionCase, collectionBump;
   let redeemMint;
 
   let mintSize = 2;
@@ -98,23 +89,23 @@ describe("nftamm", () => {
 
   let nftUserTokenAccount;
 
-  it("Init create and mint collections and Metadata", async () => {
+  it('Init create and mint collections and Metadata', async () => {
     let airdropees = [creator.publicKey, user[0].publicKey, user[1].publicKey];
 
-    console.log("Airdropping...");
+    console.log('Airdropping...');
     for (const pubkey of airdropees) {
       await provider.connection.confirmTransaction(
         await provider.connection.requestAirdrop(pubkey, airdropVal),
-        "confirmed"
+        'confirmed'
       );
     }
 
-    console.log("Creating and uploading NFTs...");
+    console.log('Creating and uploading NFTs...');
     for (let i = 0; i < mintCount; i++) {
       collectionMints[i] = Array(mintSize);
 
       for (let j = 0; j < mintSize; j++) {
-        console.log("loop", i, j);
+        console.log('loop', i, j);
 
         let mintKey = await createMint(
           connection,
@@ -145,8 +136,8 @@ describe("nftamm", () => {
         let jsonData = {
           symbol: colBaseSymbol + i.toString(),
           name: nftName + j.toString(),
-          uri: "https://arweave.net/123",
-          description: "description of nft number" + j.toString(),
+          uri: 'https://arweave.net/123',
+          description: 'description of nft number' + j.toString(),
           creators: [
             {
               address: creator.publicKey,
@@ -209,24 +200,24 @@ describe("nftamm", () => {
       connection,
       nft.metadataAccount.publicKey
     );
-    // Check basic Collection Pool information.
-    assert(metadataData.data.data.symbol === colBaseSymbol + "0");
-    assert(metadataData.data.data.name === nftName + "0");
+    // Check basic Collection Case information.
+    assert(metadataData.data.data.symbol === colBaseSymbol + '0');
+    assert(metadataData.data.data.name === nftName + '0');
   });
 
-  it("Initialized collection pool!", async () => {
-    [collectionPool, collectionBump] = await PublicKey.findProgramAddress(
+  it('Initialized collection case!', async () => {
+    [collectionCase, collectionBump] = await PublicKey.findProgramAddress(
       [
-        Buffer.from("collection_pool"),
+        Buffer.from('collection_case'),
         Buffer.from(colCurSymbol),
         creator.publicKey.toBuffer(),
       ],
-      programID
+      DisplaycaseID
     );
 
     [redeemMint] = await PublicKey.findProgramAddress(
-      [Buffer.from("redeem_mint"), collectionPool.toBuffer()],
-      programID
+      [Buffer.from('redeem_mint'), collectionCase.toBuffer()],
+      DisplaycaseID
     );
 
     userRedeemWallet[0] = await getAssociatedTokenAddress(
@@ -252,30 +243,30 @@ describe("nftamm", () => {
       user[0].publicKey
     );
 
-    const tx = await program.methods
-      .initializePool(creator.publicKey, colCurSymbol)
+    const tx = await Displaycase.methods
+      .initializeCase(creator.publicKey, colCurSymbol)
       .accounts({
-        collectionPool: collectionPool,
+        collectionCase: collectionCase,
         redeemMint: redeemMint,
         creator: creator.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
+        systemProgram: SystemProgram.DisplaycaseId,
       })
       .signers([creator])
       .rpc();
 
-    let collectionPoolInfo = await program.account.collectionPool.fetch(
-      collectionPool
+    let collectionCaseInfo = await Displaycase.account.collectionCase.fetch(
+      collectionCase
     );
 
-    assert.ok(collectionPoolInfo.colSymbol === colCurSymbol);
+    assert.ok(collectionCaseInfo.colSymbol === colCurSymbol);
     assert.ok(
-      collectionPoolInfo.colCreator.toString() === creator.publicKey.toString()
+      collectionCaseInfo.colCreator.toString() === creator.publicKey.toString()
     );
   });
 
-  it("Inserted correct nft into corresponding vault!", async () => {
+  it('Inserted correct nft into corresponding vault!', async () => {
     // Prep accounts for depositing first NFT.
     let mintKey = collectionMints[0][0];
 
@@ -286,12 +277,12 @@ describe("nftamm", () => {
       nft.metadataAccount.publicKey
     );
 
-    let [nftVault, vaultMetadata] = await getVaultData(collectionPool, mintKey);
+    let [nftVault, vaultMetadata] = await getVaultData(collectionCase, mintKey);
 
-    let tx = await program.methods
+    let tx = await Displaycase.methods
       .vaultInsert(creator.publicKey, colCurSymbol, collectionBump)
       .accounts({
-        collectionPool: collectionPool,
+        collectionCase: collectionCase,
         redeemMint: redeemMint,
         userRedeemWallet: userRedeemWallet[0],
         nftMint: mintKey,
@@ -300,7 +291,7 @@ describe("nftamm", () => {
         nftVault: nftVault,
         vaultMetadata: vaultMetadata,
         user: user[0].publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: anchor.web3.SystemProgram.DisplaycaseId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -323,10 +314,10 @@ describe("nftamm", () => {
     let postNftVaultBal = await getAccount(provider.connection, nftVault);
     assert.ok(Number(postNftVaultBal.amount) == 1);
 
-    let collectionPoolInfo = await program.account.collectionPool.fetch(
-      collectionPool
+    let collectionCaseInfo = await Displaycase.account.collectionCase.fetch(
+      collectionCase
     );
-    assert.ok(collectionPoolInfo.nftCount == 1);
+    assert.ok(collectionCaseInfo.nftCount == 1);
 
     // Prepare accounts to deposit second nft.
 
@@ -347,14 +338,14 @@ describe("nftamm", () => {
     );
 
     let [nftVault2, vaultMetadata2] = await getVaultData(
-      collectionPool,
+      collectionCase,
       mintKey2
     );
 
-    tx = await program.methods
+    tx = await Displaycase.methods
       .vaultInsert(creator.publicKey, colCurSymbol, collectionBump)
       .accounts({
-        collectionPool: collectionPool,
+        collectionCase: collectionCase,
         redeemMint: redeemMint,
         userRedeemWallet: userRedeemWallet[1],
         nftMint: mintKey2,
@@ -363,7 +354,7 @@ describe("nftamm", () => {
         nftVault: nftVault2,
         vaultMetadata: vaultMetadata2,
         user: user[1].publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: anchor.web3.SystemProgram.DisplaycaseId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -372,7 +363,7 @@ describe("nftamm", () => {
       .rpc();
   });
 
-  it("Blocked inserting wrong nft into vault!", async () => {
+  it('Blocked inserting wrong nft into vault!', async () => {
     let mintKey = collectionMints[1][0];
 
     const nft = await metaplex.nfts().findByMint(mintKey);
@@ -382,14 +373,14 @@ describe("nftamm", () => {
       nft.metadataAccount.publicKey
     );
 
-    let [nftVault, vaultMetadata] = await getVaultData(collectionPool, mintKey);
+    let [nftVault, vaultMetadata] = await getVaultData(collectionCase, mintKey);
 
     let err;
     try {
-      const tx = await program.methods
+      const tx = await Displaycase.methods
         .vaultInsert(creator.publicKey, colCurSymbol, collectionBump)
         .accounts({
-          collectionPool: collectionPool,
+          collectionCase: collectionCase,
           redeemMint: redeemMint,
           userRedeemWallet: userRedeemWallet[0],
           nftMint: mintKey,
@@ -398,7 +389,7 @@ describe("nftamm", () => {
           nftVault: nftVault,
           vaultMetadata: vaultMetadata,
           user: user[0].publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
+          systemProgram: anchor.web3.SystemProgram.DisplaycaseId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -409,21 +400,21 @@ describe("nftamm", () => {
       err = error;
     }
 
-    assert.ok(err.error.origin == "collection_pool");
-    assert.ok(err.error.errorCode.code == "ConstraintRaw");
+    assert.ok(err.error.origin == 'collection_case');
+    assert.ok(err.error.errorCode.code == 'ConstraintRaw');
   });
 
-  it("Withdrew from vault!", async () => {
+  it('Withdrew from vault!', async () => {
     let mintKey = collectionMints[0][0];
 
     const nft = await metaplex.nfts().findByMint(mintKey);
 
-    let [nftVault, vaultMetadata] = await getVaultData(collectionPool, mintKey);
+    let [nftVault, vaultMetadata] = await getVaultData(collectionCase, mintKey);
 
-    const tx = await program.methods
+    const tx = await Displaycase.methods
       .vaultWithdraw(creator.publicKey, colCurSymbol, collectionBump)
       .accounts({
-        collectionPool: collectionPool,
+        collectionCase: collectionCase,
         redeemMint: redeemMint,
         user: user[0].publicKey,
         userRedeemWallet: userRedeemWallet[0],
@@ -432,7 +423,7 @@ describe("nftamm", () => {
         nftUserToken: nftUserTokenAccount.address,
         nftVault: nftVault,
         vaultMetadata: vaultMetadata,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: anchor.web3.SystemProgram.DisplaycaseId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -455,19 +446,19 @@ describe("nftamm", () => {
     assert.ok((await connection.getAccountInfo(nftVault)) == null);
   });
 
-  it("Failed withdrawing from vault from lack of redeem tokens!", async () => {
+  it('Failed withdrawing from vault from lack of redeem tokens!', async () => {
     let mintKey = collectionMints[0][0];
 
     const nft = await metaplex.nfts().findByMint(mintKey);
 
-    let [nftVault, vaultMetadata] = await getVaultData(collectionPool, mintKey);
+    let [nftVault, vaultMetadata] = await getVaultData(collectionCase, mintKey);
 
     let err;
     try {
-      const tx = await program.methods
+      const tx = await Displaycase.methods
         .vaultWithdraw(creator.publicKey, colCurSymbol, collectionBump)
         .accounts({
-          collectionPool: collectionPool,
+          collectionCase: collectionCase,
           redeemMint: redeemMint,
           user: user[0].publicKey,
           userRedeemWallet: userRedeemWallet[0],
@@ -476,7 +467,7 @@ describe("nftamm", () => {
           nftUserToken: nftUserTokenAccount.address,
           nftVault: nftVault,
           vaultMetadata: vaultMetadata,
-          systemProgram: anchor.web3.SystemProgram.programId,
+          systemProgram: anchor.web3.SystemProgram.DisplaycaseId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -487,25 +478,25 @@ describe("nftamm", () => {
       err = error;
     }
 
-    assert.ok(err.error.origin == "nft_vault");
-    assert.ok(err.error.errorCode.code == "AccountNotInitialized");
+    assert.ok(err.error.origin == 'nft_vault');
+    assert.ok(err.error.errorCode.code == 'AccountNotInitialized');
   });
 
-  it("Verified final pool details", async () => {
+  it('Verified final case details', async () => {
     // Make sure there is only 1 nft left
 
     let [nftVault, vaultMetadata] = await getVaultData(
-      collectionPool,
+      collectionCase,
       collectionMints[0][0]
     );
 
     let [nftVault2, vaultMetadata2] = await getVaultData(
-      collectionPool,
+      collectionCase,
       collectionMints[0][1]
     );
 
     let allVaultAccounts = await connection.getTokenAccountsByOwner(
-      collectionPool,
+      collectionCase,
       {
         programId: TOKEN_PROGRAM_ID,
       }
@@ -524,14 +515,14 @@ describe("nftamm", () => {
     for (let vaultKey of vaultKeys) {
       let [tempVaultMetadata] = await PublicKey.findProgramAddress(
         [
-          Buffer.from("vault_metadata"),
-          collectionPool.toBuffer(),
+          Buffer.from('vault_metadata'),
+          collectionCase.toBuffer(),
           vaultKey.toBuffer(),
         ],
-        programID
+        DisplaycaseID
       );
 
-      let vaultInfo = await program.account.vaultMetadata.fetch(
+      let vaultInfo = await Displaycase.account.vaultMetadata.fetch(
         tempVaultMetadata
       );
       vaultMetadatas.push(vaultInfo.nftMetadata);
@@ -543,7 +534,11 @@ describe("nftamm", () => {
     assert.ok(vaultMetadatas[0].toString() == actualMetadata2.toString());
   });
 
-  program.provider.connection.onLogs("all", ({logs}) => {
+  // it("tested bazaar", async () =>
+  //   await Bazaar.methods.initialize().rpc()
+  // )
+
+  Displaycase.provider.connection.onLogs('all', ({ logs }) => {
     console.log(logs);
   });
 });

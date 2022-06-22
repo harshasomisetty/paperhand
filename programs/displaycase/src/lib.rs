@@ -17,21 +17,21 @@ use crate::state::{
     metaplex_anchor::TokenMetadata,
 };
 
-declare_id!("5bT8jS7JqHwpA6m5aC1PtJgpHGoZ9R9MxyZptkoPDJp8");
+declare_id!("7B8GqEqhs1rhyzgeWcUkY9Fnfv7uNMRRsnyLeALkBSg7");
 
 #[program]
-pub mod nftamm {
+pub mod displaycase {
     use super::*;
 
-    pub fn initialize_pool(
-        ctx: Context<Initialize_Pool>,
+    pub fn initialize_case(
+        ctx: Context<Initialize_Case>,
         col_creator: Pubkey,
         col_symbol: String,
     ) -> Result<()> {
-        let collection_pool = &mut ctx.accounts.collection_pool;
-        collection_pool.col_creator = col_creator;
-        collection_pool.col_symbol = col_symbol;
-        collection_pool.nft_count = 0;
+        let collection_case = &mut ctx.accounts.collection_case;
+        collection_case.col_creator = col_creator;
+        collection_case.col_symbol = col_symbol;
+        collection_case.nft_count = 0;
 
         Ok(())
     }
@@ -53,10 +53,10 @@ pub mod nftamm {
                 anchor_spl::token::MintTo {
                     mint: ctx.accounts.redeem_mint.to_account_info(),
                     to: ctx.accounts.user_redeem_wallet.to_account_info(),
-                    authority: ctx.accounts.collection_pool.to_account_info(),
+                    authority: ctx.accounts.collection_case.to_account_info(),
                 },
                 &[&[
-                    b"collection_pool".as_ref(),
+                    b"collection_case".as_ref(),
                     col_symbol.as_ref(),
                     col_creator.as_ref(),
                     &[collection_bump],
@@ -77,7 +77,7 @@ pub mod nftamm {
             1,
         );
 
-        ctx.accounts.collection_pool.nft_count = ctx.accounts.collection_pool.nft_count + 1;
+        ctx.accounts.collection_case.nft_count = ctx.accounts.collection_case.nft_count + 1;
         ctx.accounts.vault_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
         Ok(())
@@ -99,10 +99,10 @@ pub mod nftamm {
                 anchor_spl::token::Transfer {
                     from: ctx.accounts.nft_vault.to_account_info(),
                     to: ctx.accounts.nft_user_token.to_account_info(),
-                    authority: ctx.accounts.collection_pool.to_account_info(),
+                    authority: ctx.accounts.collection_case.to_account_info(),
                 },
                 &[&[
-                    b"collection_pool".as_ref(),
+                    b"collection_case".as_ref(),
                     col_symbol.as_ref(),
                     col_creator.as_ref(),
                     &[collection_bump],
@@ -121,7 +121,7 @@ pub mod nftamm {
                     authority: ctx.accounts.user.to_account_info(),
                 },
                 &[&[
-                    b"collection_pool".as_ref(),
+                    b"collection_case".as_ref(),
                     col_symbol.as_ref(),
                     col_creator.as_ref(),
                     &[collection_bump],
@@ -135,29 +135,29 @@ pub mod nftamm {
             ctx.accounts.token_program.to_account_info().clone(),
             anchor_spl::token::CloseAccount {
                 account: ctx.accounts.nft_vault.to_account_info(),
-                destination: ctx.accounts.collection_pool.to_account_info(),
-                authority: ctx.accounts.collection_pool.to_account_info(),
+                destination: ctx.accounts.collection_case.to_account_info(),
+                authority: ctx.accounts.collection_case.to_account_info(),
             },
             &[&[
-                b"collection_pool".as_ref(),
+                b"collection_case".as_ref(),
                 col_symbol.as_ref(),
                 col_creator.as_ref(),
                 &[collection_bump],
             ]],
         ))?;
 
-        ctx.accounts.collection_pool.nft_count = ctx.accounts.collection_pool.nft_count - 1;
+        ctx.accounts.collection_case.nft_count = ctx.accounts.collection_case.nft_count - 1;
         Ok(())
     }
 }
 
 #[derive(Accounts)]
 #[instruction(col_creator: Pubkey, col_symbol: String)]
-pub struct Initialize_Pool<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<CollectionPool>(), seeds = [b"collection_pool".as_ref(), col_symbol.as_ref(), col_creator.as_ref()], bump)]
-    pub collection_pool: Account<'info, CollectionPool>,
+pub struct Initialize_Case<'info> {
+    #[account(init, payer = creator, space = std::mem::size_of::<CollectionCase>(), seeds = [b"collection_case".as_ref(), col_symbol.as_ref(), col_creator.as_ref()], bump)]
+    pub collection_case: Account<'info, CollectionCase>,
 
-    #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), collection_pool.key().as_ref()], bump, mint::decimals = 1, mint::authority = collection_pool, mint::freeze_authority = collection_pool) ]
+    #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), collection_case.key().as_ref()], bump, mint::decimals = 1, mint::authority = collection_case, mint::freeze_authority = collection_case) ]
     pub redeem_mint: Account<'info, Mint>,
 
     #[account(mut)]
@@ -172,7 +172,7 @@ pub struct Initialize_Pool<'info> {
 pub struct Vault_Insert<'info> {
     #[account(
         mut,
-        constraint = redeem_mint.mint_authority == COption::Some(collection_pool.key())
+        constraint = redeem_mint.mint_authority == COption::Some(collection_case.key())
     )]
     pub redeem_mint: Account<'info, Mint>,
     #[account(
@@ -191,17 +191,17 @@ pub struct Vault_Insert<'info> {
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_pool.col_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_pool.col_creator
+        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_case.col_symbol,
+        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_case.col_creator
     )]
-    pub collection_pool: Box<Account<'info, CollectionPool>>,
+    pub collection_case: Box<Account<'info, CollectionCase>>,
 
     #[account(
         init,
         payer = user,
-        seeds = [b"nft_vault".as_ref(), collection_pool.key().as_ref(), nft_mint.key().as_ref()],
+        seeds = [b"nft_vault".as_ref(), collection_case.key().as_ref(), nft_mint.key().as_ref()],
         token::mint = nft_mint,
-        token::authority = collection_pool,
+        token::authority = collection_case,
         bump
     )]
     pub nft_vault: Account<'info, TokenAccount>,
@@ -210,7 +210,7 @@ pub struct Vault_Insert<'info> {
         init,
         space = std::mem::size_of::<VaultMetadata>() + 8,
         payer = user,
-        seeds = [b"vault_metadata".as_ref(), collection_pool.key().as_ref(), nft_vault.key().as_ref()],
+        seeds = [b"vault_metadata".as_ref(), collection_case.key().as_ref(), nft_vault.key().as_ref()],
         bump
     )]
     pub vault_metadata: Account<'info, VaultMetadata>,
@@ -228,7 +228,7 @@ pub struct Vault_Insert<'info> {
 pub struct Vault_Withdraw<'info> {
     #[account(
         mut,
-        constraint = redeem_mint.mint_authority == COption::Some(collection_pool.key())
+        constraint = redeem_mint.mint_authority == COption::Some(collection_case.key())
     )]
     pub redeem_mint: Account<'info, Mint>,
     #[account(
@@ -246,24 +246,24 @@ pub struct Vault_Withdraw<'info> {
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_pool.col_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_pool.col_creator
+        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_case.col_symbol,
+        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_case.col_creator
     )]
-    pub collection_pool: Box<Account<'info, CollectionPool>>,
+    pub collection_case: Box<Account<'info, CollectionCase>>,
 
     #[account(
         mut,
-        seeds = [b"nft_vault".as_ref(), collection_pool.key().as_ref(), nft_mint.key().as_ref()],
+        seeds = [b"nft_vault".as_ref(), collection_case.key().as_ref(), nft_mint.key().as_ref()],
         token::mint = nft_mint,
-        token::authority = collection_pool,
+        token::authority = collection_case,
         bump
     )]
     pub nft_vault: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        seeds = [b"vault_metadata".as_ref(), collection_pool.key().as_ref(), nft_vault.key().as_ref()],
-        close = collection_pool,
+        seeds = [b"vault_metadata".as_ref(), collection_case.key().as_ref(), nft_vault.key().as_ref()],
+        close = collection_case,
         bump
     )]
     pub vault_metadata: Account<'info, VaultMetadata>,
@@ -278,7 +278,7 @@ pub struct Vault_Withdraw<'info> {
 
 #[account]
 #[derive(Default)]
-pub struct CollectionPool {
+pub struct CollectionCase {
     pub col_creator: Pubkey,
     pub col_symbol: String,
     pub nft_count: u32,
