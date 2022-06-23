@@ -17,30 +17,30 @@ use crate::state::{
     metaplex_anchor::TokenMetadata,
 };
 
-declare_id!("7B8GqEqhs1rhyzgeWcUkY9Fnfv7uNMRRsnyLeALkBSg7");
+declare_id!("HuDzzsYtxmz7mSXTQ2gheKdLM3UTkFhbCTVKuARhsHsZ");
 
 #[program]
-pub mod displaycase {
+pub mod exhibition{
     use super::*;
 
-    pub fn initialize_case(
-        ctx: Context<Initialize_Case>,
+    pub fn initialize_exhibit(
+        ctx: Context<Initialize_Exhibit>,
         col_creator: Pubkey,
         col_symbol: String,
     ) -> Result<()> {
-        let collection_case = &mut ctx.accounts.collection_case;
-        collection_case.col_creator = col_creator;
-        collection_case.col_symbol = col_symbol;
-        collection_case.nft_count = 0;
+        let exhibit = &mut ctx.accounts.exhibit;
+        exhibit.col_creator = col_creator;
+        exhibit.col_symbol = col_symbol;
+        exhibit.nft_count = 0;
 
         Ok(())
     }
 
-    pub fn vault_insert(
-        ctx: Context<Vault_Insert>,
+    pub fn artifact_insert(
+        ctx: Context<Artifact_Insert>,
         col_creator: Pubkey,
         col_symbol: String,
-        collection_bump: u8,
+        exhibit_bump: u8,
     ) -> Result<()> {
         require!(
             ctx.accounts.nft_user_token.amount > 0,
@@ -53,13 +53,13 @@ pub mod displaycase {
                 anchor_spl::token::MintTo {
                     mint: ctx.accounts.redeem_mint.to_account_info(),
                     to: ctx.accounts.user_redeem_wallet.to_account_info(),
-                    authority: ctx.accounts.collection_case.to_account_info(),
+                    authority: ctx.accounts.exhibit.to_account_info(),
                 },
                 &[&[
-                    b"collection_case".as_ref(),
+                    b"exhibit".as_ref(),
                     col_symbol.as_ref(),
                     col_creator.as_ref(),
-                    &[collection_bump],
+                    &[exhibit_bump],
                 ]],
             ),
             1,
@@ -70,24 +70,24 @@ pub mod displaycase {
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
                     from: ctx.accounts.nft_user_token.to_account_info(),
-                    to: ctx.accounts.nft_vault.to_account_info(),
+                    to: ctx.accounts.nft_artifact.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
             1,
         );
 
-        ctx.accounts.collection_case.nft_count = ctx.accounts.collection_case.nft_count + 1;
-        ctx.accounts.vault_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
+        ctx.accounts.exhibit.nft_count = ctx.accounts.exhibit.nft_count + 1;
+        ctx.accounts.artifact_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
         Ok(())
     }
 
-    pub fn vault_withdraw(
-        ctx: Context<Vault_Withdraw>,
+    pub fn artifact_withdraw(
+        ctx: Context<Artifact_Withdraw>,
         col_creator: Pubkey,
         col_symbol: String,
-        collection_bump: u8,
+        exhibit_bump: u8,
     ) -> Result<()> {
         msg!("msg here: {}", 1);
 
@@ -97,15 +97,15 @@ pub mod displaycase {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.nft_vault.to_account_info(),
+                    from: ctx.accounts.nft_artifact.to_account_info(),
                     to: ctx.accounts.nft_user_token.to_account_info(),
-                    authority: ctx.accounts.collection_case.to_account_info(),
+                    authority: ctx.accounts.exhibit.to_account_info(),
                 },
                 &[&[
-                    b"collection_case".as_ref(),
+                    b"exhibit".as_ref(),
                     col_symbol.as_ref(),
                     col_creator.as_ref(),
-                    &[collection_bump],
+                    &[exhibit_bump],
                 ]],
             ),
             1,
@@ -121,43 +121,43 @@ pub mod displaycase {
                     authority: ctx.accounts.user.to_account_info(),
                 },
                 &[&[
-                    b"collection_case".as_ref(),
+                    b"exhibit".as_ref(),
                     col_symbol.as_ref(),
                     col_creator.as_ref(),
-                    &[collection_bump],
+                    &[exhibit_bump],
                 ]],
             ),
             1,
         )?;
 
-        // 3) close pda nft vault
+        // 3) close pda nft artifact
         anchor_spl::token::close_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
             anchor_spl::token::CloseAccount {
-                account: ctx.accounts.nft_vault.to_account_info(),
-                destination: ctx.accounts.collection_case.to_account_info(),
-                authority: ctx.accounts.collection_case.to_account_info(),
+                account: ctx.accounts.nft_artifact.to_account_info(),
+                destination: ctx.accounts.exhibit.to_account_info(),
+                authority: ctx.accounts.exhibit.to_account_info(),
             },
             &[&[
-                b"collection_case".as_ref(),
+                b"exhibit".as_ref(),
                 col_symbol.as_ref(),
                 col_creator.as_ref(),
-                &[collection_bump],
+                &[exhibit_bump],
             ]],
         ))?;
 
-        ctx.accounts.collection_case.nft_count = ctx.accounts.collection_case.nft_count - 1;
+        ctx.accounts.exhibit.nft_count = ctx.accounts.exhibit.nft_count - 1;
         Ok(())
     }
 }
 
 #[derive(Accounts)]
 #[instruction(col_creator: Pubkey, col_symbol: String)]
-pub struct Initialize_Case<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<CollectionCase>(), seeds = [b"collection_case".as_ref(), col_symbol.as_ref(), col_creator.as_ref()], bump)]
-    pub collection_case: Account<'info, CollectionCase>,
+pub struct Initialize_Exhibit<'info> {
+    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), col_symbol.as_ref(), col_creator.as_ref()], bump)]
+    pub exhibit: Account<'info, Exhibit>,
 
-    #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), collection_case.key().as_ref()], bump, mint::decimals = 1, mint::authority = collection_case, mint::freeze_authority = collection_case) ]
+    #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump, mint::decimals = 1, mint::authority = exhibit, mint::freeze_authority = exhibit) ]
     pub redeem_mint: Account<'info, Mint>,
 
     #[account(mut)]
@@ -168,11 +168,11 @@ pub struct Initialize_Case<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String, collection_bump: u8)]
-pub struct Vault_Insert<'info> {
+#[instruction(col_creator: Pubkey, col_symbol: String, exhibit_bump: u8)]
+pub struct Artifact_Insert<'info> {
     #[account(
         mut,
-        constraint = redeem_mint.mint_authority == COption::Some(collection_case.key())
+        constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
     )]
     pub redeem_mint: Account<'info, Mint>,
     #[account(
@@ -191,29 +191,29 @@ pub struct Vault_Insert<'info> {
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_case.col_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_case.col_creator
+        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.col_symbol,
+        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.col_creator
     )]
-    pub collection_case: Box<Account<'info, CollectionCase>>,
+    pub exhibit: Box<Account<'info, Exhibit>>,
 
     #[account(
         init,
         payer = user,
-        seeds = [b"nft_vault".as_ref(), collection_case.key().as_ref(), nft_mint.key().as_ref()],
+        seeds = [b"nft_artifact".as_ref(), exhibit.key().as_ref(), nft_mint.key().as_ref()],
         token::mint = nft_mint,
-        token::authority = collection_case,
+        token::authority = exhibit,
         bump
     )]
-    pub nft_vault: Account<'info, TokenAccount>,
+    pub nft_artifact: Account<'info, TokenAccount>,
 
     #[account(
         init,
-        space = std::mem::size_of::<VaultMetadata>() + 8,
+        space = std::mem::size_of::<ArtifactMetadata>() + 8,
         payer = user,
-        seeds = [b"vault_metadata".as_ref(), collection_case.key().as_ref(), nft_vault.key().as_ref()],
+        seeds = [b"artifact_metadata".as_ref(), exhibit.key().as_ref(), nft_artifact.key().as_ref()],
         bump
     )]
-    pub vault_metadata: Account<'info, VaultMetadata>,
+    pub artifact_metadata: Account<'info, ArtifactMetadata>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -224,11 +224,11 @@ pub struct Vault_Insert<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String, collection_bump: u8)]
-pub struct Vault_Withdraw<'info> {
+#[instruction(col_creator: Pubkey, col_symbol: String, exhibit_bump: u8)]
+pub struct Artifact_Withdraw<'info> {
     #[account(
         mut,
-        constraint = redeem_mint.mint_authority == COption::Some(collection_case.key())
+        constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
     )]
     pub redeem_mint: Account<'info, Mint>,
     #[account(
@@ -246,27 +246,27 @@ pub struct Vault_Withdraw<'info> {
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == collection_case.col_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == collection_case.col_creator
+        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.col_symbol,
+        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.col_creator
     )]
-    pub collection_case: Box<Account<'info, CollectionCase>>,
+    pub exhibit: Box<Account<'info, Exhibit>>,
 
     #[account(
         mut,
-        seeds = [b"nft_vault".as_ref(), collection_case.key().as_ref(), nft_mint.key().as_ref()],
+        seeds = [b"nft_artifact".as_ref(), exhibit.key().as_ref(), nft_mint.key().as_ref()],
         token::mint = nft_mint,
-        token::authority = collection_case,
+        token::authority = exhibit,
         bump
     )]
-    pub nft_vault: Account<'info, TokenAccount>,
+    pub nft_artifact: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        seeds = [b"vault_metadata".as_ref(), collection_case.key().as_ref(), nft_vault.key().as_ref()],
-        close = collection_case,
+        seeds = [b"artifact_metadata".as_ref(), exhibit.key().as_ref(), nft_artifact.key().as_ref()],
+        close = exhibit,
         bump
     )]
-    pub vault_metadata: Account<'info, VaultMetadata>,
+    pub artifact_metadata: Account<'info, ArtifactMetadata>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -278,7 +278,7 @@ pub struct Vault_Withdraw<'info> {
 
 #[account]
 #[derive(Default)]
-pub struct CollectionCase {
+pub struct Exhibit {
     pub col_creator: Pubkey,
     pub col_symbol: String,
     pub nft_count: u32,
@@ -286,7 +286,7 @@ pub struct CollectionCase {
 
 #[account]
 #[derive(Default)]
-pub struct VaultMetadata {
+pub struct ArtifactMetadata {
     pub nft_metadata: Pubkey,
 }
 

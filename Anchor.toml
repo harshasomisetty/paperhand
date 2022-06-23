@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-displaycase = "7B8GqEqhs1rhyzgeWcUkY9Fnfv7uNMRRsnyLeALkBSg7"
+exhibition = "HuDzzsYtxmz7mSXTQ2gheKdLM3UTkFhbCTVKuARhsHsZ"
 bazaar = "6Duew5DzYuBMvRPXTXRML2wvp2EvdPKgBofKhUwxHGQi"
 
 [registry]

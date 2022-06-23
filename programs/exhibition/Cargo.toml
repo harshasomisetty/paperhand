@@ -1,12 +1,12 @@
 [package]
-name = "displaycase"
+name = "exhibition"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "displaycase"
+name = "exhibition"
 
 [features]
 no-entrypoint = []
