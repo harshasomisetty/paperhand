@@ -1,5 +1,5 @@
-import * as anchor from '@project-serum/anchor';
-import { Program } from '@project-serum/anchor';
+import * as anchor from "@project-serum/anchor";
+import { Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
@@ -9,20 +9,19 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { Bazaar } from '../target/types/bazaar';
-const fs = require('fs');
-const assert = require('assert');
+} from "@solana/spl-token";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Bazaar } from "../target/types/bazaar";
+const fs = require("fs");
+const assert = require("assert");
 const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
 const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
-const BazaarID = new PublicKey(Bazaar.idl['metadata']['address']);
-
-describe('bazaar', () => {
+const BazaarID = Bazaar.programId;
+describe("bazaar", () => {
   /* end goal should be for user to press a button that opens the display case and bazaar simultaneously
    * need to give creator option to bootstrap liq
    * so first open display case, spend some time inserting etc
@@ -34,66 +33,123 @@ describe('bazaar', () => {
    * next step, allow for user1 to withdraw liq*/
 
   const creator = Keypair.generate();
+
   const user = [Keypair.generate(), Keypair.generate()];
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
   const marketState = Keypair.generate();
 
-  let marketAuth;
-  let marketMint;
-  let marketTokenFee;
-  let tokenAMint;
-  let tokenBmint;
-  let marketTokenA;
-  let marketTokenB;
+  let exhibit: PublicKey;
+  let marketAuth: PublicKey;
+  let marketMint: PublicKey;
+  let marketTokenFee: PublicKey;
+  let tokenMints: PublicKey[];
+  let marketTokens: PublicKey[];
 
-  it('Init variables', async () => {
+  let colCurSymbol = "nft0";
+  it("Init variables", async () => {
     let airdropees = [creator, ...user];
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
         await provider.connection.requestAirdrop(dropee.publicKey, airdropVal),
-        'confirmed'
+        "confirmed"
       );
     }
 
+    [exhibit] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("exhibit"),
+        Buffer.from(colCurSymbol),
+        creator.publicKey.toBuffer(),
+      ],
+      BazaarID
+    );
+
     [marketAuth] = await PublicKey.findProgramAddress(
-      [Buffer.from('market_auth'), marketState.publicKey.toBuffer()],
+      [Buffer.from("market_auth"), exhibit.toBuffer()],
       BazaarID
     );
 
     [marketMint] = await PublicKey.findProgramAddress(
-      [Buffer.from('market_mint'), marketState.publicKey.toBuffer()],
+      [Buffer.from("redeem_mint"), marketAuth.toBuffer()],
       BazaarID
     );
 
-    [marketTokenA] = await PublicKey.findProgramAddress(
-      [Buffer.from('marketTokenA'), marketState.publicKey.toBuffer()],
+    [marketTokens[0]] = await PublicKey.findProgramAddress(
+      [Buffer.from("token_a"), marketAuth.toBuffer()],
       BazaarID
     );
 
-    [marketTokenB] = await PublicKey.findProgramAddress(
-      [Buffer.from('marketTokenB'), marketState.publicKey.toBuffer()],
+    [marketTokens[1]] = await PublicKey.findProgramAddress(
+      [Buffer.from("token_a"), marketAuth.toBuffer()],
       BazaarID
     );
 
-    // it('init market', async () => {
+    for (let i = 0; i < 2; i++) {
+      tokenMints[i] = await createMint(
+        connection,
+        creator,
+        creator.publicKey,
+        creator.publicKey,
+        0
+      );
+    }
 
-    // })
+    const tx = await Bazaar.methods
+      .initializeExhibit(creator.publicKey, colCurSymbol)
+      .accounts({
+        exhibit: exhibit,
+        creator: creator.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([creator])
+      .rpc();
 
-    // it('deposit liq', async () => {
+    let exhibitInfo = await Bazaar.account.exhibit.fetch(exhibit);
 
-    // })
-
-    // it('swap', async () => {
-
-    // })
-
-    // it('withdraw liq', async () => {
-
-    // })
+    assert.ok(exhibitInfo.colSymbol === colCurSymbol);
+    assert.ok(
+      exhibitInfo.colCreator.toString() === creator.publicKey.toString()
+    );
   });
 
-  Bazaar.provider.connection.onLogs('all', ({ logs }) => {
+  it("init market", async () => {
+    const tx = await Bazaar.methods
+      .initializeMarket(creator.publicKey, colCurSymbol)
+      .accounts({
+        exhibit: exhibit,
+        marketAuth: marketAuth,
+        marketMint: marketMint,
+        marketTokenFee: marketTokenFee,
+        tokenAMint: tokenMints[0],
+        tokenBMint: tokenMints[1],
+        marketTokenA: marketTokens[0],
+        marketTokenB: marketTokens[1],
+        creator: creator.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([creator])
+      .rpc();
+  });
+
+  // it('deposit liq', async () => {
+
+  // })
+
+  // it('swap', async () => {
+
+  // })
+
+  // it('withdraw liq', async () => {
+
+  // })
+
+  Bazaar.provider.connection.onLogs("all", ({ logs }) => {
     console.log(logs);
   });
 });

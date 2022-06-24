@@ -20,17 +20,17 @@ use crate::state::{
 declare_id!("HuDzzsYtxmz7mSXTQ2gheKdLM3UTkFhbCTVKuARhsHsZ");
 
 #[program]
-pub mod exhibition{
+pub mod exhibition {
     use super::*;
 
     pub fn initialize_exhibit(
         ctx: Context<Initialize_Exhibit>,
-        col_creator: Pubkey,
-        col_symbol: String,
+        exhibit_creator: Pubkey,
+        exhibit_symbol: String,
     ) -> Result<()> {
         let exhibit = &mut ctx.accounts.exhibit;
-        exhibit.col_creator = col_creator;
-        exhibit.col_symbol = col_symbol;
+        exhibit.exhibit_creator = exhibit_creator;
+        exhibit.exhibit_symbol = exhibit_symbol;
         exhibit.nft_count = 0;
 
         Ok(())
@@ -38,8 +38,8 @@ pub mod exhibition{
 
     pub fn artifact_insert(
         ctx: Context<Artifact_Insert>,
-        col_creator: Pubkey,
-        col_symbol: String,
+        exhibit_creator: Pubkey,
+        exhibit_symbol: String,
         exhibit_bump: u8,
     ) -> Result<()> {
         require!(
@@ -57,8 +57,8 @@ pub mod exhibition{
                 },
                 &[&[
                     b"exhibit".as_ref(),
-                    col_symbol.as_ref(),
-                    col_creator.as_ref(),
+                    exhibit_symbol.as_ref(),
+                    exhibit_creator.as_ref(),
                     &[exhibit_bump],
                 ]],
             ),
@@ -85,8 +85,8 @@ pub mod exhibition{
 
     pub fn artifact_withdraw(
         ctx: Context<Artifact_Withdraw>,
-        col_creator: Pubkey,
-        col_symbol: String,
+        exhibit_creator: Pubkey,
+        exhibit_symbol: String,
         exhibit_bump: u8,
     ) -> Result<()> {
         msg!("msg here: {}", 1);
@@ -103,8 +103,8 @@ pub mod exhibition{
                 },
                 &[&[
                     b"exhibit".as_ref(),
-                    col_symbol.as_ref(),
-                    col_creator.as_ref(),
+                    exhibit_symbol.as_ref(),
+                    exhibit_creator.as_ref(),
                     &[exhibit_bump],
                 ]],
             ),
@@ -122,8 +122,8 @@ pub mod exhibition{
                 },
                 &[&[
                     b"exhibit".as_ref(),
-                    col_symbol.as_ref(),
-                    col_creator.as_ref(),
+                    exhibit_symbol.as_ref(),
+                    exhibit_creator.as_ref(),
                     &[exhibit_bump],
                 ]],
             ),
@@ -140,8 +140,8 @@ pub mod exhibition{
             },
             &[&[
                 b"exhibit".as_ref(),
-                col_symbol.as_ref(),
-                col_creator.as_ref(),
+                exhibit_symbol.as_ref(),
+                exhibit_creator.as_ref(),
                 &[exhibit_bump],
             ]],
         ))?;
@@ -152,9 +152,9 @@ pub mod exhibition{
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String)]
+#[instruction(exhibit_creator: Pubkey, exhibit_symbol: String)]
 pub struct Initialize_Exhibit<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), col_symbol.as_ref(), col_creator.as_ref()], bump)]
+    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), exhibit_creator.as_ref()], bump)]
     pub exhibit: Account<'info, Exhibit>,
 
     #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump, mint::decimals = 1, mint::authority = exhibit, mint::freeze_authority = exhibit) ]
@@ -168,7 +168,7 @@ pub struct Initialize_Exhibit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String, exhibit_bump: u8)]
+#[instruction(exhibit_creator: Pubkey, exhibit_symbol: String, exhibit_bump: u8)]
 pub struct Artifact_Insert<'info> {
     #[account(
         mut,
@@ -191,8 +191,8 @@ pub struct Artifact_Insert<'info> {
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.col_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.col_creator
+        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.exhibit_symbol,
+        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.exhibit_creator
     )]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
@@ -224,7 +224,7 @@ pub struct Artifact_Insert<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(col_creator: Pubkey, col_symbol: String, exhibit_bump: u8)]
+#[instruction(exhibit_creator: Pubkey, exhibit_symbol: String, exhibit_bump: u8)]
 pub struct Artifact_Withdraw<'info> {
     #[account(
         mut,
@@ -246,8 +246,8 @@ pub struct Artifact_Withdraw<'info> {
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.col_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.col_creator
+        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.exhibit_symbol,
+        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.exhibit_creator
     )]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
@@ -279,8 +279,8 @@ pub struct Artifact_Withdraw<'info> {
 #[account]
 #[derive(Default)]
 pub struct Exhibit {
-    pub col_creator: Pubkey,
-    pub col_symbol: String,
+    pub exhibit_creator: Pubkey,
+    pub exhibit_symbol: String,
     pub nft_count: u32,
 }
 
