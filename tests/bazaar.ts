@@ -76,7 +76,7 @@ describe("bazaar", () => {
     );
 
     [marketMint] = await PublicKey.findProgramAddress(
-      [Buffer.from("redeem_mint"), marketAuth.toBuffer()],
+      [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
       BazaarID
     );
 
@@ -90,14 +90,12 @@ describe("bazaar", () => {
       BazaarID
     );
 
-    console.log("prev");
     marketTokenFee = await getAssociatedTokenAddress(
       marketMint,
       marketAuth,
       true
     );
 
-    console.log("on temp");
     // this is pool liq token address
     creatorTokens[2] = await getAssociatedTokenAddress(
       marketMint,
@@ -137,7 +135,8 @@ describe("bazaar", () => {
 
     let exhibitInfo = await Bazaar.account.exhibit.fetch(exhibit);
 
-    // assert.ok(exhibitInfo.colSymbol === colCurSymbol);
+    console.log(exhibitInfo.exhibitSymbol, colCurSymbol);
+    assert.ok(exhibitInfo.exhibitSymbol === colCurSymbol);
     // assert.ok(
     // exhibitInfo.colCreator.toString() === creator.publicKey.toString()
     // );
@@ -158,6 +157,7 @@ describe("bazaar", () => {
       );
     }
 
+    console.log(exhibit);
     try {
       const tx = await Bazaar.methods
         .initializeMarket(
@@ -189,8 +189,16 @@ describe("bazaar", () => {
       console.log(error);
     }
     let postLiqBal = await getAccount(connection, creatorTokens[2]);
-    console.log(Number(postLiqBal));
+    console.log(Number(postLiqBal.amount));
     assert.ok(Number(postLiqBal.amount) == 50);
+
+    let creatorTokenABal = await getAccount(connection, creatorTokens[0]);
+    console.log(Number(creatorTokenABal.amount));
+    assert.ok(Number(creatorTokenABal.amount) == 1);
+
+    let creatorTokenBBal = await getAccount(connection, creatorTokens[0]);
+    console.log(Number(creatorTokenBBal.amount));
+    assert.ok(Number(creatorTokenBBal.amount) == 1);
   });
 
   // it("Deposited liq", async () => {
