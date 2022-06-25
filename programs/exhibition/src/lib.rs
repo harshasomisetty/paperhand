@@ -282,6 +282,7 @@ pub struct Exhibit {
     pub exhibit_creator: Pubkey,
     pub exhibit_symbol: String,
     pub nft_count: u32,
+    pub market_active: bool,
 }
 
 #[account]
