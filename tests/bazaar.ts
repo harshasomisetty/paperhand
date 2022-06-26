@@ -163,6 +163,7 @@ describe("bazaar", () => {
         .initializeMarket(
           new anchor.BN(mintAmounts[0]),
           new anchor.BN(mintAmounts[1]),
+          colCurSymbol,
           exhibitBump
         )
         .accounts({
