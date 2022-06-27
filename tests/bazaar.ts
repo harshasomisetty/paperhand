@@ -53,6 +53,8 @@ describe("bazaar", () => {
   let creatorTokens: PublicKey[] = new Array(3);
   let userTokens: PublicKey[][] = new Array(2);
   let colCurSymbol = "nft0";
+  let mintAmounts = [50, 100];
+
   it("Init variables", async () => {
     let airdropees = [creator, ...user];
     for (const dropee of airdropees) {
@@ -175,7 +177,6 @@ describe("bazaar", () => {
   it("init market", async () => {
     // This method starts the market and bootstraps it with liquidity from the market creator
 
-    let mintAmounts = [50, 100];
     for (let i = 0; i < 2; i++) {
       await mintTo(
         connection,
@@ -236,7 +237,6 @@ describe("bazaar", () => {
     // Then user1 will deposit into the pool using the add_liquidity
 
     // TODO Checking if liq calculations are correct
-    let mintAmounts = [50, 100];
     for (let i = 0; i < 2; i++) {
       await mintTo(
         connection,
@@ -301,9 +301,138 @@ describe("bazaar", () => {
     assert.ok(Number(marketTokenBBal.amount) == 200);
   });
 
-  // it('swapped', async () => {
+  it("Swapped from token a to token b", async () => {
+    await mintTo(
+      connection,
+      user[0],
+      tokenMints[0],
+      userTokens[0][0],
+      creator,
+      11
+    );
 
-  // })
+    let creatorTokenABal = await getAccount(connection, userTokens[0][0]);
+    let creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
+    let marketTokenABal = await getAccount(connection, marketTokens[0]);
+    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    console.log("pre");
+    console.log(Number(creatorTokenABal.amount));
+    console.log(Number(creatorTokenBBal.amount));
+    console.log(Number(marketTokenABal.amount));
+    console.log(Number(marketTokenBBal.amount));
+
+    try {
+      const tx = await Bazaar.methods
+        .swap(
+          colCurSymbol,
+          exhibitBump,
+          true,
+          new anchor.BN(10),
+          new anchor.BN(20)
+        )
+        .accounts({
+          exhibit: exhibit,
+          marketAuth: marketAuth,
+          marketMint: tokenMints[2],
+          // marketTokenFee: marketTokenFee,
+          tokenAMint: tokenMints[0],
+          tokenBMint: tokenMints[1],
+          marketTokenA: marketTokens[0],
+          marketTokenB: marketTokens[1],
+          swapperTokenA: userTokens[0][0],
+          swapperTokenB: userTokens[0][1],
+          creator: creator.publicKey,
+          swapper: user[0].publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user[0]])
+        .rpc();
+    } catch (error) {
+      console.log("fuck swap", error);
+    }
+
+    creatorTokenABal = await getAccount(connection, userTokens[0][0]);
+    creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
+    marketTokenABal = await getAccount(connection, marketTokens[0]);
+    marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    console.log("post");
+    console.log(Number(creatorTokenABal.amount));
+    console.log(Number(creatorTokenBBal.amount));
+    console.log(Number(marketTokenABal.amount));
+    console.log(Number(marketTokenBBal.amount));
+
+    assert.ok(Number(creatorTokenABal.amount) == 2);
+    assert.ok(Number(creatorTokenBBal.amount) == 19);
+    assert.ok(Number(marketTokenABal.amount) == 110);
+    assert.ok(Number(marketTokenBBal.amount) == 182);
+  });
+
+  it("Swapped from token b to token a", async () => {
+    let creatorTokenABal = await getAccount(connection, userTokens[0][0]);
+    let creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
+    let marketTokenABal = await getAccount(connection, marketTokens[0]);
+    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    console.log("pre");
+    console.log(Number(creatorTokenABal.amount));
+    console.log(Number(creatorTokenBBal.amount));
+    console.log(Number(marketTokenABal.amount));
+    console.log(Number(marketTokenBBal.amount));
+
+    try {
+      const tx = await Bazaar.methods
+        .swap(
+          colCurSymbol,
+          exhibitBump,
+          false,
+          new anchor.BN(10),
+          new anchor.BN(10)
+        )
+        .accounts({
+          exhibit: exhibit,
+          marketAuth: marketAuth,
+          marketMint: tokenMints[2],
+          // marketTokenFee: marketTokenFee,
+          tokenAMint: tokenMints[0],
+          tokenBMint: tokenMints[1],
+          marketTokenA: marketTokens[0],
+          marketTokenB: marketTokens[1],
+          swapperTokenA: userTokens[0][0],
+          swapperTokenB: userTokens[0][1],
+          creator: creator.publicKey,
+          swapper: user[0].publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user[0]])
+        .rpc();
+    } catch (error) {
+      console.log("fuck swap", error);
+    }
+
+    creatorTokenABal = await getAccount(connection, userTokens[0][0]);
+    creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
+    marketTokenABal = await getAccount(connection, marketTokens[0]);
+    marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    console.log("post");
+    console.log(Number(creatorTokenABal.amount));
+    console.log(Number(creatorTokenBBal.amount));
+    console.log(Number(marketTokenABal.amount));
+    console.log(Number(marketTokenBBal.amount));
+
+    assert.ok(Number(creatorTokenABal.amount) == 7);
+    assert.ok(Number(creatorTokenBBal.amount) == 9);
+    assert.ok(Number(marketTokenABal.amount) == 105);
+    assert.ok(Number(marketTokenBBal.amount) == 192);
+  });
 
   // it('withdrew liq', async () => {
 

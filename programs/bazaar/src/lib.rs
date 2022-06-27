@@ -4,10 +4,9 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount},
 };
 use solana_program;
-use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, program::invoke, program::invoke_signed,
-    program_option::COption, system_instruction,
-};
+use solana_program::{account_info::AccountInfo, program::invoke, program::invoke_signed};
+
+use spl_math::checked_ceil_div::CheckedCeilDiv;
 
 declare_id!("6Duew5DzYuBMvRPXTXRML2wvp2EvdPKgBofKhUwxHGQi");
 
@@ -103,10 +102,6 @@ pub mod bazaar {
         Ok(())
     }
 
-    // pub fn swap(ctx: Context<Swap>) -> Result<()> {
-    //     Ok(())
-    // }
-
     pub fn deposit_liquidity(
         ctx: Context<DepositLiquidity>,
         pool_token_amount: u64,
@@ -195,6 +190,92 @@ pub mod bazaar {
         Ok(())
     }
 
+    pub fn swap(
+        ctx: Context<Swap>,
+        exhibit_symbol: String,
+        exhibit_bump: u8,
+        trade_direction: bool,
+        amount_in: u128,
+        minimum_amount_out: u128,
+    ) -> Result<()> {
+        // TODO trading fee
+        // TODO slippage
+
+        let (user_from, user_to, market_from, market_to) = if trade_direction == true {
+            (
+                &ctx.accounts.swapper_token_a,
+                &ctx.accounts.swapper_token_b,
+                &ctx.accounts.market_token_a,
+                &ctx.accounts.market_token_b,
+            )
+        } else {
+            (
+                &ctx.accounts.swapper_token_b,
+                &ctx.accounts.swapper_token_a,
+                &ctx.accounts.market_token_b,
+                &ctx.accounts.market_token_a,
+            )
+        };
+
+        msg!("test {}", user_from.amount);
+
+        let market_to_amt = market_from.amount as u128;
+        let market_from_amt = market_to.amount as u128;
+
+        let user_to_amt = user_from.amount as u128;
+        let user_from_amt = user_to.amount as u128;
+
+        let constant = market_to_amt * market_from_amt;
+        let market_to_diff = market_to_amt.checked_add(amount_in).unwrap();
+        let constant_diff = constant.checked_ceil_div(market_to_diff).unwrap();
+        let amount_out = market_from_amt.checked_sub(constant_diff.0).unwrap();
+
+        msg!(
+            "market to start: {}, market from start: {}, market to end: {}, amount in: {}, amount out: {}",
+            market_to_amt,
+            market_from_amt,
+            market_to_diff,
+            amount_in,
+            amount_out
+        );
+
+        // transfer amounts
+
+        // transfer amount in tokens
+        anchor_spl::token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Transfer {
+                    from: user_from.to_account_info(),
+                    to: market_from.to_account_info(),
+                    authority: ctx.accounts.swapper.to_account_info(),
+                },
+            ),
+            amount_in as u64,
+        );
+
+        // transfer amount out tokens
+        anchor_spl::token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Transfer {
+                    from: market_to.to_account_info(),
+                    to: user_to.to_account_info(),
+                    authority: ctx.accounts.market_auth.to_account_info(),
+                },
+                &[&[
+                    b"market_auth".as_ref(),
+                    ctx.accounts.exhibit.to_account_info().key.as_ref(),
+                    &[ctx.accounts.exhibit.auth_bump],
+                ]],
+            ),
+            amount_out as u64,
+        );
+
+        // trade fee into pool
+        Ok(())
+    }
+
     pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>) -> Result<()> {
         Ok(())
     }
@@ -258,27 +339,13 @@ pub struct InitializeMarket<'info> {
 }
 
 #[derive(Accounts)]
-pub struct Swap<'info> {
-    /* market auth?
-     * user source
-     * swap source
-     * user destination
-     * swap destination
-     * */
-    pub rent: Sysvar<'info, Rent>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
 #[instruction(pool_token_amount: u64, exhibit_symbol: String, exhibit_bump: u8)]
 pub struct DepositLiquidity<'info> {
     #[account(mut, seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), creator.key().as_ref()], bump = exhibit_bump)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
     /// CHECK: Need market auth since can't pass in market state as a signer
-    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
+    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = exhibit.auth_bump)]
     pub market_auth: AccountInfo<'info>,
 
     #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
@@ -309,6 +376,48 @@ pub struct DepositLiquidity<'info> {
 
     #[account(mut)]
     pub depositor: Signer<'info>,
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[instruction(exhibit_symbol: String, exhibit_bump: u8, trade_direction: bool, amount_in: u64, minimum_amount_out: u64)]
+#[derive(Accounts)]
+pub struct Swap<'info> {
+    /* market auth?
+     * user source
+     * swap source
+     * user destination
+     * swap destination
+     * */
+    #[account(mut, seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), creator.key().as_ref()], bump = exhibit_bump)]
+    pub exhibit: Box<Account<'info, Exhibit>>,
+
+    /// CHECK: Need market auth since can't pass in market state as a signer
+    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
+    pub market_auth: AccountInfo<'info>,
+
+    #[account(mut)]
+    pub token_a_mint: Box<Account<'info, Mint>>,
+    #[account(mut)]
+    pub token_b_mint: Box<Account<'info, Mint>>,
+
+    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
+    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"token_b".as_ref(), market_auth.key().as_ref()], token::mint = token_b_mint, token::authority = market_auth, bump)]
+    pub market_token_b: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = swapper)]
+    pub swapper_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, associated_token::mint = token_b_mint, associated_token::authority = swapper)]
+    pub swapper_token_b: Box<Account<'info, TokenAccount>>,
+
+    /// CHECK: just reading pubkey of creator
+    pub creator: AccountInfo<'info>,
+    #[account(mut)]
+    pub swapper: Signer<'info>,
+
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
