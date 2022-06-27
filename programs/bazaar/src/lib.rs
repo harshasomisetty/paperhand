@@ -287,8 +287,17 @@ pub mod bazaar {
             MyError::MarketNotActive
         );
 
-        let pool_token_supply = u64::try_from(ctx.accounts.market_mint.supply).unwrap();
+        msg!(
+            "withdrawing liq: {}, wants {}",
+            &ctx.accounts.provider_token_liq.amount,
+            &pool_token_amount
+        );
 
+        require!(
+            &ctx.accounts.provider_token_liq.amount > &pool_token_amount,
+            MyError::LackOfFunds
+        );
+        let pool_token_supply = u64::try_from(ctx.accounts.market_mint.supply).unwrap();
         let pool_tokens = &pool_token_amount;
 
         let swap_token_a_amount = u64::try_from(ctx.accounts.market_token_a.amount).unwrap();
@@ -310,46 +319,14 @@ pub mod bazaar {
             &ctx.accounts.provider_token_a.amount,
             &token_a_amount
         );
-        require!(
-            &ctx.accounts.provider_token_a.amount > &token_a_amount,
-            MyError::LackOfFunds
-        );
-        require!(
-            &ctx.accounts.provider_token_b.amount > &token_b_amount,
-            MyError::LackOfFunds
-        );
 
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
         anchor_spl::token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::Transfer {
-                    from: ctx.accounts.provider_token_a.to_account_info(),
-                    to: ctx.accounts.market_token_a.to_account_info(),
-                    authority: ctx.accounts.provider.to_account_info(),
-                },
-            ),
-            token_a_amount,
-        );
-
-        anchor_spl::token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::Transfer {
-                    from: ctx.accounts.provider_token_b.to_account_info(),
-                    to: ctx.accounts.market_token_b.to_account_info(),
-                    authority: ctx.accounts.provider.to_account_info(),
-                },
-            ),
-            token_b_amount,
-        );
-
-        anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::MintTo {
-                    mint: ctx.accounts.market_mint.to_account_info(),
-                    to: ctx.accounts.provider_token_liq.to_account_info(),
+                anchor_spl::token::Transfer {
+                    from: ctx.accounts.market_token_a.to_account_info(),
+                    to: ctx.accounts.provider_token_a.to_account_info(),
                     authority: ctx.accounts.market_auth.to_account_info(),
                 },
                 &[&[
@@ -357,6 +334,35 @@ pub mod bazaar {
                     ctx.accounts.exhibit.to_account_info().key.as_ref(),
                     &[ctx.accounts.exhibit.auth_bump],
                 ]],
+            ),
+            token_a_amount,
+        );
+
+        anchor_spl::token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Transfer {
+                    from: ctx.accounts.market_token_b.to_account_info(),
+                    to: ctx.accounts.provider_token_b.to_account_info(),
+                    authority: ctx.accounts.market_auth.to_account_info(),
+                },
+                &[&[
+                    b"market_auth".as_ref(),
+                    ctx.accounts.exhibit.to_account_info().key.as_ref(),
+                    &[ctx.accounts.exhibit.auth_bump],
+                ]],
+            ),
+            token_b_amount,
+        );
+
+        anchor_spl::token::burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Burn {
+                    mint: ctx.accounts.market_mint.to_account_info(),
+                    from: ctx.accounts.provider_token_liq.to_account_info(),
+                    authority: ctx.accounts.provider.to_account_info(),
+                },
             ),
             pool_token_amount,
         )?;

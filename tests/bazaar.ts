@@ -284,20 +284,21 @@ describe("bazaar", () => {
     console.log("finished deposit liq tx");
 
     let postLiqBal = await getAccount(connection, userTokens[0][2]);
-    assert.ok(Number(postLiqBal.amount) == 50);
-
-    let creatorTokenABal = await getAccount(connection, userTokens[0][0]);
-    assert.ok(Number(creatorTokenABal.amount) == 1);
-
-    let creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
-    assert.ok(Number(creatorTokenBBal.amount) == 1);
-
+    let providerTokenABal = await getAccount(connection, userTokens[0][0]);
+    let providerTokenBBal = await getAccount(connection, userTokens[0][1]);
     let marketTokenABal = await getAccount(connection, marketTokens[0]);
-    console.log(Number(marketTokenABal.amount));
-    assert.ok(Number(marketTokenABal.amount) == 100);
-
     let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    console.log(Number(postLiqBal.amount));
+    console.log(Number(providerTokenABal));
+    console.log(Number(providerTokenBBal));
+    console.log(Number(marketTokenABal.amount));
     console.log(Number(marketTokenBBal.amount));
+
+    assert.ok(Number(postLiqBal.amount) == 50);
+    assert.ok(Number(providerTokenABal.amount) == 1);
+    assert.ok(Number(providerTokenBBal.amount) == 1);
+    assert.ok(Number(marketTokenABal.amount) == 100);
     assert.ok(Number(marketTokenBBal.amount) == 200);
   });
 
@@ -434,9 +435,74 @@ describe("bazaar", () => {
     assert.ok(Number(marketTokenBBal.amount) == 192);
   });
 
-  // it('withdrew liq', async () => {
+  it("withdrew liq", async () => {
+    let mintInfo = await getMint(connection, tokenMints[2]);
 
-  // })
+    console.log(mintInfo.supply);
+    let postLiqBal = await getAccount(connection, userTokens[0][2]);
+    let providerTokenABal = await getAccount(connection, userTokens[0][0]);
+    let providerTokenBBal = await getAccount(connection, userTokens[0][1]);
+    let marketTokenABal = await getAccount(connection, marketTokens[0]);
+    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    // console.log(Number(postMarketLiqBal.amount));
+    console.log(Number(postLiqBal.amount));
+    console.log(Number(providerTokenABal.amount));
+    console.log(Number(providerTokenBBal.amount));
+    console.log(Number(marketTokenABal.amount));
+    console.log(Number(marketTokenBBal.amount));
+
+    try {
+      const tx = await Bazaar.methods
+        .withdrawLiquidity(new anchor.BN(10), colCurSymbol, exhibitBump)
+        .accounts({
+          exhibit: exhibit,
+          marketAuth: marketAuth,
+          marketMint: tokenMints[2],
+          // marketTokenFee: marketTokenFee,
+          tokenAMint: tokenMints[0],
+          tokenBMint: tokenMints[1],
+          marketTokenA: marketTokens[0],
+          marketTokenB: marketTokens[1],
+          providerTokenA: userTokens[0][0],
+          providerTokenB: userTokens[0][1],
+          providerTokenLiq: userTokens[0][2],
+          creator: creator.publicKey,
+          provider: user[0].publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user[0]])
+        .rpc();
+    } catch (error) {
+      console.log(error);
+    }
+
+    console.log("finished withdraw liq tx");
+
+    mintInfo = await getMint(connection, tokenMints[2]);
+
+    console.log("after mint", mintInfo.supply);
+    postLiqBal = await getAccount(connection, userTokens[0][2]);
+    providerTokenABal = await getAccount(connection, userTokens[0][0]);
+    providerTokenBBal = await getAccount(connection, userTokens[0][1]);
+    marketTokenABal = await getAccount(connection, marketTokens[0]);
+    marketTokenBBal = await getAccount(connection, marketTokens[1]);
+
+    console.log(Number(postLiqBal.amount));
+    console.log(Number(providerTokenABal.amount));
+    console.log(Number(providerTokenBBal.amount));
+    console.log(Number(marketTokenABal.amount));
+    console.log(Number(marketTokenBBal.amount));
+
+    assert.ok(Number(postLiqBal.amount) == 40);
+    assert.ok(Number(providerTokenABal.amount) == 17);
+    assert.ok(Number(providerTokenBBal.amount) == 28);
+    assert.ok(Number(marketTokenABal.amount) == 95);
+    assert.ok(Number(marketTokenBBal.amount) == 173);
+  });
 
   Bazaar.provider.connection.onLogs("all", ({ logs }) => {
     console.log(logs);
