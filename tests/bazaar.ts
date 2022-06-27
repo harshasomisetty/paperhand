@@ -34,23 +34,24 @@ describe("bazaar", () => {
    * next step, allow user2 to swap
    * next step, allow for user1 to withdraw liq*/
 
-  const creator = Keypair.generate();
+  const creator: Keypair = Keypair.generate();
 
-  const user = [Keypair.generate(), Keypair.generate()];
+  const user: Keypair[] = [Keypair.generate(), Keypair.generate()];
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
   const marketState = Keypair.generate();
 
+  // The arrays contain info for Token A, Token B, and Liq token
+  // There are arrays for the full mint, and for the specific token accounts for each user
   let exhibit: PublicKey;
   let exhibitBump;
+  let authBump;
   let marketAuth: PublicKey;
-  let marketMint: PublicKey;
   let marketTokenFee: PublicKey;
-  let tokenMints: PublicKey[] = new Array(2);
+  let tokenMints: PublicKey[] = new Array(3);
   let marketTokens: PublicKey[] = new Array(2);
   let creatorTokens: PublicKey[] = new Array(3);
-  let temp1: PublicKey;
-  let temp2: PublicKey;
+  let userTokens: PublicKey[][] = new Array(2);
   let colCurSymbol = "nft0";
   it("Init variables", async () => {
     let airdropees = [creator, ...user];
@@ -70,12 +71,12 @@ describe("bazaar", () => {
       BazaarID
     );
 
-    [marketAuth] = await PublicKey.findProgramAddress(
+    [marketAuth, authBump] = await PublicKey.findProgramAddress(
       [Buffer.from("market_auth"), exhibit.toBuffer()],
       BazaarID
     );
 
-    [marketMint] = await PublicKey.findProgramAddress(
+    [tokenMints[2]] = await PublicKey.findProgramAddress(
       [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
       BazaarID
     );
@@ -91,14 +92,14 @@ describe("bazaar", () => {
     );
 
     marketTokenFee = await getAssociatedTokenAddress(
-      marketMint,
+      tokenMints[2],
       marketAuth,
       true
     );
 
-    // this is pool liq token address
+    // This is pool liq token address
     creatorTokens[2] = await getAssociatedTokenAddress(
-      marketMint,
+      tokenMints[2],
       creator.publicKey
     );
 
@@ -121,6 +122,36 @@ describe("bazaar", () => {
         )
       ).address;
     }
+
+    for (let i = 0; i < 2; i++) {
+      let tempUserTokens = new Array(3);
+      for (let j = 0; j < 2; j++) {
+        tempUserTokens[j] = (
+          await getOrCreateAssociatedTokenAccount(
+            connection,
+            user[i],
+            tokenMints[j],
+            user[i].publicKey
+          )
+        ).address;
+      }
+      // tempUserTokens[2] = (
+      //   await getOrCreateAssociatedTokenAccount(
+      //     connection,
+      //     user[i],
+      //     tokenMints[2],
+      //     user[i].publicKey
+      //   )
+      // ).address;
+
+      tempUserTokens[2] = await getAssociatedTokenAddress(
+        tokenMints[2],
+        user[i].publicKey
+      );
+
+      userTokens[i] = tempUserTokens;
+    }
+
     const tx = await Bazaar.methods
       .initializeExhibit(creator.publicKey, colCurSymbol)
       .accounts({
@@ -143,7 +174,7 @@ describe("bazaar", () => {
   });
 
   it("init market", async () => {
-    // this method starts the market and bootstraps it with liquidity from the market creator
+    // This method starts the market and bootstraps it with liquidity from the market creator
 
     let mintAmounts = [50, 100];
     for (let i = 0; i < 2; i++) {
@@ -164,12 +195,13 @@ describe("bazaar", () => {
           new anchor.BN(mintAmounts[0]),
           new anchor.BN(mintAmounts[1]),
           colCurSymbol,
-          exhibitBump
+          exhibitBump,
+          authBump
         )
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
-          marketMint: marketMint,
+          marketMint: tokenMints[2],
           marketTokenFee: marketTokenFee,
           tokenAMint: tokenMints[0],
           tokenBMint: tokenMints[1],
@@ -200,23 +232,71 @@ describe("bazaar", () => {
     let creatorTokenBBal = await getAccount(connection, creatorTokens[0]);
     console.log(Number(creatorTokenBBal.amount));
     assert.ok(Number(creatorTokenBBal.amount) == 1);
+
+    console.log("ended init market");
   });
 
-  // it("Deposited liq", async () => {
-  //   // User1 will first acquire token1 and 2
-  //   // Then user1 will deposit into the pool using the add_liquidity
+  it("Deposited liq", async () => {
+    // User1 will first acquire token1 and 2
+    // Then user1 will deposit into the pool using the add_liquidity
 
-  //   for (let i = 0; i < 2; i++) {
-  //     await mintTo(
-  //       connection,
-  //       user[0],
-  //       tokenMints[i],
-  //       marketTokens[i],
-  //       creator,
-  //       100
-  //     );
-  //   }
-  // });
+    let mintAmounts = [50, 100];
+    for (let i = 0; i < 2; i++) {
+      await mintTo(
+        connection,
+        user[0],
+        tokenMints[i],
+        userTokens[0][i],
+        creator,
+        mintAmounts[i] + 1
+      );
+    }
+
+    console.log("finished minting");
+    try {
+      const tx = await Bazaar.methods
+        .depositLiquidity(
+          new anchor.BN(mintAmounts[0]),
+          colCurSymbol,
+          exhibitBump
+        )
+        .accounts({
+          exhibit: exhibit,
+          marketAuth: marketAuth,
+          marketMint: tokenMints[2],
+          // marketTokenFee: marketTokenFee,
+          tokenAMint: tokenMints[0],
+          tokenBMint: tokenMints[1],
+          marketTokenA: marketTokens[0],
+          marketTokenB: marketTokens[1],
+          depositorTokenA: userTokens[0][0],
+          depositorTokenB: userTokens[0][1],
+          depositorTokenLiq: userTokens[0][2],
+          creator: creator.publicKey,
+          depositor: user[0].publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user[0]])
+        .rpc();
+    } catch (error) {
+      console.log(error);
+    }
+
+    let postLiqBal = await getAccount(connection, user[0][2]);
+    console.log(Number(postLiqBal.amount));
+    assert.ok(Number(postLiqBal.amount) == 50);
+
+    let creatorTokenABal = await getAccount(connection, userTokens[0][0]);
+    console.log(Number(creatorTokenABal.amount));
+    assert.ok(Number(creatorTokenABal.amount) == 1);
+
+    let creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
+    console.log(Number(creatorTokenBBal.amount));
+    assert.ok(Number(creatorTokenBBal.amount) == 1);
+  });
 
   // it('swapped', async () => {
 

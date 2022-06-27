@@ -36,6 +36,7 @@ pub mod bazaar {
         starting_token_b: u64,
         exhibit_symbol: String,
         exhibit_bump: u8,
+        auth_bump: u8,
     ) -> Result<()> {
         msg!("in init market");
         require!(
@@ -52,6 +53,7 @@ pub mod bazaar {
             MyError::LackOfFunds
         );
 
+        ctx.accounts.exhibit.auth_bump = auth_bump;
         msg!("first transfer");
         anchor_spl::token::transfer(
             CpiContext::new(
@@ -78,7 +80,7 @@ pub mod bazaar {
             starting_token_b,
         );
 
-        msg!("minting! ");
+        msg!("minting!");
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -90,7 +92,7 @@ pub mod bazaar {
                 &[&[
                     b"market_auth".as_ref(),
                     ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                    &[exhibit_bump],
+                    &[ctx.accounts.exhibit.auth_bump],
                 ]],
             ),
             starting_token_a,
@@ -105,87 +107,93 @@ pub mod bazaar {
     //     Ok(())
     // }
 
-    // pub fn deposit_liquidity(
-    //     ctx: Context<DepositLiquidity>,
-    //     pool_token_amount: u64,
-    //     exhibit_bump: u8,
-    // ) -> Result<()> {
-    //     require!(
-    //         ctx.accounts.exhibit.market_active == true,
-    //         MyError::MarketNotActive
-    //     );
+    pub fn deposit_liquidity(
+        ctx: Context<DepositLiquidity>,
+        pool_token_amount: u64,
+        exhibit_symbol: String,
+        exhibit_bump: u8,
+    ) -> Result<()> {
+        require!(
+            ctx.accounts.exhibit.market_active == true,
+            MyError::MarketNotActive
+        );
 
-    //     let pool_token_supply = u64::try_from(ctx.accounts.market_mint.supply).unwrap();
+        let pool_token_supply = u64::try_from(ctx.accounts.market_mint.supply).unwrap();
 
-    //     let pool_tokens = &pool_token_amount;
+        let pool_tokens = &pool_token_amount;
 
-    //     let swap_token_a_amount = u64::try_from(ctx.accounts.token_a_mint.supply).unwrap();
-    //     let swap_token_b_amount = u64::try_from(ctx.accounts.token_b_mint.supply).unwrap();
+        let swap_token_a_amount = u64::try_from(ctx.accounts.token_a_mint.supply).unwrap();
+        let swap_token_b_amount = u64::try_from(ctx.accounts.token_b_mint.supply).unwrap();
 
-    //     let token_a_amount = pool_tokens
-    //         .checked_mul(swap_token_a_amount)
-    //         .unwrap()
-    //         .checked_div(pool_token_supply)
-    //         .unwrap();
-    //     let token_b_amount = pool_tokens
-    //         .checked_mul(swap_token_b_amount)
-    //         .unwrap()
-    //         .checked_div(pool_token_supply)
-    //         .unwrap();
+        let token_a_amount = pool_tokens
+            .checked_mul(swap_token_a_amount)
+            .unwrap()
+            .checked_div(pool_token_supply)
+            .unwrap();
+        let token_b_amount = pool_tokens
+            .checked_mul(swap_token_b_amount)
+            .unwrap()
+            .checked_div(pool_token_supply)
+            .unwrap();
 
-    //     require!(
-    //         &ctx.accounts.depositor_token_a.amount > &token_a_amount,
-    //         MyError::LackOfFunds
-    //     );
-    //     require!(
-    //         &ctx.accounts.depositor_token_b.amount > &token_b_amount,
-    //         MyError::LackOfFunds
-    //     );
+        msg!(
+            "token amounts: {}, {}",
+            &ctx.accounts.depositor_token_a.amount,
+            &token_a_amount
+        );
+        require!(
+            &ctx.accounts.depositor_token_a.amount > &token_a_amount,
+            MyError::LackOfFunds
+        );
+        require!(
+            &ctx.accounts.depositor_token_b.amount > &token_b_amount,
+            MyError::LackOfFunds
+        );
 
-    //     /* TODO didn't check for decimals when calculating token_*_amount to transfer */
-    //     anchor_spl::token::transfer(
-    //         CpiContext::new(
-    //             ctx.accounts.token_program.to_account_info(),
-    //             anchor_spl::token::Transfer {
-    //                 from: ctx.accounts.depositor_token_a.to_account_info(),
-    //                 to: ctx.accounts.market_token_a.to_account_info(),
-    //                 authority: ctx.accounts.depositor.to_account_info(),
-    //             },
-    //         ),
-    //         token_a_amount,
-    //     );
+        /* TODO didn't check for decimals when calculating token_*_amount to transfer */
+        anchor_spl::token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Transfer {
+                    from: ctx.accounts.depositor_token_a.to_account_info(),
+                    to: ctx.accounts.market_token_a.to_account_info(),
+                    authority: ctx.accounts.depositor.to_account_info(),
+                },
+            ),
+            token_a_amount,
+        );
 
-    //     anchor_spl::token::transfer(
-    //         CpiContext::new(
-    //             ctx.accounts.token_program.to_account_info(),
-    //             anchor_spl::token::Transfer {
-    //                 from: ctx.accounts.depositor_token_b.to_account_info(),
-    //                 to: ctx.accounts.market_token_b.to_account_info(),
-    //                 authority: ctx.accounts.depositor.to_account_info(),
-    //             },
-    //         ),
-    //         token_b_amount,
-    //     );
+        anchor_spl::token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Transfer {
+                    from: ctx.accounts.depositor_token_b.to_account_info(),
+                    to: ctx.accounts.market_token_b.to_account_info(),
+                    authority: ctx.accounts.depositor.to_account_info(),
+                },
+            ),
+            token_b_amount,
+        );
 
-    //     anchor_spl::token::mint_to(
-    //         CpiContext::new_with_signer(
-    //             ctx.accounts.token_program.to_account_info(),
-    //             anchor_spl::token::MintTo {
-    //                 mint: ctx.accounts.market_mint.to_account_info(),
-    //                 to: ctx.accounts.depositor_token_liq.to_account_info(),
-    //                 authority: ctx.accounts.market_auth.to_account_info(),
-    //             },
-    //             &[&[
-    //                 b"market_auth".as_ref(),
-    //                 ctx.accounts.exhibit.to_account_info().key.as_ref(),
-    //                 &[exhibit_bump],
-    //             ]],
-    //         ),
-    //         pool_token_amount,
-    //     )?;
+        anchor_spl::token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::MintTo {
+                    mint: ctx.accounts.market_mint.to_account_info(),
+                    to: ctx.accounts.depositor_token_liq.to_account_info(),
+                    authority: ctx.accounts.market_auth.to_account_info(),
+                },
+                &[&[
+                    b"market_auth".as_ref(),
+                    ctx.accounts.exhibit.to_account_info().key.as_ref(),
+                    &[ctx.accounts.exhibit.auth_bump],
+                ]],
+            ),
+            pool_token_amount,
+        )?;
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>) -> Result<()> {
         Ok(())
@@ -207,9 +215,9 @@ pub struct InitializeExhibit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(starting_token_a: u64, starting_token_b:u64, exhibit_symbol: String, exhibit_bump: u8)]
+#[instruction(starting_token_a: u64, starting_token_b:u64, exhibit_symbol: String, exhibit_bump: u8, auth_bump: u8)]
 pub struct InitializeMarket<'info> {
-    #[account(mut, seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), creator.key().as_ref()], bump)]
+    #[account(mut, seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), creator.key().as_ref()], bump = exhibit_bump)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
     /// CHECK: Need market auth since can't pass in market state as a signer
@@ -264,9 +272,9 @@ pub struct Swap<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(pool_token_amount: u64, exhibit_bump: u8)]
+#[instruction(pool_token_amount: u64, exhibit_symbol: String, exhibit_bump: u8)]
 pub struct DepositLiquidity<'info> {
-    #[account(mut)]
+    #[account(mut, seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), creator.key().as_ref()], bump = exhibit_bump)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
     /// CHECK: Need market auth since can't pass in market state as a signer
@@ -277,7 +285,7 @@ pub struct DepositLiquidity<'info> {
     pub market_mint: Box<Account<'info, Mint>>,
 
     // no idea
-    // pub market_token_destination: Box<ccount<'info, TokenAccount>>,
+    // pub market_token_destination: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub token_a_mint: Box<Account<'info, Mint>>,
     #[account(mut)]
@@ -293,8 +301,11 @@ pub struct DepositLiquidity<'info> {
     #[account(mut, associated_token::mint = token_b_mint, associated_token::authority = depositor)]
     pub depositor_token_b: Box<Account<'info, TokenAccount>>,
 
-    #[account(mut, associated_token::mint = market_mint, associated_token::authority = depositor)]
+    #[account(init_if_needed, payer = depositor, associated_token::mint = market_mint, associated_token::authority = depositor)]
     pub depositor_token_liq: Box<Account<'info, TokenAccount>>,
+
+    /// CHECK: just need the creator pubkey
+    pub creator: AccountInfo<'info>,
 
     #[account(mut)]
     pub depositor: Signer<'info>,
@@ -321,6 +332,7 @@ pub struct Exhibit {
     pub exhibit_symbol: String,
     pub nft_count: u32,
     pub market_active: bool,
+    pub auth_bump: u8,
 }
 
 #[error_code]
