@@ -122,8 +122,8 @@ pub mod bazaar {
 
         let pool_tokens = &pool_token_amount;
 
-        let swap_token_a_amount = u64::try_from(ctx.accounts.token_a_mint.supply).unwrap();
-        let swap_token_b_amount = u64::try_from(ctx.accounts.token_b_mint.supply).unwrap();
+        let swap_token_a_amount = u64::try_from(ctx.accounts.market_token_a.amount).unwrap();
+        let swap_token_b_amount = u64::try_from(ctx.accounts.market_token_b.amount).unwrap();
 
         let token_a_amount = pool_tokens
             .checked_mul(swap_token_a_amount)

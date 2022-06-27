@@ -166,7 +166,6 @@ describe("bazaar", () => {
 
     let exhibitInfo = await Bazaar.account.exhibit.fetch(exhibit);
 
-    console.log(exhibitInfo.exhibitSymbol, colCurSymbol);
     assert.ok(exhibitInfo.exhibitSymbol === colCurSymbol);
     // assert.ok(
     // exhibitInfo.colCreator.toString() === creator.publicKey.toString()
@@ -188,7 +187,6 @@ describe("bazaar", () => {
       );
     }
 
-    console.log(exhibit);
     try {
       const tx = await Bazaar.methods
         .initializeMarket(
@@ -222,15 +220,12 @@ describe("bazaar", () => {
       console.log(error);
     }
     let postLiqBal = await getAccount(connection, creatorTokens[2]);
-    console.log(Number(postLiqBal.amount));
     assert.ok(Number(postLiqBal.amount) == 50);
 
     let creatorTokenABal = await getAccount(connection, creatorTokens[0]);
-    console.log(Number(creatorTokenABal.amount));
     assert.ok(Number(creatorTokenABal.amount) == 1);
 
     let creatorTokenBBal = await getAccount(connection, creatorTokens[0]);
-    console.log(Number(creatorTokenBBal.amount));
     assert.ok(Number(creatorTokenBBal.amount) == 1);
 
     console.log("ended init market");
@@ -240,6 +235,7 @@ describe("bazaar", () => {
     // User1 will first acquire token1 and 2
     // Then user1 will deposit into the pool using the add_liquidity
 
+    // TODO Checking if liq calculations are correct
     let mintAmounts = [50, 100];
     for (let i = 0; i < 2; i++) {
       await mintTo(
@@ -285,17 +281,24 @@ describe("bazaar", () => {
       console.log(error);
     }
 
-    let postLiqBal = await getAccount(connection, user[0][2]);
-    console.log(Number(postLiqBal.amount));
+    console.log("finished deposit liq tx");
+
+    let postLiqBal = await getAccount(connection, userTokens[0][2]);
     assert.ok(Number(postLiqBal.amount) == 50);
 
     let creatorTokenABal = await getAccount(connection, userTokens[0][0]);
-    console.log(Number(creatorTokenABal.amount));
     assert.ok(Number(creatorTokenABal.amount) == 1);
 
     let creatorTokenBBal = await getAccount(connection, userTokens[0][1]);
-    console.log(Number(creatorTokenBBal.amount));
     assert.ok(Number(creatorTokenBBal.amount) == 1);
+
+    let marketTokenABal = await getAccount(connection, marketTokens[0]);
+    console.log(Number(marketTokenABal.amount));
+    assert.ok(Number(marketTokenABal.amount) == 100);
+
+    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+    console.log(Number(marketTokenBBal.amount));
+    assert.ok(Number(marketTokenBBal.amount) == 200);
   });
 
   // it('swapped', async () => {
