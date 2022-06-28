@@ -25,12 +25,15 @@ import { Bazaar } from "../target/types/bazaar";
 const fs = require("fs");
 const assert = require("assert");
 const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
+import { EXHIBITION_PROGRAM_ID, arweave_urls } from "./constants";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
-const ExhibitionID = new PublicKey(Exhibition.idl["metadata"]["address"]);
+const EXHIBITION_PROGRAM_ID = new PublicKey(
+  Exhibition.idl["metadata"]["address"]
+);
 
 const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
 const BazaarID = new PublicKey(Bazaar.idl["metadata"]["address"]);
@@ -38,7 +41,7 @@ const BazaarID = new PublicKey(Bazaar.idl["metadata"]["address"]);
 async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), mintKey.toBuffer()],
-    ExhibitionID
+    EXHIBITION_PROGRAM_ID
   );
 
   let [artifactMetadata] = await PublicKey.findProgramAddress(
@@ -47,7 +50,7 @@ async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
       exhibit.toBuffer(),
       nftArtifact.toBuffer(),
     ],
-    ExhibitionID
+    EXHIBITION_PROGRAM_ID
   );
 
   return [nftArtifact, artifactMetadata];
@@ -212,12 +215,12 @@ describe("exhibition", () => {
         Buffer.from(exhibitCurSymbol),
         creator.publicKey.toBuffer(),
       ],
-      ExhibitionID
+      EXHIBITION_PROGRAM_ID
     );
 
     [redeemMint] = await PublicKey.findProgramAddress(
       [Buffer.from("redeem_mint"), exhibit.toBuffer()],
-      ExhibitionID
+      EXHIBITION_PROGRAM_ID
     );
 
     userRedeemWallet[0] = await getAssociatedTokenAddress(
@@ -527,7 +530,7 @@ describe("exhibition", () => {
           exhibit.toBuffer(),
           artifactKey.toBuffer(),
         ],
-        ExhibitionID
+        EXHIBITION_PROGRAM_ID
       );
 
       let artifactInfo = await Exhibition.account.artifactMetadata.fetch(

@@ -1,14 +1,50 @@
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Connection,
+} from "@solana/web3.js";
 import { useState, useEffect } from "react";
 import ProjectList from "./ProjectList";
+import EXHIBITION_IDL from "../../exhibitIdl.json";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+
+import { EXHIBITION_PROGRAM_ID, creator } from "../../../deploy/constants";
 
 import { creatorAdd, exhibitNames } from "../utils/data";
 
+import { Program } from "@project-serum/anchor";
+import { getProvider } from "../utils/provider";
+const connection = new Connection("http://localhost:8899", "processed");
 const ExploreProjects = () => {
-  const [projects, setProjects] = useState([]);
-
+  const [projects, setProjects] = useState<PublicKey[]>([]);
+  const { wallet, publicKey, sendTransaction } = useWallet();
   useEffect(() => {
     async function fetchData() {
-      setProjects(exhibitNames);
+      // let provider = await getProvider("http://localhost:8899", creator);
+      let provider = await getProvider(wallet);
+      let Exhibition = new Program(
+        EXHIBITION_IDL,
+        EXHIBITION_PROGRAM_ID,
+        provider
+      );
+      let existingExhibits: PublicKey[] = [];
+      for (let exhibitCurSymbol of exhibitNames) {
+        let [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
+          [
+            Buffer.from("exhibit"),
+            Buffer.from(exhibitCurSymbol),
+            creatorAdd.toBuffer(),
+          ],
+          EXHIBITION_PROGRAM_ID
+        );
+
+        let exhibitBal = await connection.getBalance(exhibit);
+        if (exhibitBal > 0) {
+          existingExhibits.push(exhibit);
+        }
+      }
+      setProjects(existingExhibits);
     }
     fetchData();
   }, []);

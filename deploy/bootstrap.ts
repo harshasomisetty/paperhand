@@ -29,6 +29,7 @@ import {
 
 import getProvider from "../app/src/utils/provider";
 
+const fs = require("fs");
 const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
 const assert = require("assert");
 

@@ -10,7 +10,7 @@ const ProjectCard = ({ project }) => (
       {/* <h3 className="">{project["name"]}</h3> */}
       {/* <p className="text-xl w-32">{project["description"]}</p> */}
       {/* <p className="w-32">Treasury: {project["treasuryAccount"]}</p> */}
-      <p>{project}</p>
+      <p>{project.toString()}</p>
     </div>
   </Link>
 );
