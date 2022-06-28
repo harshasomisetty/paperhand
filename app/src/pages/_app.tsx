@@ -22,7 +22,7 @@ import "../styles/global.css";
 // Use require instead of import since order matters
 require("@solana/wallet-adapter-react-ui/styles.css");
 
-// import Navbar from "../components/Navbar";
+import Navbar from "../components/Navbar";
 
 // const logo = require("./logo.png");
 const MyApp = ({ Component, pageProps }: AppProps) => {
@@ -41,10 +41,11 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
   );
 
   return (
-    <div className="m-2 text-white font-mono h-screen">
+    <div className="m-2 text-black font-mono h-screen">
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
+            <Navbar />
             <Component {...pageProps} />
           </WalletModalProvider>
         </WalletProvider>
