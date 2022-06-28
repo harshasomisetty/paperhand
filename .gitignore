@@ -10,3 +10,4 @@ yarn.lock
 migrations/*
 *.log
 Cargo.lock
+/package-lock.json

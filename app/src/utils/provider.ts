@@ -1,11 +1,18 @@
-import { Connection, PublicKey } from "@solana/web3.js";
-import { Program, Provider, web3, Wallet } from "@project-serum/anchor";
-
+import { Connection, PublicKey, Keypair } from "@solana/web3.js";
+import {
+  Program,
+  Provider,
+  AnchorProvider,
+  web3,
+  Wallet,
+} from "@project-serum/anchor";
+import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 const opts = {
-  preflightCommitment: "processed",
+  commitment: "confirmed",
+  skipPreflight: true,
 };
 
-async function getProvider(wallet: Wallet, network: String) {
+async function getProvider(network: String, payer: Keypair) {
   /* create the provider and return it to the caller */
   /* network set to local network for now */
 
@@ -16,14 +23,17 @@ async function getProvider(wallet: Wallet, network: String) {
     network_url = "https://api.devnet.solana.com";
   }
 
-  const connection = new Connection(network_url, opts.preflightCommitment);
+  const connection = new Connection(network_url, "confirmed");
 
-  const provider: Provider = new Provider(
+  const provider: Provider = new AnchorProvider(
     connection,
-    wallet,
-    opts.preflightCommitment
+    new NodeWallet(payer),
+    {
+      commitment: "confirmed",
+      skipPreflight: true,
+    }
   );
+  await connection.requestAirdrop(payer.publicKey, 100e9);
   return provider;
 }
-
 export default getProvider;

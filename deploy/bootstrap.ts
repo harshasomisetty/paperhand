@@ -8,7 +8,7 @@ import {
 } from "@metaplex-foundation/js";
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
+import { Program, Idl, Provider } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
@@ -30,45 +30,28 @@ import {
 import getProvider from "../app/src/utils/provider";
 
 const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
-const fs = require("fs");
 const assert = require("assert");
 
-const bazaar = require("../target/idl/bazaar.json");
-const exhibition = require("../target/idl/exhibition.json");
-
-const creator: Keypair = Keypair.fromSecretKey(
-  Uint8Array.from(
-    JSON.parse(
-      fs.readFileSync("/Users/harshasomisetty/.config/solana/creator.json")
-    )
-  )
-);
-
-const user: Keypair[] = [
-  Keypair.fromSecretKey(
-    Uint8Array.from(
-      JSON.parse(
-        fs.readFileSync("/Users/harshasomisetty/.config/solana/user1.json")
-      )
-    )
-  ),
-  Keypair.fromSecretKey(
-    Uint8Array.from(
-      JSON.parse(
-        fs.readFileSync("/Users/harshasomisetty/.config/solana/user2.json")
-      )
-    )
-  ),
-];
+import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
+import { Bazaar, IDL as BAZAAR_IDL } from "../target/types/bazaar";
+import {
+  creator,
+  user,
+  EXHIBITION_PROGRAM_ID,
+  BAZAAR_PROGRAM_ID,
+  arweave_urls,
+} from "./constants";
 
 const connection = new Connection("http://localhost:8899", "processed");
-const BazaarID = new PublicKey(bazaar["metadata"]["address"]);
-const ExhibitionID = new PublicKey(exhibition["metadata"]["address"]);
 
 const metaplex = Metaplex.make(connection)
   .use(keypairIdentity(creator))
   .use(bundlrStorage());
-
+console.log(
+  "exhi, baz",
+  EXHIBITION_PROGRAM_ID.toString(),
+  BAZAAR_PROGRAM_ID.toString()
+);
 let airdropVal = 20 * LAMPORTS_PER_SOL;
 
 let exhibitBaseSymbol = "NC";
@@ -86,19 +69,11 @@ let exhibitMints: PublicKey[][] = Array(mintCount);
 let userRedeemWallet = Array(mintCount);
 
 let nftUserTokenAccount;
-
-let arweave_urls = [
-  "https://arweave.net/70WuipZgUbiibV9_qfDN_2b12-21ocDLU0fn1sS4CPs",
-  "https://arweave.net/pQC8oVliOJl1AmxlWpFiQ_VkhWDLFkkRY2fWDgvwUao",
-  "https://arweave.net/k9PdPHHKjWEUliBwWBZpYbOG99Fgl8tQa8onI1GCnvA",
-  "https://arweave.net/WDKNBqirJVVxa61G8FusAxKDR7P_NBWZVX26A8pCDvU",
-  "https://arweave.net/rmdT61h7-vi3W9wzb3_eQMmLU5Yv6aPbBygzvg29ha0",
-  "https://arweave.net/THn3kuBgloKL0i0mZavWqBwxShMCG12Gvv3IF2gEHlw",
-  "https://arweave.net/ITslXlK-HX1UcJIfYKTpXViksZQJZUOIzcVKHuH6NuM",
-  "https://arweave.net/NMigWBU7F1Qf69VHfm6O8vNGkblieqvsMej2abupoy4",
-  "https://arweave.net/s30Qhgt-OTBSno49g4_x4ovfHEiUGJO5anltemHfIQ8",
-];
+let Exhibition;
 const mintNFTs = async () => {
+  let provider = await getProvider("http://localhost:8899", creator);
+  Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+
   let airdropees = [creator, ...user];
   for (const dropee of airdropees) {
     await connection.confirmTransaction(
@@ -183,8 +158,68 @@ const mintNFTs = async () => {
   assert(metadataData.data.data.name === nftName + "0");
 };
 
+const initializeExhibit = async () => {
+  [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("exhibit"),
+      Buffer.from(exhibitCurSymbol),
+      creator.publicKey.toBuffer(),
+    ],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  [redeemMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  userRedeemWallet[0] = await getAssociatedTokenAddress(
+    redeemMint,
+    user[0].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  userRedeemWallet[1] = await getAssociatedTokenAddress(
+    redeemMint,
+    user[1].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+    connection,
+    user[0],
+    exhibitMints[0][0],
+    user[0].publicKey
+  );
+
+  const tx = await Exhibition.methods
+    .initializeExhibit(creator.publicKey, exhibitCurSymbol)
+    .accounts({
+      exhibit: exhibit,
+      redeemMint: redeemMint,
+      creator: creator.publicKey,
+      rent: SYSVAR_RENT_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .signers([creator])
+    .rpc();
+
+  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+
+  assert.ok(exhibitInfo.exhibitSymbol === exhibitCurSymbol);
+  assert.ok(
+    exhibitInfo.exhibitCreator.toString() === creator.publicKey.toString()
+  );
+};
+
 const bootstrapNetwork = async () => {
   await mintNFTs();
+  await initializeExhibit();
 };
 
 bootstrapNetwork();

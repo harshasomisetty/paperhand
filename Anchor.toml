@@ -1,8 +1,8 @@
 [features]
 seeds = false
 [programs.localnet]
-exhibition = "HuDzzsYtxmz7mSXTQ2gheKdLM3UTkFhbCTVKuARhsHsZ"
-bazaar = "6Duew5DzYuBMvRPXTXRML2wvp2EvdPKgBofKhUwxHGQi"
+exhibition = "9U8mXG1EqABTdERF3kA9JdnYaHirs4YsQDta2xzHjbPq"
+bazaar = "C71P9khhQ23ufjqBW6EvtN79CgXT5tPB73LKcTxtPPTC"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -17,7 +17,7 @@ use crate::state::{
     metaplex_anchor::TokenMetadata,
 };
 
-declare_id!("HuDzzsYtxmz7mSXTQ2gheKdLM3UTkFhbCTVKuARhsHsZ");
+declare_id!("9U8mXG1EqABTdERF3kA9JdnYaHirs4YsQDta2xzHjbPq");
 
 #[program]
 pub mod exhibition {
@@ -280,9 +280,12 @@ pub struct Artifact_Withdraw<'info> {
 #[derive(Default)]
 pub struct Exhibit {
     pub exhibit_creator: Pubkey,
+    pub token_a_mint: Pubkey,
+    pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
     pub nft_count: u32,
     pub market_active: bool,
+    pub auth_bump: u8,
 }
 
 #[account]

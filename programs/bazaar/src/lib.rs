@@ -8,7 +8,7 @@ use solana_program::{account_info::AccountInfo, program::invoke, program::invoke
 
 use spl_math::checked_ceil_div::CheckedCeilDiv;
 
-declare_id!("6Duew5DzYuBMvRPXTXRML2wvp2EvdPKgBofKhUwxHGQi");
+declare_id!("C71P9khhQ23ufjqBW6EvtN79CgXT5tPB73LKcTxtPPTC");
 
 #[program]
 pub mod bazaar {
