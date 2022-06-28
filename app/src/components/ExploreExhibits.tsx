@@ -17,8 +17,9 @@ import { Program } from "@project-serum/anchor";
 import { getProvider } from "../utils/provider";
 const connection = new Connection("http://localhost:8899", "processed");
 const ExploreProjects = () => {
-  const [projects, setProjects] = useState<PublicKey[]>([]);
+  const [projects, setProjects] = useState([]);
   const { wallet, publicKey, sendTransaction } = useWallet();
+  console.log("zero wall", wallet);
   useEffect(() => {
     async function fetchData() {
       // let provider = await getProvider("http://localhost:8899", creator);
@@ -41,7 +42,7 @@ const ExploreProjects = () => {
 
         let exhibitBal = await connection.getBalance(exhibit);
         if (exhibitBal > 0) {
-          existingExhibits.push(exhibit);
+          existingExhibits.push([exhibit, exhibitCurSymbol]);
         }
       }
       setProjects(existingExhibits);

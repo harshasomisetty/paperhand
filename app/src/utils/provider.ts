@@ -27,6 +27,7 @@ export async function getProvider(wallet) {
     commitment: "confirmed",
   });
 
+  console.log("wallet", wallet);
   const provider = new AnchorProvider(connection, wallet, {
     commitment: "confirmed",
     skipPreflight: true,
