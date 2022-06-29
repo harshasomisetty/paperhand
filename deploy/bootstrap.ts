@@ -27,7 +27,7 @@ import {
   Connection,
 } from "@solana/web3.js";
 
-import getProvider from "../app/src/utils/provider";
+import getProvider from "./utils";
 
 const fs = require("fs");
 const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
@@ -217,6 +217,8 @@ const initializeExhibit = async () => {
     exhibitInfo.exhibitCreator.toString() === creator.publicKey.toString()
   );
 };
+
+const depositNFT = async () => {};
 
 const bootstrapNetwork = async () => {
   await mintNFTs();

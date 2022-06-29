@@ -280,6 +280,8 @@ pub struct Artifact_Withdraw<'info> {
 #[derive(Default)]
 pub struct Exhibit {
     pub exhibit_creator: Pubkey,
+    // verified accounts
+    // TODO check just verified creators, not just the creator of a collection
     pub token_a_mint: Pubkey,
     pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
