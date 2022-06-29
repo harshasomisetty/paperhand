@@ -7,53 +7,38 @@ import {
   TransactionBuilder,
 } from "@metaplex-foundation/js";
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
-import * as anchor from "@project-serum/anchor";
-import { Program, Idl, Provider } from "@project-serum/anchor";
+import { Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
-  getAccount,
   getAssociatedTokenAddress,
-  getMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
-  Account,
 } from "@solana/spl-token";
 import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
   Connection,
+  PublicKey,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
-
-import getProvider from "./utils";
-
-const fs = require("fs");
-const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
-const assert = require("assert");
+import assert from "assert";
 
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
-import { Bazaar, IDL as BAZAAR_IDL } from "../target/types/bazaar";
+
+import { getProvider } from "../utils/actions";
 import {
+  AIRDROP_VALUE,
   creator,
-  user,
   EXHIBITION_PROGRAM_ID,
-  BAZAAR_PROGRAM_ID,
-  arweave_urls,
-} from "./constants";
+  user,
+} from "../utils/constants";
 
 const connection = new Connection("http://localhost:8899", "processed");
 
 const metaplex = Metaplex.make(connection)
   .use(keypairIdentity(creator))
   .use(bundlrStorage());
-console.log(
-  "exhi, baz",
-  EXHIBITION_PROGRAM_ID.toString(),
-  BAZAAR_PROGRAM_ID.toString()
-);
-let airdropVal = 20 * LAMPORTS_PER_SOL;
 
 let exhibitBaseSymbol = "NC";
 let exhibitRightSymbol = exhibitBaseSymbol + "0";
@@ -78,7 +63,7 @@ const mintNFTs = async () => {
   let airdropees = [creator, ...user];
   for (const dropee of airdropees) {
     await connection.confirmTransaction(
-      await connection.requestAirdrop(dropee.publicKey, airdropVal),
+      await connection.requestAirdrop(dropee.publicKey, AIRDROP_VALUE),
       "confirmed"
     );
   }

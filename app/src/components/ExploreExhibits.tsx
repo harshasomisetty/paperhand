@@ -9,7 +9,7 @@ import ProjectList from "./ProjectList";
 import EXHIBITION_IDL from "../../exhibitIdl.json";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
-import { EXHIBITION_PROGRAM_ID, creator } from "../../../deploy/constants";
+import { EXHIBITION_PROGRAM_ID, creator } from "../../../utils/constants";
 
 import { creatorAdd, exhibitNames } from "../utils/data";
 

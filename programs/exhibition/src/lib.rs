@@ -24,7 +24,7 @@ pub mod exhibition {
     use super::*;
 
     pub fn initialize_exhibit(
-        ctx: Context<Initialize_Exhibit>,
+        ctx: Context<InitializeExhibit>,
         exhibit_creator: Pubkey,
         exhibit_symbol: String,
     ) -> Result<()> {
@@ -37,7 +37,7 @@ pub mod exhibition {
     }
 
     pub fn artifact_insert(
-        ctx: Context<Artifact_Insert>,
+        ctx: Context<ArtifactInsert>,
         exhibit_creator: Pubkey,
         exhibit_symbol: String,
         exhibit_bump: u8,
@@ -84,7 +84,7 @@ pub mod exhibition {
     }
 
     pub fn artifact_withdraw(
-        ctx: Context<Artifact_Withdraw>,
+        ctx: Context<ArtifactWithdraw>,
         exhibit_creator: Pubkey,
         exhibit_symbol: String,
         exhibit_bump: u8,
@@ -153,7 +153,7 @@ pub mod exhibition {
 
 #[derive(Accounts)]
 #[instruction(exhibit_creator: Pubkey, exhibit_symbol: String)]
-pub struct Initialize_Exhibit<'info> {
+pub struct InitializeExhibit<'info> {
     #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), exhibit_creator.as_ref()], bump)]
     pub exhibit: Account<'info, Exhibit>,
 
@@ -169,15 +169,14 @@ pub struct Initialize_Exhibit<'info> {
 
 #[derive(Accounts)]
 #[instruction(exhibit_creator: Pubkey, exhibit_symbol: String, exhibit_bump: u8)]
-pub struct Artifact_Insert<'info> {
+pub struct ArtifactInsert<'info> {
     #[account(
         mut,
         constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
     )]
     pub redeem_mint: Account<'info, Mint>,
     #[account(
-        init_if_needed,
-        payer = user,
+        mut,
         associated_token::mint = redeem_mint,
         associated_token::authority = user
     )]
@@ -225,7 +224,7 @@ pub struct Artifact_Insert<'info> {
 
 #[derive(Accounts)]
 #[instruction(exhibit_creator: Pubkey, exhibit_symbol: String, exhibit_bump: u8)]
-pub struct Artifact_Withdraw<'info> {
+pub struct ArtifactWithdraw<'info> {
     #[account(
         mut,
         constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
@@ -271,9 +270,7 @@ pub struct Artifact_Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[account]

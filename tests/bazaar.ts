@@ -1,4 +1,3 @@
-import { creatorsConfigDefault } from "@metaplex-foundation/js";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import {
@@ -10,14 +9,18 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
-  Account,
 } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+} from "@solana/web3.js";
 import { Bazaar } from "../target/types/bazaar";
 const fs = require("fs");
 const assert = require("assert");
-const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
 
+import { AIRDROP_VALUE } from "../utils/constants";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
@@ -38,7 +41,6 @@ describe("bazaar", () => {
 
   const user: Keypair[] = [Keypair.generate(), Keypair.generate()];
 
-  let airdropVal = 20 * LAMPORTS_PER_SOL;
   const marketState = Keypair.generate();
 
   // The arrays contain info for Token A, Token B, and Liq token
@@ -59,7 +61,10 @@ describe("bazaar", () => {
     let airdropees = [creator, ...user];
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(dropee.publicKey, airdropVal),
+        await provider.connection.requestAirdrop(
+          dropee.publicKey,
+          AIRDROP_VALUE
+        ),
         "confirmed"
       );
     }

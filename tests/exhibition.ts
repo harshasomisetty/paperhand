@@ -19,24 +19,20 @@ import {
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+} from "@solana/web3.js";
+import assert from "assert";
 import { Exhibition } from "../target/types/exhibition";
-import { Bazaar } from "../target/types/bazaar";
-const fs = require("fs");
-const assert = require("assert");
-const { SystemProgram, SYSVAR_RENT_PUBKEY } = anchor.web3;
-import { EXHIBITION_PROGRAM_ID, arweave_urls } from "./constants";
+import { AIRDROP_VALUE, EXHIBITION_PROGRAM_ID } from "../utils/constants";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
-const EXHIBITION_PROGRAM_ID = new PublicKey(
-  Exhibition.idl["metadata"]["address"]
-);
-
-const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
-const BazaarID = new PublicKey(Bazaar.idl["metadata"]["address"]);
 
 async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
   let [nftArtifact] = await PublicKey.findProgramAddress(
@@ -55,6 +51,7 @@ async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
 
   return [nftArtifact, artifactMetadata];
 }
+
 describe("exhibition", () => {
   /*
     This test suite will involve 2 users, and consist of:
@@ -73,8 +70,6 @@ describe("exhibition", () => {
   const metaplex = Metaplex.make(provider.connection)
     .use(keypairIdentity(creator))
     .use(bundlrStorage());
-
-  let airdropVal = 20 * LAMPORTS_PER_SOL;
 
   let exhibitBaseSymbol = "NC";
   let exhibitRightSymbol = exhibitBaseSymbol + "0";
@@ -98,7 +93,7 @@ describe("exhibition", () => {
     console.log("Airdropping...");
     for (const pubkey of airdropees) {
       await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(pubkey, airdropVal),
+        await provider.connection.requestAirdrop(pubkey, AIRDROP_VALUE),
         "confirmed"
       );
     }
@@ -283,6 +278,14 @@ describe("exhibition", () => {
       mintKey
     );
 
+    // create new user redeem token account outside of artifact insert
+    await initAssociatedAddressIfNeeded(
+      connection,
+      userRedeemWallet[0],
+      redeemMint,
+      user[0]
+    );
+
     let tx = await Exhibition.methods
       .artifactInsert(creator.publicKey, exhibitCurSymbol, exhibitBump)
       .accounts({
@@ -344,6 +347,12 @@ describe("exhibition", () => {
       mintKey2
     );
 
+    await initAssociatedAddressIfNeeded(
+      connection,
+      userRedeemWallet[1],
+      redeemMint,
+      user[1]
+    );
     tx = await Exhibition.methods
       .artifactInsert(creator.publicKey, exhibitCurSymbol, exhibitBump)
       .accounts({
@@ -480,8 +489,6 @@ describe("exhibition", () => {
           artifactMetadata: artifactMetadata,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         })
         .signers([user[0]])
         .rpc();

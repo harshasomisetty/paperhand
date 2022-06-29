@@ -10,7 +10,7 @@ import ProjectList from "../../../components/ProjectList";
 import EXHIBITION_IDL from "../../exhibitIdl.json";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import { EXHIBITION_PROGRAM_ID } from "../../../../../deploy/constants";
+import { EXHIBITION_PROGRAM_ID } from "../../../../../utils/constants";
 
 import { creatorAdd, exhibitNames } from "../../../utils/data";
 
