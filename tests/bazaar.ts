@@ -26,6 +26,7 @@ anchor.setProvider(provider);
 const connection = provider.connection;
 const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
 const BazaarID = Bazaar.programId;
+
 describe("bazaar", () => {
   /* end goal should be for user to press a button that opens the display case and bazaar simultaneously
    * need to give creator option to bootstrap liq

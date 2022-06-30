@@ -154,10 +154,18 @@ pub mod exhibition {
 #[derive(Accounts)]
 #[instruction(exhibit_creator: Pubkey, exhibit_symbol: String)]
 pub struct InitializeExhibit<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), exhibit_creator.as_ref()], bump)]
+    // #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), exhibit_creator.as_ref()], bump)]
+    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>())]
     pub exhibit: Account<'info, Exhibit>,
 
-    #[account(init, payer = creator, seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump, mint::decimals = 1, mint::authority = exhibit, mint::freeze_authority = exhibit) ]
+    #[account(
+        init,
+        payer = creator,
+        seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump,
+        mint::decimals = 1,
+        mint::authority = exhibit,
+        mint::freeze_authority = exhibit
+    )]
     pub redeem_mint: Account<'info, Mint>,
 
     #[account(mut)]
