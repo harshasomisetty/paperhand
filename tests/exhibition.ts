@@ -117,7 +117,6 @@ describe("exhibition", () => {
       );
     }
 
-    console.log("others", otherCreators);
     console.log("Creating and uploading NFTs...");
     for (let i = 0; i < mintSize; i++) {
       exhibitMints[i] = Array(mintSize);

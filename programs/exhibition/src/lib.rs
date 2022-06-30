@@ -1,3 +1,8 @@
+use crate::state::metaplex_anchor::MplTokenMetadata;
+use crate::state::{
+    metaplex_adapter::{MetadataArgs, TokenProgramVersion},
+    metaplex_anchor::TokenMetadata,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -8,14 +13,9 @@ use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, program::invoke, program::invoke_signed,
     program_option::COption, system_instruction,
 };
-
 pub mod state;
-
-use crate::state::metaplex_anchor::MplTokenMetadata;
-use crate::state::{
-    metaplex_adapter::{MetadataArgs, TokenProgramVersion},
-    metaplex_anchor::TokenMetadata,
-};
+pub mod utils;
+use crate::utils::exhibit_pubkey_verify;
 
 declare_id!("9U8mXG1EqABTdERF3kA9JdnYaHirs4YsQDta2xzHjbPq");
 
@@ -28,12 +28,22 @@ pub mod exhibition {
         exhibit_creator: Pubkey,
         exhibit_symbol: String,
     ) -> Result<()> {
+        require!(
+            exhibit_pubkey_verify(
+                ctx.accounts.exhibit.key(),
+                ctx.accounts.nft_metadata,
+                &exhibit_symbol,
+                id(),
+            ),
+            MyError::ExhibitConstraintViolated
+        );
+
         let exhibit = &mut ctx.accounts.exhibit;
         exhibit.exhibit_creator = exhibit_creator;
         exhibit.exhibit_symbol = exhibit_symbol;
         exhibit.nft_count = 0;
 
-        Ok(())
+        ctx.accounts.nft_metadata.data.Ok(())
     }
 
     pub fn artifact_insert(
@@ -167,6 +177,9 @@ pub struct InitializeExhibit<'info> {
         mint::freeze_authority = exhibit
     )]
     pub redeem_mint: Account<'info, Mint>,
+
+    #[account(mut)]
+    pub nft_metadata: Box<Account<'info, TokenMetadata>>,
 
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -305,4 +318,6 @@ pub struct ArtifactMetadata {
 pub enum MyError {
     #[msg("User NFT account does not have the NFT")]
     UserLacksNFT,
+    #[msg("Exhibit pubkey not the same as the verified creators on nft")]
+    ExhibitConstraintViolated,
 }
