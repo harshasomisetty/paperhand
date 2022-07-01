@@ -8,9 +8,6 @@ use mpl_token_metadata::{
 
 use std::ops::Deref;
 
-pub mod utils;
-use crate::utils::exhibit_pubkey;
-
 #[derive(Clone, AnchorDeserialize, AnchorSerialize)]
 pub struct TokenMetadata(mpl_token_metadata::state::Metadata);
 

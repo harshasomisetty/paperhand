@@ -92,13 +92,16 @@ describe("exhibition", () => {
     keypairIdentity(creator)
   );
 
+  let creator2 = Keypair.generate();
   let jsonData = getProcessedJsonData();
 
   let exhibit, exhibitBump;
   let redeemMint;
 
-  let mintSize = jsonData.length;
-  let mintCount = jsonData[0].length;
+  // let mintSize = jsonData.length;
+  // let mintCount = jsonData[0].length;
+  let mintSize = 1;
+  let mintCount = 1;
   console.log("mint counts", mintSize, mintCount);
   let exhibitMints: PublicKey[][] = Array(mintCount);
   let userRedeemWallet = Array(mintCount);
@@ -106,7 +109,7 @@ describe("exhibition", () => {
   let nftUserTokenAccount;
 
   it("Init create and mint exhibits and Metadata", async () => {
-    let airdropees = [creator, ...otherCreators, ...user];
+    let airdropees = [creator, creator2, ...otherCreators, ...user];
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
         await provider.connection.requestAirdrop(
@@ -222,13 +225,20 @@ describe("exhibition", () => {
     // assert(nft.metadata.name === nftName + "0");
   });
 
-  it.skip("Initialized exhibit!", async () => {
+  it("Initialized exhibit!", async () => {
+    console.log("IN INIT EXHIBIT");
+    const nft = await metaplex.nfts().findByMint(exhibitMints[0][0]);
+    const metadata = findMetadataPda(exhibitMints[0][0]);
+    let seeds = [];
+    nft.creators.forEach((creatorKey) => {
+      if (creatorKey.verified) {
+        console.log("verified", creatorKey.address.toString());
+        seeds.push(creatorKey.address.toBuffer());
+      }
+    });
+
     [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
-      [
-        Buffer.from("exhibit"),
-        Buffer.from(APE_SYMBOL),
-        creator.publicKey.toBuffer(),
-      ],
+      [...seeds, Buffer.from("exhibit"), Buffer.from(nft.metadata.symbol)],
       EXHIBITION_PROGRAM_ID
     );
 
@@ -260,18 +270,48 @@ describe("exhibition", () => {
       user[0].publicKey
     );
 
-    const tx = await Exhibition.methods
-      .initializeExhibit(creator.publicKey, APE_SYMBOL)
-      .accounts({
-        exhibit: exhibit,
-        redeemMint: redeemMint,
-        creator: creator.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([creator])
-      .rpc();
+    console.log("exhibit", exhibit.toString());
+    console.log("redeem mint", redeemMint.toString());
+    console.log("find mint pda", metadata.toString());
+    console.log("creato", creator.publicKey.toString());
+    console.log("initing exhibit");
+
+    try {
+      // const tx = new Transaction().add(
+      //   SystemProgram.createAccountWithSeed({
+      //     fromPubkey: creator.publicKey, // funder
+      //     newAccountPubkey: exhibit,
+      //     basePubkey: basePubkey,
+      //     seed: seed,
+      //     lamports: 1e8, // 0.1 SOL
+      //     space: 0,
+      //     programId: owner,
+      //   })
+      // );
+
+      // console.log(
+      //   `txhash: ${await sendAndConfirmTransaction(connection, tx, [
+      //     feePayer,
+      //     base,
+      //   ])}`
+      // );
+      console.log("exhibit key", exhibit.toString());
+      const tx = await Exhibition.methods
+        .initializeExhibit(nft.metadata.symbol)
+        .accounts({
+          // exhibit: exhibit,
+          // redeemMint: redeemMint,
+          nftMetadata: metadata,
+          creator: creator.publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([creator])
+        .rpc();
+    } catch (error) {
+      console.log("goddamnit", error);
+    }
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 

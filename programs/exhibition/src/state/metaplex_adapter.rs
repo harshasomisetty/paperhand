@@ -1,27 +1,11 @@
+use mpl_token_metadata::state::Creator;
+
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone)]
 pub enum TokenProgramVersion {
     Original,
     Token2022,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone)]
-pub struct Creator {
-    pub address: Pubkey,
-    pub verified: bool,
-    // In percentages, NOT basis points ;) Watch out!
-    pub share: u8,
-}
-
-impl Creator {
-    pub fn adapt(&self) -> mpl_token_metadata::state::Creator {
-        mpl_token_metadata::state::Creator {
-            address: self.address,
-            verified: self.verified,
-            share: self.share,
-        }
-    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]

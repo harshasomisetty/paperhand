@@ -25,25 +25,28 @@ pub mod exhibition {
 
     pub fn initialize_exhibit(
         ctx: Context<InitializeExhibit>,
-        exhibit_creator: Pubkey,
         exhibit_symbol: String,
     ) -> Result<()> {
-        require!(
-            exhibit_pubkey_verify(
-                ctx.accounts.exhibit.key(),
-                ctx.accounts.nft_metadata,
-                &exhibit_symbol,
-                id(),
-            ),
-            MyError::ExhibitConstraintViolated
+        // msg!("Data? {:?}", &ctx.accounts.exhibit.key());
+        let (seeds, derived_pubkey) = exhibit_pubkey_verify(
+            // ctx.accounts.exhibit.key(),
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+            &exhibit_symbol,
+            id(),
         );
+        msg!("derived pubkey: {:?}", &derived_pubkey.to_string());
+        msg!("seeds: {:?}", &seeds);
+        // require!(
 
-        let exhibit = &mut ctx.accounts.exhibit;
-        exhibit.exhibit_creator = exhibit_creator;
-        exhibit.exhibit_symbol = exhibit_symbol;
-        exhibit.nft_count = 0;
+        //     MyError::ExhibitConstraintViolated
+        // );
 
-        ctx.accounts.nft_metadata.data.Ok(())
+        msg!("got to end of initialize");
+        // let exhibit = &mut ctx.accounts.exhibit;
+        // exhibit.exhibit_symbol = exhibit_symbol;
+        // exhibit.nft_count = 0;
+
+        Ok(())
     }
 
     pub fn artifact_insert(
@@ -162,25 +165,22 @@ pub mod exhibition {
 }
 
 #[derive(Accounts)]
-#[instruction(exhibit_creator: Pubkey, exhibit_symbol: String)]
+#[instruction(exhibit_symbol: String)]
 pub struct InitializeExhibit<'info> {
-    // #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref(), exhibit_creator.as_ref()], bump)]
-    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>())]
-    pub exhibit: Account<'info, Exhibit>,
-
-    #[account(
-        init,
-        payer = creator,
-        seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump,
-        mint::decimals = 1,
-        mint::authority = exhibit,
-        mint::freeze_authority = exhibit
-    )]
-    pub redeem_mint: Account<'info, Mint>,
-
+    // #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref()], bump)]
+    // #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>() + 8)]
+    // pub exhibit: Box<Account<'info, Exhibit>>,
+    // #[account(
+    //     init,
+    //     payer = creator,
+    //     seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump,
+    //     mint::decimals = 1,
+    //     mint::authority = exhibit,
+    //     mint::freeze_authority = exhibit
+    // )]
+    // pub redeem_mint: Account<'info, Mint>,
     #[account(mut)]
     pub nft_metadata: Box<Account<'info, TokenMetadata>>,
-
     #[account(mut)]
     pub creator: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
@@ -320,4 +320,9 @@ pub enum MyError {
     UserLacksNFT,
     #[msg("Exhibit pubkey not the same as the verified creators on nft")]
     ExhibitConstraintViolated,
+}
+#[account]
+pub struct DataWithFilter {
+    pub authority: Pubkey,  // 32
+    pub filterable: Pubkey, // 32
 }
