@@ -15,12 +15,16 @@ use solana_program::{
 };
 pub mod state;
 pub mod utils;
-use crate::utils::{creator_single_seed, exhibit_pubkey_verify, exhibit_seeds};
+use crate::utils::{
+    creator_single_seed, exhibit_pubkey_gen, exhibit_pubkey_seeds, exhibit_pubkey_verify,
+};
 
 declare_id!("9U8mXG1EqABTdERF3kA9JdnYaHirs4YsQDta2xzHjbPq");
 
 #[program]
 pub mod exhibition {
+    use crate::utils::exhibit_pubkey_seeds;
+
     use super::*;
 
     pub fn initialize_exhibit(
@@ -45,17 +49,39 @@ pub mod exhibition {
         Ok(())
     }
 
-    pub fn artifact_insert(
-        ctx: Context<ArtifactInsert>,
-        exhibit_creator: Pubkey,
-        exhibit_symbol: String,
-        exhibit_bump: u8,
-    ) -> Result<()> {
+    pub fn artifact_insert(ctx: Context<ArtifactInsert>) -> Result<()> {
+        require!(
+            exhibit_pubkey_verify(
+                ctx.accounts.exhibit.key(),
+                ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+                &ctx.accounts.exhibit.exhibit_symbol,
+                id(),
+            )
+            .unwrap(),
+            MyError::ExhibitConstraintViolated
+        );
+
         require!(
             ctx.accounts.nft_user_token.amount > 0,
             MyError::UserLacksNFT
         );
 
+        let (pubkey, bump_seed) = exhibit_pubkey_gen(
+            ctx.accounts.exhibit.key(),
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+            &ctx.accounts.exhibit.exhibit_symbol,
+            id(),
+        );
+
+        let borrowed_bump = &[bump_seed];
+        let seeds = exhibit_pubkey_seeds(
+            ctx.accounts.exhibit.key(),
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+            &ctx.accounts.exhibit.exhibit_symbol,
+            id(),
+            borrowed_bump,
+        );
+        // msg!("pda")
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -64,12 +90,7 @@ pub mod exhibition {
                     to: ctx.accounts.user_redeem_wallet.to_account_info(),
                     authority: ctx.accounts.exhibit.to_account_info(),
                 },
-                &[&[
-                    b"exhibit".as_ref(),
-                    exhibit_symbol.as_ref(),
-                    exhibit_creator.as_ref(),
-                    &[exhibit_bump],
-                ]],
+                &[&seeds],
             ),
             1,
         )?;
@@ -163,15 +184,19 @@ pub mod exhibition {
 #[derive(Accounts)]
 #[instruction(exhibit_symbol: String)]
 pub struct InitializeExhibit<'info> {
-    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [
-        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 0),
-        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 1),
-        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 2),
-        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 3),
-        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 4),
-        b"exhibit",
-        exhibit_symbol.as_ref(),
-    ], bump)]
+    #[account(
+        init,
+        payer = creator,
+        space = std::mem::size_of::<Exhibit>(),
+        seeds = [
+            creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 0),
+            creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 1),
+            creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 2),
+            creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 3),
+            creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 4),
+            b"exhibit",
+            exhibit_symbol.as_ref(),
+        ], bump)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
     #[account(
@@ -195,7 +220,7 @@ pub struct InitializeExhibit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(exhibit_creator: Pubkey, exhibit_symbol: String, exhibit_bump: u8)]
+// #[instruction(exhibit_creator: Pubkey, exhibit_bump: u8)]
 pub struct ArtifactInsert<'info> {
     #[account(
         mut,
@@ -215,10 +240,7 @@ pub struct ArtifactInsert<'info> {
     pub nft_metadata: Box<Account<'info, TokenMetadata>>,
     #[account(mut)]
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
-    #[account(
-        mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.exhibit_symbol,
-    )]
+    #[account(mut)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
     #[account(

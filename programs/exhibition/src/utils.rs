@@ -18,23 +18,13 @@ pub fn creator_single_seed(creators: &Vec<Creator>, index: usize) -> &[u8] {
     }
 }
 
-pub fn exhibit_seeds(creators: &Vec<Creator>) -> Vec<&[u8]> {
-    let mut signed_creators: Vec<&[u8]> = Vec::new();
-    for creator in creators {
-        if creator.verified {
-            msg!("creator verified: {:?}", &creator.address.to_string());
-            signed_creators.push(creator.address.as_ref());
-        }
-    }
-    signed_creators
-}
-pub fn exhibit_pubkey_verify<'a>(
+pub fn exhibit_pubkey_gen<'a>(
     exhibit_pubkey: Pubkey,
     creators: &'a Vec<Creator>,
     symbol: &'a String,
     program_id: Pubkey,
-) -> Result<bool> {
-    let mut seeds = [
+) -> (Pubkey, u8) {
+    let seeds = [
         creator_single_seed(creators, 0),
         creator_single_seed(creators, 1),
         creator_single_seed(creators, 2),
@@ -44,7 +34,35 @@ pub fn exhibit_pubkey_verify<'a>(
         symbol.as_ref(),
     ];
 
-    let (pda, bump_seed) = Pubkey::find_program_address(&seeds, &program_id);
+    Pubkey::find_program_address(&seeds, &program_id)
+}
+
+pub fn exhibit_pubkey_seeds<'a>(
+    exhibit_pubkey: Pubkey,
+    creators: &'a Vec<Creator>,
+    symbol: &'a String,
+    program_id: Pubkey,
+    bump_seed: &'a [u8; 1],
+) -> [&'a [u8]; 8] {
+    [
+        creator_single_seed(creators, 0),
+        creator_single_seed(creators, 1),
+        creator_single_seed(creators, 2),
+        creator_single_seed(creators, 3),
+        creator_single_seed(creators, 4),
+        b"exhibit",
+        symbol.as_bytes(),
+        bump_seed,
+    ]
+}
+
+pub fn exhibit_pubkey_verify<'a>(
+    exhibit_pubkey: Pubkey,
+    creators: &'a Vec<Creator>,
+    symbol: &'a String,
+    program_id: Pubkey,
+) -> Result<bool> {
+    let (pda, bump_seed) = exhibit_pubkey_gen(exhibit_pubkey, creators, symbol, program_id);
 
     Ok(pda == exhibit_pubkey)
 }
