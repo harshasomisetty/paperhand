@@ -66,11 +66,7 @@ async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
   );
 
   let [artifactMetadata] = await PublicKey.findProgramAddress(
-    [
-      Buffer.from("artifact_metadata"),
-      exhibit.toBuffer(),
-      nftArtifact.toBuffer(),
-    ],
+    [Buffer.from("artifact_metadata"), nftArtifact.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
@@ -315,27 +311,23 @@ describe("exhibition", () => {
       .signers([user[0]])
       .rpc();
 
-    console.log("finished insert");
     let postUserRedeemTokenBal = await getAccount(
       provider.connection,
       userRedeemWallet[0]
     );
-    console.log("11");
-    assert.ok(Number(postUserRedeemTokenBal.amount) == 1);
 
     let postUserNftTokenBal = await getAccount(
       provider.connection,
       nftUserTokenAccount.address
     );
-    console.log("22");
-    assert.ok(Number(postUserNftTokenBal.amount) == 0);
 
-    console.log("33");
     let postNftArtifactBal = await getAccount(provider.connection, nftArtifact);
-    assert.ok(Number(postNftArtifactBal.amount) == 1);
 
-    console.log("44");
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+
+    assert.ok(Number(postUserRedeemTokenBal.amount) == 1);
+    assert.ok(Number(postUserNftTokenBal.amount) == 0);
+    assert.ok(Number(postNftArtifactBal.amount) == 1);
     assert.ok(exhibitInfo.nftCount == 1);
 
     // Prepare accounts to deposit second nft.
@@ -345,7 +337,6 @@ describe("exhibition", () => {
     let mintKey2 = exhibitMints[0][1];
 
     const nft2 = await metaplex.nfts().findByMint(mintKey2);
-    console.log("4.5");
     let nftUserTokenAccount2 = await getOrCreateAssociatedTokenAccount(
       connection,
       user[1],
@@ -353,7 +344,6 @@ describe("exhibition", () => {
       user[1].publicKey
     );
 
-    console.log("55");
     let [nftArtifact2, artifactMetadata2] = await getArtifactData(
       exhibit,
       mintKey2
@@ -387,7 +377,7 @@ describe("exhibition", () => {
       .rpc();
   });
 
-  it.skip("Blocked inserting wrong nft into artifact!", async () => {
+  it("Blocked inserting wrong nft into artifact!", async () => {
     let mintKey = exhibitMints[1][0];
 
     const nft = await metaplex.nfts().findByMint(mintKey);
@@ -400,7 +390,7 @@ describe("exhibition", () => {
     let err;
     try {
       const tx = await Exhibition.methods
-        .artifactInsert(creator.publicKey, APE_SYMBOL, exhibitBump)
+        .artifactInsert()
         .accounts({
           exhibit: exhibit,
           redeemMint: redeemMint,

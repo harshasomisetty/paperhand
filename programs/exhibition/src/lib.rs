@@ -107,7 +107,6 @@ pub mod exhibition {
             1,
         );
 
-        ctx.accounts.exhibit.nft_count = ctx.accounts.exhibit.nft_count + 1;
         ctx.accounts.artifact_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
         Ok(())
@@ -121,8 +120,33 @@ pub mod exhibition {
     ) -> Result<()> {
         msg!("msg here: {}", 1);
 
+        require!(
+            exhibit_pubkey_verify(
+                ctx.accounts.exhibit.key(),
+                ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+                &ctx.accounts.exhibit.exhibit_symbol,
+                id(),
+            )
+            .unwrap(),
+            MyError::ExhibitConstraintViolated
+        );
         // 1) transfer nft from pda to user nft account
 
+        let (pubkey, bump_seed) = exhibit_pubkey_gen(
+            ctx.accounts.exhibit.key(),
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+            &ctx.accounts.exhibit.exhibit_symbol,
+            id(),
+        );
+
+        let borrowed_bump = &[bump_seed];
+        let seeds = exhibit_pubkey_seeds(
+            ctx.accounts.exhibit.key(),
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+            &ctx.accounts.exhibit.exhibit_symbol,
+            id(),
+            borrowed_bump,
+        );
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -131,12 +155,7 @@ pub mod exhibition {
                     to: ctx.accounts.nft_user_token.to_account_info(),
                     authority: ctx.accounts.exhibit.to_account_info(),
                 },
-                &[&[
-                    b"exhibit".as_ref(),
-                    exhibit_symbol.as_ref(),
-                    exhibit_creator.as_ref(),
-                    &[exhibit_bump],
-                ]],
+                &[&seeds],
             ),
             1,
         );
@@ -150,12 +169,7 @@ pub mod exhibition {
                     mint: ctx.accounts.redeem_mint.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
-                &[&[
-                    b"exhibit".as_ref(),
-                    exhibit_symbol.as_ref(),
-                    exhibit_creator.as_ref(),
-                    &[exhibit_bump],
-                ]],
+                &[&seeds],
             ),
             1,
         )?;
@@ -168,15 +182,9 @@ pub mod exhibition {
                 destination: ctx.accounts.exhibit.to_account_info(),
                 authority: ctx.accounts.exhibit.to_account_info(),
             },
-            &[&[
-                b"exhibit".as_ref(),
-                exhibit_symbol.as_ref(),
-                exhibit_creator.as_ref(),
-                &[exhibit_bump],
-            ]],
+            &[&seeds],
         ))?;
 
-        ctx.accounts.exhibit.nft_count = ctx.accounts.exhibit.nft_count - 1;
         Ok(())
     }
 }
@@ -257,7 +265,7 @@ pub struct ArtifactInsert<'info> {
         init,
         space = std::mem::size_of::<ArtifactMetadata>() + 8,
         payer = user,
-        seeds = [b"artifact_metadata".as_ref(), exhibit.key().as_ref(), nft_artifact.key().as_ref()],
+        seeds = [b"artifact_metadata".as_ref(), nft_artifact.key().as_ref()],
         bump
     )]
     pub artifact_metadata: Account<'info, ArtifactMetadata>,
@@ -308,7 +316,7 @@ pub struct ArtifactWithdraw<'info> {
 
     #[account(
         mut,
-        seeds = [b"artifact_metadata".as_ref(), exhibit.key().as_ref(), nft_artifact.key().as_ref()],
+        seeds = [b"artifact_metadata".as_ref(), nft_artifact.key().as_ref()],
         close = exhibit,
         bump
     )]
@@ -326,7 +334,6 @@ pub struct Exhibit {
     pub token_a_mint: Pubkey,
     // pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
-    pub nft_count: u32,
     pub auth_bump: u8,
 }
 
