@@ -128,7 +128,7 @@ export function nftJsonFormat(
       {
         address: otherCreator.publicKey,
         share: 50,
-        verified: false,
+        verified: true,
       },
     ],
     sellerFeeBasisPoints: 500,

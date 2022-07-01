@@ -31,6 +31,7 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import assert from "assert";
 import { Exhibition } from "../target/types/exhibition";
@@ -108,7 +109,7 @@ describe("exhibition", () => {
 
   let nftUserTokenAccount;
 
-  it("Init create and mint exhibits and Metadata", async () => {
+  before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, creator2, ...otherCreators, ...user];
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
@@ -153,8 +154,6 @@ describe("exhibition", () => {
 
         const metadata = findMetadataPda(mintKey);
 
-        // const { nft } = await metaplex.nfts().create(jsonData[i][j]);
-
         let tx = TransactionBuilder.make().add(
           createCreateMetadataAccountV2InstructionWithSigners({
             data: jsonData[i][j],
@@ -167,7 +166,6 @@ describe("exhibition", () => {
           })
         );
 
-        // And send it with confirmation.
         await metaplex.rpc().sendAndConfirmTransaction(tx);
 
         let tx2 = new Transaction().add(
@@ -180,11 +178,7 @@ describe("exhibition", () => {
         await connection.sendTransaction(tx2, [otherCreators[i]]);
 
         const nft = await metaplex.nfts().findByMint(mintKey);
-        console.log(nft.metadata);
-        console.log(nft);
 
-        // console.log("make?", nft.name, nftName + j.toString());
-        // assert.ok(nft.name === nftName + j.toString());
         exhibitMints[i][j] = mintKey;
       }
     }
@@ -214,23 +208,14 @@ describe("exhibition", () => {
     //     console.log("token bal: ", accountInfo.amount);
     //   }
     // }
-
-    // console.log("created stuff");
-    const nft = await metaplex.nfts().findByMint(exhibitMints[0][0]);
-
-    console.log(nft.metadata);
-    console.log(nft.creators);
-    console.log(nft.metadata.symbol);
-    // assert(nft.metadata.symbol === exhibitBaseSymbol + "0");
-    // assert(nft.metadata.name === nftName + "0");
   });
 
   it("Initialized exhibit!", async () => {
-    console.log("IN INIT EXHIBIT");
     const nft = await metaplex.nfts().findByMint(exhibitMints[0][0]);
     const metadata = findMetadataPda(exhibitMints[0][0]);
+    const mdata = await Metadata.fromAccountAddress(connection, metadata);
     let seeds = [];
-    nft.creators.forEach((creatorKey) => {
+    mdata.data.creators.forEach((creatorKey) => {
       if (creatorKey.verified) {
         console.log("verified", creatorKey.address.toString());
         seeds.push(creatorKey.address.toBuffer());
@@ -270,55 +255,23 @@ describe("exhibition", () => {
       user[0].publicKey
     );
 
-    console.log("exhibit", exhibit.toString());
-    console.log("redeem mint", redeemMint.toString());
-    console.log("find mint pda", metadata.toString());
-    console.log("creato", creator.publicKey.toString());
-    console.log("initing exhibit");
-
-    try {
-      // const tx = new Transaction().add(
-      //   SystemProgram.createAccountWithSeed({
-      //     fromPubkey: creator.publicKey, // funder
-      //     newAccountPubkey: exhibit,
-      //     basePubkey: basePubkey,
-      //     seed: seed,
-      //     lamports: 1e8, // 0.1 SOL
-      //     space: 0,
-      //     programId: owner,
-      //   })
-      // );
-
-      // console.log(
-      //   `txhash: ${await sendAndConfirmTransaction(connection, tx, [
-      //     feePayer,
-      //     base,
-      //   ])}`
-      // );
-      console.log("exhibit key", exhibit.toString());
-      const tx = await Exhibition.methods
-        .initializeExhibit(nft.metadata.symbol)
-        .accounts({
-          // exhibit: exhibit,
-          // redeemMint: redeemMint,
-          nftMetadata: metadata,
-          creator: creator.publicKey,
-          rent: SYSVAR_RENT_PUBKEY,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([creator])
-        .rpc();
-    } catch (error) {
-      console.log("goddamnit", error);
-    }
+    let tx = await Exhibition.methods
+      .initializeExhibit(nft.metadata.symbol)
+      .accounts({
+        exhibit: exhibit,
+        redeemMint: redeemMint,
+        nftMetadata: metadata,
+        creator: creator.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([creator])
+      .rpc();
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
     assert.ok(exhibitInfo.exhibitSymbol === APE_SYMBOL);
-    assert.ok(
-      exhibitInfo.exhibitCreator.toString() === creator.publicKey.toString()
-    );
   });
 
   it.skip("Inserted correct nft into corresponding artifact!", async () => {

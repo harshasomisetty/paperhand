@@ -15,7 +15,7 @@ use solana_program::{
 };
 pub mod state;
 pub mod utils;
-use crate::utils::exhibit_pubkey_verify;
+use crate::utils::{creator_single_seed, exhibit_pubkey_verify, exhibit_seeds};
 
 declare_id!("9U8mXG1EqABTdERF3kA9JdnYaHirs4YsQDta2xzHjbPq");
 
@@ -28,23 +28,19 @@ pub mod exhibition {
         exhibit_symbol: String,
     ) -> Result<()> {
         // msg!("Data? {:?}", &ctx.accounts.exhibit.key());
-        let (seeds, derived_pubkey) = exhibit_pubkey_verify(
-            // ctx.accounts.exhibit.key(),
-            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
-            &exhibit_symbol,
-            id(),
+        require!(
+            exhibit_pubkey_verify(
+                ctx.accounts.exhibit.key(),
+                ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+                &exhibit_symbol,
+                id(),
+            )
+            .unwrap(),
+            MyError::ExhibitConstraintViolated
         );
-        msg!("derived pubkey: {:?}", &derived_pubkey.to_string());
-        msg!("seeds: {:?}", &seeds);
-        // require!(
-
-        //     MyError::ExhibitConstraintViolated
-        // );
 
         msg!("got to end of initialize");
-        // let exhibit = &mut ctx.accounts.exhibit;
-        // exhibit.exhibit_symbol = exhibit_symbol;
-        // exhibit.nft_count = 0;
+        ctx.accounts.exhibit.exhibit_symbol = exhibit_symbol;
 
         Ok(())
     }
@@ -167,20 +163,30 @@ pub mod exhibition {
 #[derive(Accounts)]
 #[instruction(exhibit_symbol: String)]
 pub struct InitializeExhibit<'info> {
-    // #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [b"exhibit".as_ref(), exhibit_symbol.as_ref()], bump)]
-    // #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>() + 8)]
-    // pub exhibit: Box<Account<'info, Exhibit>>,
-    // #[account(
-    //     init,
-    //     payer = creator,
-    //     seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump,
-    //     mint::decimals = 1,
-    //     mint::authority = exhibit,
-    //     mint::freeze_authority = exhibit
-    // )]
-    // pub redeem_mint: Account<'info, Mint>,
+    #[account(init, payer = creator, space = std::mem::size_of::<Exhibit>(), seeds = [
+        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 0),
+        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 1),
+        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 2),
+        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 3),
+        creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 4),
+        b"exhibit",
+        exhibit_symbol.as_ref(),
+    ], bump)]
+    pub exhibit: Box<Account<'info, Exhibit>>,
+
+    #[account(
+        init,
+        payer = creator,
+        seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump,
+        mint::decimals = 1,
+        mint::authority = exhibit,
+        mint::freeze_authority = exhibit
+    )]
+    pub redeem_mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub nft_metadata: Box<Account<'info, TokenMetadata>>,
+
     #[account(mut)]
     pub creator: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
@@ -212,7 +218,6 @@ pub struct ArtifactInsert<'info> {
     #[account(
         mut,
         constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.exhibit_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.exhibit_creator
     )]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
@@ -267,7 +272,6 @@ pub struct ArtifactWithdraw<'info> {
     #[account(
         mut,
         constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.exhibit_symbol,
-        constraint = nft_metadata.data.creators.as_ref().unwrap()[0].address == exhibit.exhibit_creator
     )]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
@@ -297,14 +301,10 @@ pub struct ArtifactWithdraw<'info> {
 #[account]
 #[derive(Default)]
 pub struct Exhibit {
-    pub exhibit_creator: Pubkey,
-    // verified accounts
-    // TODO check just verified creators, not just the creator of a collection
     pub token_a_mint: Pubkey,
-    pub token_b_mint: Pubkey,
+    // pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
     pub nft_count: u32,
-    pub market_active: bool,
     pub auth_bump: u8,
 }
 
