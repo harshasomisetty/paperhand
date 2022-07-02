@@ -59,6 +59,9 @@ anchor.setProvider(provider);
 const connection = provider.connection;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
+const metaplex = Metaplex.make(provider.connection).use(
+  keypairIdentity(creator)
+);
 async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), mintKey.toBuffer()],
@@ -73,6 +76,52 @@ async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
   return [nftArtifact, artifactMetadata];
 }
 
+async function getExhibitAddress(
+  mint: PublicKey
+): Promise<anchor.web3.PublicKey> {
+  const nfta = await metaplex.nfts().findByMint(mint);
+  const metadata = findMetadataPda(mint);
+  const mdata = await Metadata.fromAccountAddress(connection, metadata);
+  let seeds = [];
+  mdata.data.creators.forEach((creatorKey) => {
+    if (creatorKey.verified) {
+      // console.log("verified", creatorKey.address.toString());
+      seeds.push(creatorKey.address.toBuffer());
+    }
+  });
+
+  let [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
+    [...seeds, Buffer.from("exhibit"), Buffer.from(nfta.metadata.symbol)],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  return exhibit;
+}
+
+async function getUserRedeemWallets(
+  redeemMint: PublicKey,
+  user
+): Promise<PublicKey[]> {
+  let userRedeemWallet = Array(2);
+
+  userRedeemWallet[0] = await getAssociatedTokenAddress(
+    redeemMint,
+    user[0].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  userRedeemWallet[1] = await getAssociatedTokenAddress(
+    redeemMint,
+    user[1].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+  return userRedeemWallet;
+}
+
 describe("exhibition", () => {
   /*
     This test suite will involve 2 users, and consist of:
@@ -85,15 +134,8 @@ describe("exhibition", () => {
     7) Verify that the exhibit still has 1 NFT, and ensure we can retrieve the NFT metadata
   */
 
-  const metaplex = Metaplex.make(provider.connection).use(
-    keypairIdentity(creator)
-  );
-
   let creator2 = Keypair.generate();
   let jsonData = getProcessedJsonData();
-
-  let exhibit, exhibitBump;
-  let redeemMint;
 
   // let mintSize = jsonData.length;
   // let mintCount = jsonData[0].length;
@@ -101,9 +143,6 @@ describe("exhibition", () => {
   let mintCount = 2;
   console.log("mint counts", mintSize, mintCount);
   let exhibitMints: PublicKey[][] = Array(mintCount);
-  let userRedeemWallet = Array(mintCount);
-
-  let nftUserTokenAccount;
 
   before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, creator2, ...otherCreators, ...user];
@@ -134,14 +173,14 @@ describe("exhibition", () => {
 
         let associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
           connection,
-          user[i],
+          user[j],
           mintKey,
-          user[i].publicKey
+          user[j].publicKey
         );
 
         await mintTo(
           connection,
-          user[i],
+          user[j],
           mintKey,
           associatedTokenAccount.address,
           otherCreators[i],
@@ -149,7 +188,7 @@ describe("exhibition", () => {
         );
 
         const metadata = findMetadataPda(mintKey);
-
+        // console.log(i, j, "json data", jsonData[i][j], mintKey);
         let tx = TransactionBuilder.make().add(
           createCreateMetadataAccountV2InstructionWithSigners({
             data: jsonData[i][j],
@@ -183,11 +222,12 @@ describe("exhibition", () => {
 
     // for (let i = 0; i < mintCount; i++) {
     //   for (let j = 0; j < mintSize; j++) {
+    //     console.log("printing ", i, j);
     //     let mintKey = exhibitMints[i][j];
     //     console.log("mint:", exhibitMints[i][j].toString());
 
     //     const nft = await metaplex.nfts().findByMint(mintKey);
-    //     console.log("nft data ", nft.metadataAccount.publicKey.toString());
+    //     console.log("nft name", nft.metadata.symbol);
 
     //     let associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
     //       connection,
@@ -201,62 +241,36 @@ describe("exhibition", () => {
     //       associatedTokenAccount.address
     //     );
 
-    //     console.log("token bal: ", accountInfo.amount);
+    //     console.log("token Baal: ", accountInfo.amount);
     //   }
     // }
   });
 
   it("Initialized exhibit!", async () => {
-    const nft = await metaplex.nfts().findByMint(exhibitMints[0][0]);
-    const metadata = findMetadataPda(exhibitMints[0][0]);
-    const mdata = await Metadata.fromAccountAddress(connection, metadata);
-    let seeds = [];
-    mdata.data.creators.forEach((creatorKey) => {
-      if (creatorKey.verified) {
-        console.log("verified", creatorKey.address.toString());
-        seeds.push(creatorKey.address.toBuffer());
-      }
-    });
+    let mintKey = exhibitMints[0][0];
 
-    [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
-      [...seeds, Buffer.from("exhibit"), Buffer.from(nft.metadata.symbol)],
-      EXHIBITION_PROGRAM_ID
-    );
+    let exhibit = await getExhibitAddress(mintKey);
+    console.log("exhibit print", exhibit.toString());
+    const nft = await metaplex.nfts().findByMint(mintKey);
 
-    [redeemMint] = await PublicKey.findProgramAddress(
+    let [redeemMint] = await PublicKey.findProgramAddress(
       [Buffer.from("redeem_mint"), exhibit.toBuffer()],
       EXHIBITION_PROGRAM_ID
     );
 
-    userRedeemWallet[0] = await getAssociatedTokenAddress(
-      redeemMint,
-      user[0].publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-
-    userRedeemWallet[1] = await getAssociatedTokenAddress(
-      redeemMint,
-      user[1].publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-
-    nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
       user[0],
-      exhibitMints[0][0],
+      mintKey,
       user[0].publicKey
     );
 
     let tx = await Exhibition.methods
-      .initializeExhibit(nft.metadata.symbol)
+      .initializeExhibit()
       .accounts({
         exhibit: exhibit,
         redeemMint: redeemMint,
-        nftMetadata: metadata,
+        nftMetadata: nft.metadataAccount.publicKey,
         creator: creator.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -267,11 +281,65 @@ describe("exhibition", () => {
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
-    assert.ok(exhibitInfo.exhibitSymbol === APE_SYMBOL);
+    let mdata = await Metadata.fromAccountAddress(
+      connection,
+      findMetadataPda(mintKey)
+    );
+
+    console.log("Exhibit 1: ", exhibit.toString());
+    assert.ok(
+      exhibitInfo.exhibitSymbol === mdata.data.symbol.replace(/\0.*$/g, "")
+    );
+  });
+
+  it("Initialized exhibit 2!", async () => {
+    console.log("INITIALIXED 2");
+    let mintKey = exhibitMints[1][1];
+
+    let exhibit = await getExhibitAddress(mintKey);
+    const nft = await metaplex.nfts().findByMint(mintKey);
+    let [redeemMint] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+      EXHIBITION_PROGRAM_ID
+    );
+
+    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      user[0],
+      mintKey,
+      user[0].publicKey
+    );
+
+    let tx = await Exhibition.methods
+      .initializeExhibit()
+      .accounts({
+        exhibit: exhibit,
+        redeemMint: redeemMint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        creator: creator.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([creator])
+      .rpc();
+
+    let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+    let mdata = await Metadata.fromAccountAddress(
+      connection,
+      findMetadataPda(mintKey)
+    );
+
+    console.log("Exhibit 2: ", exhibit.toString());
+    assert.ok(
+      exhibitInfo.exhibitSymbol === mdata.data.symbol.replace(/\0.*$/g, "")
+    );
   });
 
   it("Inserted correct nft into corresponding artifact!", async () => {
     // Prep accounts for depositing first NFT.
+    let exhibit = await getExhibitAddress(exhibitMints[0][0]);
+
     let mintKey = exhibitMints[0][0];
 
     const nft = await metaplex.nfts().findByMint(mintKey);
@@ -279,6 +347,19 @@ describe("exhibition", () => {
     let [nftArtifact, artifactMetadata] = await getArtifactData(
       exhibit,
       mintKey
+    );
+
+    let [redeemMint] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+      EXHIBITION_PROGRAM_ID
+    );
+
+    let userRedeemWallet = await getUserRedeemWallets(redeemMint, user);
+    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      user[0],
+      mintKey,
+      user[0].publicKey
     );
 
     // create new user redeem token account outside of artifact insert
@@ -289,8 +370,11 @@ describe("exhibition", () => {
       user[0]
     );
 
-    console.log("artificat insert");
-
+    console.log(
+      "mint and Artifact 1",
+      mintKey.toString(),
+      nftArtifact.toString()
+    );
     let tx = await Exhibition.methods
       .artifactInsert()
       .accounts({
@@ -301,7 +385,6 @@ describe("exhibition", () => {
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
-        artifactMetadata: artifactMetadata,
         user: user[0].publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -328,26 +411,39 @@ describe("exhibition", () => {
     assert.ok(Number(postUserRedeemTokenBal.amount) == 1);
     assert.ok(Number(postUserNftTokenBal.amount) == 0);
     assert.ok(Number(postNftArtifactBal.amount) == 1);
-    assert.ok(exhibitInfo.nftCount == 1);
 
     // Prepare accounts to deposit second nft.
   });
 
-  it.skip("inserted second nft from user 2", async () => {
-    let mintKey2 = exhibitMints[0][1];
+  it("inserted second nft from user 2", async () => {
+    let mintKey = exhibitMints[0][1];
 
-    const nft2 = await metaplex.nfts().findByMint(mintKey2);
-    let nftUserTokenAccount2 = await getOrCreateAssociatedTokenAccount(
+    let exhibit = await getExhibitAddress(mintKey);
+    const nft = await metaplex.nfts().findByMint(mintKey);
+
+    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
       user[1],
-      mintKey2,
+      mintKey,
       user[1].publicKey
     );
 
-    let [nftArtifact2, artifactMetadata2] = await getArtifactData(
+    let [nftArtifact, artifactMetadata] = await getArtifactData(
       exhibit,
-      mintKey2
+      mintKey
     );
+
+    let [redeemMint] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+      EXHIBITION_PROGRAM_ID
+    );
+
+    console.log(
+      "mint and Artifact 1",
+      mintKey.toString(),
+      nftArtifact.toString()
+    );
+    let userRedeemWallet = await getUserRedeemWallets(redeemMint, user);
 
     await initAssociatedAddressIfNeeded(
       connection,
@@ -362,11 +458,10 @@ describe("exhibition", () => {
         exhibit: exhibit,
         redeemMint: redeemMint,
         userRedeemWallet: userRedeemWallet[1],
-        nftMint: mintKey2,
-        nftMetadata: nft2.metadataAccount.publicKey,
-        nftUserToken: nftUserTokenAccount2.address,
-        nftArtifact: nftArtifact2,
-        artifactMetadata: artifactMetadata2,
+        nftMint: mintKey,
+        nftMetadata: nft.metadataAccount.publicKey,
+        nftUserToken: nftUserTokenAccount.address,
+        nftArtifact: nftArtifact,
         user: user[1].publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -377,9 +472,10 @@ describe("exhibition", () => {
       .rpc();
   });
 
-  it("Blocked inserting wrong nft into artifact!", async () => {
-    let mintKey = exhibitMints[1][0];
+  it("Withdrew from artifact!", async () => {
+    let mintKey = exhibitMints[0][0];
 
+    let exhibit = await getExhibitAddress(mintKey);
     const nft = await metaplex.nfts().findByMint(mintKey);
 
     let [nftArtifact, artifactMetadata] = await getArtifactData(
@@ -387,47 +483,22 @@ describe("exhibition", () => {
       mintKey
     );
 
-    let err;
-    try {
-      const tx = await Exhibition.methods
-        .artifactInsert()
-        .accounts({
-          exhibit: exhibit,
-          redeemMint: redeemMint,
-          userRedeemWallet: userRedeemWallet[0],
-          nftMint: mintKey,
-          nftMetadata: nft.metadataAccount.publicKey,
-          nftUserToken: nftUserTokenAccount.address,
-          nftArtifact: nftArtifact,
-          artifactMetadata: artifactMetadata,
-          user: user[0].publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        })
-        .signers([user[0]])
-        .rpc();
-    } catch (error) {
-      err = error;
-    }
+    let [redeemMint] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+      EXHIBITION_PROGRAM_ID
+    );
 
-    assert.ok(err.error.origin == "exhibit");
-    assert.ok(err.error.errorCode.code == "ConstraintRaw");
-  });
+    let userRedeemWallet = await getUserRedeemWallets(redeemMint, user);
 
-  it.skip("Withdrew from artifact!", async () => {
-    let mintKey = exhibitMints[0][0];
-
-    const nft = await metaplex.nfts().findByMint(mintKey);
-
-    let [nftArtifact, artifactMetadata] = await getArtifactData(
-      exhibit,
-      mintKey
+    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      user[0],
+      mintKey,
+      user[0].publicKey
     );
 
     const tx = await Exhibition.methods
-      .artifactWithdraw(creator.publicKey, APE_SYMBOL, exhibitBump)
+      .artifactWithdraw()
       .accounts({
         exhibit: exhibit,
         redeemMint: redeemMint,
@@ -437,11 +508,8 @@ describe("exhibition", () => {
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
-        artifactMetadata: artifactMetadata,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       })
       .signers([user[0]])
       .rpc();
@@ -461,55 +529,22 @@ describe("exhibition", () => {
     assert.ok((await connection.getAccountInfo(nftArtifact)) == null);
   });
 
-  it.skip("Failed withdrawing from artifact from lack of redeem tokens!", async () => {
+  it("verify final nft artifacts simple", async () => {
     let mintKey = exhibitMints[0][0];
+    let exhibit = await getExhibitAddress(mintKey);
 
-    const nft = await metaplex.nfts().findByMint(mintKey);
-
-    let [nftArtifact, artifactMetadata] = await getArtifactData(
-      exhibit,
-      mintKey
+    let [redeemMint] = await PublicKey.findProgramAddress(
+      [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+      EXHIBITION_PROGRAM_ID
     );
 
-    let err;
-    try {
-      const tx = await Exhibition.methods
-        .artifactWithdraw(creator.publicKey, APE_SYMBOL, exhibitBump)
-        .accounts({
-          exhibit: exhibit,
-          redeemMint: redeemMint,
-          user: user[0].publicKey,
-          userRedeemWallet: userRedeemWallet[0],
-          nftMint: mintKey,
-          nftMetadata: nft.metadataAccount.publicKey,
-          nftUserToken: nftUserTokenAccount.address,
-          nftArtifact: nftArtifact,
-          artifactMetadata: artifactMetadata,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .signers([user[0]])
-        .rpc();
-    } catch (error) {
-      err = error;
-    }
-
-    assert.ok(err.error.origin == "nft_artifact");
-    assert.ok(err.error.errorCode.code == "AccountNotInitialized");
-  });
-
-  it.skip("Verified final  details", async () => {
-    // Make sure there is only 1 nft left
-
-    let [nftArtifact, artifactMetadata] = await getArtifactData(
-      exhibit,
-      exhibitMints[0][0]
+    // ALL initialized exhibits
+    let allExhibitAccounts = await connection.getProgramAccounts(
+      EXHIBITION_PROGRAM_ID
     );
-
-    let [nftArtifact2, artifactMetadata2] = await getArtifactData(
-      exhibit,
-      exhibitMints[0][1]
-    );
+    allExhibitAccounts.forEach((key) => {
+      console.log("exhibits", key.pubkey.toString());
+    });
 
     let allArtifactAccounts = await connection.getTokenAccountsByOwner(
       exhibit,
@@ -519,40 +554,22 @@ describe("exhibition", () => {
     );
 
     let artifactKeys = [];
-    allArtifactAccounts.value.forEach((x, i) => artifactKeys.push(x.pubkey));
+    allArtifactAccounts.value.forEach((x, i) => {
+      console.log("Artifact", x.pubkey.toString());
+      artifactKeys.push(x.pubkey);
+    });
 
     let redeemMintInfo = await getMint(connection, redeemMint);
 
     assert.ok(artifactKeys.length == Number(redeemMintInfo.supply));
-    assert.ok(artifactKeys[0].toString() == nftArtifact2.toString());
 
-    let artifactMetadatas = [];
-
-    for (let artifactKey of artifactKeys) {
-      let [tempArtifactMetadata] = await PublicKey.findProgramAddress(
-        [
-          Buffer.from("artifact_metadata"),
-          exhibit.toBuffer(),
-          artifactKey.toBuffer(),
-        ],
-        EXHIBITION_PROGRAM_ID
-      );
-
-      let artifactInfo = await Exhibition.account.artifactMetadata.fetch(
-        tempArtifactMetadata
-      );
-      artifactMetadatas.push(artifactInfo.nftMetadata);
-    }
-
-    const actualMetadata1 = findMetadataPda(exhibitMints[0][0]);
-    const actualMetadata2 = findMetadataPda(exhibitMints[0][1]);
-
-    assert.ok(artifactMetadatas[0].toString() == actualMetadata2.toString());
+    let artifactMints = [];
+    artifactKeys.forEach(async (key, i) => {
+      let tokenAccount = await getAccount(connection, key);
+      console.log("TOKEN ACCOUNT", tokenAccount.mint.toString());
+      artifactMints.push(tokenAccount.mint);
+    });
   });
-
-  // it("tested bazaar", async () =>
-  //   await Bazaar.methods.initialize().rpc()
-  // )
 
   Exhibition.provider.connection.onLogs("all", ({ logs }) => {
     console.log(logs);

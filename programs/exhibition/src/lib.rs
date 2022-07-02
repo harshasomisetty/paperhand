@@ -27,24 +27,33 @@ pub mod exhibition {
 
     use super::*;
 
-    pub fn initialize_exhibit(
-        ctx: Context<InitializeExhibit>,
-        exhibit_symbol: String,
-    ) -> Result<()> {
-        // msg!("Data? {:?}", &ctx.accounts.exhibit.key());
-        require!(
-            exhibit_pubkey_verify(
-                ctx.accounts.exhibit.key(),
-                ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
-                &exhibit_symbol,
-                id(),
-            )
-            .unwrap(),
-            MyError::ExhibitConstraintViolated
-        );
+    pub fn initialize_exhibit(ctx: Context<InitializeExhibit>) -> Result<()> {
+        // require!(
+        //     exhibit_pubkey_verify(
+        //         ctx.accounts.exhibit.key(),
+        //         ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+        //         &ctx.accounts.nft_metadata.data.symbol,
+        //         id(),
+        //     )
+        //     .unwrap(),
+        //     MyError::ExhibitConstraintViolated
+        // );
 
+        let uh = exhibit_pubkey_verify(
+            ctx.accounts.exhibit.key(),
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+            &ctx.accounts.nft_metadata.data.symbol,
+            id(),
+        )
+        .unwrap();
         msg!("got to end of initialize");
-        ctx.accounts.exhibit.exhibit_symbol = exhibit_symbol;
+        ctx.accounts.exhibit.exhibit_symbol = ctx
+            .accounts
+            .nft_metadata
+            .data
+            .symbol
+            .trim_matches(char::from(0))
+            .to_string();
 
         Ok(())
     }
@@ -67,7 +76,6 @@ pub mod exhibition {
         );
 
         let (pubkey, bump_seed) = exhibit_pubkey_gen(
-            ctx.accounts.exhibit.key(),
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
             id(),
@@ -107,17 +115,12 @@ pub mod exhibition {
             1,
         );
 
-        ctx.accounts.artifact_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
+        // ctx.accounts.artifact_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
         Ok(())
     }
 
-    pub fn artifact_withdraw(
-        ctx: Context<ArtifactWithdraw>,
-        exhibit_creator: Pubkey,
-        exhibit_symbol: String,
-        exhibit_bump: u8,
-    ) -> Result<()> {
+    pub fn artifact_withdraw(ctx: Context<ArtifactWithdraw>) -> Result<()> {
         msg!("msg here: {}", 1);
 
         require!(
@@ -133,7 +136,6 @@ pub mod exhibition {
         // 1) transfer nft from pda to user nft account
 
         let (pubkey, bump_seed) = exhibit_pubkey_gen(
-            ctx.accounts.exhibit.key(),
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
             id(),
@@ -190,7 +192,6 @@ pub mod exhibition {
 }
 
 #[derive(Accounts)]
-#[instruction(exhibit_symbol: String)]
 pub struct InitializeExhibit<'info> {
     #[account(
         init,
@@ -203,7 +204,8 @@ pub struct InitializeExhibit<'info> {
             creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 3),
             creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 4),
             b"exhibit",
-            exhibit_symbol.as_ref(),
+            b"APE",
+            // nft_metadata.data.symbol.as_ref(),
         ], bump)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
@@ -228,7 +230,6 @@ pub struct InitializeExhibit<'info> {
 }
 
 #[derive(Accounts)]
-// #[instruction(exhibit_creator: Pubkey, exhibit_bump: u8)]
 pub struct ArtifactInsert<'info> {
     #[account(
         mut,
@@ -261,15 +262,6 @@ pub struct ArtifactInsert<'info> {
     )]
     pub nft_artifact: Account<'info, TokenAccount>,
 
-    #[account(
-        init,
-        space = std::mem::size_of::<ArtifactMetadata>() + 8,
-        payer = user,
-        seeds = [b"artifact_metadata".as_ref(), nft_artifact.key().as_ref()],
-        bump
-    )]
-    pub artifact_metadata: Account<'info, ArtifactMetadata>,
-
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -279,13 +271,16 @@ pub struct ArtifactInsert<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(exhibit_creator: Pubkey, exhibit_symbol: String, exhibit_bump: u8)]
 pub struct ArtifactWithdraw<'info> {
+    #[account(mut)]
+    pub exhibit: Box<Account<'info, Exhibit>>,
+
     #[account(
         mut,
         constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
     )]
     pub redeem_mint: Account<'info, Mint>,
+
     #[account(
         mut,
         associated_token::mint = redeem_mint,
@@ -299,11 +294,6 @@ pub struct ArtifactWithdraw<'info> {
     pub nft_metadata: Box<Account<'info, TokenMetadata>>,
     #[account(mut)]
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
-    #[account(
-        mut,
-        constraint = nft_metadata.data.symbol.trim_matches(char::from(0)) == exhibit.exhibit_symbol,
-    )]
-    pub exhibit: Box<Account<'info, Exhibit>>,
 
     #[account(
         mut,
@@ -313,14 +303,6 @@ pub struct ArtifactWithdraw<'info> {
         bump
     )]
     pub nft_artifact: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        seeds = [b"artifact_metadata".as_ref(), nft_artifact.key().as_ref()],
-        close = exhibit,
-        bump
-    )]
-    pub artifact_metadata: Account<'info, ArtifactMetadata>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -335,12 +317,6 @@ pub struct Exhibit {
     // pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
     pub auth_bump: u8,
-}
-
-#[account]
-#[derive(Default)]
-pub struct ArtifactMetadata {
-    pub nft_metadata: Pubkey,
 }
 
 #[error_code]
