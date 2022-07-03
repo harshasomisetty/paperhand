@@ -76,28 +76,6 @@ async function getArtifactData(exhibit: PublicKey, mintKey: PublicKey) {
   return [nftArtifact, artifactMetadata];
 }
 
-async function getExhibitAddress(
-  mint: PublicKey
-): Promise<anchor.web3.PublicKey> {
-  const nfta = await metaplex.nfts().findByMint(mint);
-  const metadata = findMetadataPda(mint);
-  const mdata = await Metadata.fromAccountAddress(connection, metadata);
-  let seeds = [];
-  mdata.data.creators.forEach((creatorKey) => {
-    if (creatorKey.verified) {
-      // console.log("verified", creatorKey.address.toString());
-      seeds.push(creatorKey.address.toBuffer());
-    }
-  });
-
-  let [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
-    [...seeds, Buffer.from("exhibit"), Buffer.from(nfta.metadata.symbol)],
-    EXHIBITION_PROGRAM_ID
-  );
-
-  return exhibit;
-}
-
 async function getUserRedeemWallets(
   redeemMint: PublicKey,
   user
