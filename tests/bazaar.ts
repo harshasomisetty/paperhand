@@ -44,11 +44,15 @@ const connection = provider.connection;
 const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
-async function initUserLiqTokenIfNeeded(
-  connection: Connection,
-  user: PublicKey,
-  mint: PublicKey
-) {}
+async function swapFunc(marketA: number, marketB: number, amountIn: number) {
+  let K = marketA * marketB;
+
+  let marketDiff = marketA + amountIn;
+  let Kdiff = K / marketDiff;
+  let amountOut = marketB - Kdiff;
+
+  return [marketA, marketB, marketDiff, amountOut];
+}
 describe("bazaar", () => {
   /* end goal should be for user to press a button that opens the display case and bazaar simultaneously
    * need to give creator option to bootstrap liq
@@ -68,6 +72,7 @@ describe("bazaar", () => {
   let exhibit: PublicKey = exhibitKeypair.publicKey;
   let authBump;
   let stateBump;
+  let solBump;
   let marketState: PublicKey;
   let marketAuth: PublicKey;
   let marketTokenFee: PublicKey;
@@ -97,11 +102,6 @@ describe("bazaar", () => {
       );
     }
 
-    [marketState, stateBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("market_state"), exhibit.toBuffer()],
-      BAZAAR_PROGRAM_ID
-    );
-
     [marketAuth, authBump] = await PublicKey.findProgramAddress(
       [Buffer.from("market_auth"), exhibit.toBuffer()],
       BAZAAR_PROGRAM_ID
@@ -125,7 +125,7 @@ describe("bazaar", () => {
       BAZAAR_PROGRAM_ID
     );
 
-    [marketTokens[1], temp] = await PublicKey.findProgramAddress(
+    [marketTokens[1], solBump] = await PublicKey.findProgramAddress(
       [Buffer.from("token_sol"), marketAuth.toBuffer()],
       BAZAAR_PROGRAM_ID
     );
@@ -194,7 +194,6 @@ describe("bazaar", () => {
       )
       .accounts({
         exhibit: exhibit,
-        marketState: marketState,
         marketAuth: marketAuth,
         marketMint: tokenMints[0],
         marketTokenFee: marketTokenFee,
@@ -316,21 +315,30 @@ describe("bazaar", () => {
     assert.ok(Number(userTokenLiqBal.amount) == liqAmounts[0]);
   });
 
-  it.skip("Swapped from token a to token b", async () => {
-    let userTokenABal = await getAccount(connection, userTokens[0][0]);
-    let userTokenBBal = await getAccount(connection, userTokens[0][1]);
-    let marketTokenABal = await getAccount(connection, marketTokens[0]);
-    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+  it("Swapped from token a to token b", async () => {
+    let marketABal = await getAccount(connection, marketTokens[0]);
+    let marketSol = await connection.getBalance(marketTokens[1]);
+    let userTokenABal = await getAccount(connection, userTokens[0][1]);
+    let userSol = await connection.getBalance(user[0].publicKey);
 
-    console.log("pre");
+    console.log(Number(marketABal.amount));
+    console.log(Math.round(Number(marketSol) / LAMPORTS_PER_SOL));
     console.log(Number(userTokenABal.amount));
-    console.log(Number(userTokenBBal.amount));
-    console.log(Number(marketTokenABal.amount));
-    console.log(Number(marketTokenBBal.amount));
+    console.log(Math.round(Number(userSol) / LAMPORTS_PER_SOL));
 
+    console.log(
+      "swap func",
+      await swapFunc(Number(marketABal.amount), marketSol, swapAmount[0])
+    );
     try {
       const tx = await Bazaar.methods
-        .swap(new anchor.BN(swapAmount[0]), new anchor.BN(swapAmount[1]), true)
+        .swap(
+          new anchor.BN(swapAmount[0]),
+          new anchor.BN(swapAmount[1]),
+          true,
+          authBump,
+          solBump
+        )
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
@@ -338,33 +346,33 @@ describe("bazaar", () => {
           tokenAMint: tokenMints[1],
           marketTokenA: marketTokens[0],
           marketTokenSol: marketTokens[1],
-          userTokenA: userTokens[1][0],
+          userTokenA: userTokens[1][1],
           user: user[1].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[0]])
+        .signers([user[1]])
         .rpc();
     } catch (error) {
       console.log("fuck swap", error);
     }
 
-    userTokenABal = await getAccount(connection, userTokens[0][0]);
-    userTokenBBal = await getAccount(connection, userTokens[0][1]);
-    marketTokenABal = await getAccount(connection, marketTokens[0]);
-    marketTokenBBal = await getAccount(connection, marketTokens[1]);
+    marketABal = await getAccount(connection, marketTokens[0]);
+    marketSol = await connection.getBalance(marketTokens[1]);
+    userTokenABal = await getAccount(connection, userTokens[0][1]);
+    userSol = await connection.getBalance(user[0].publicKey);
 
     console.log("post");
+    console.log(Number(marketABal.amount));
+    console.log(Math.round(Number(marketSol) / LAMPORTS_PER_SOL));
     console.log(Number(userTokenABal.amount));
-    console.log(Number(userTokenBBal.amount));
-    console.log(Number(marketTokenABal.amount));
-    console.log(Number(marketTokenBBal.amount));
+    console.log(Math.round(Number(userSol) / LAMPORTS_PER_SOL));
 
-    assert.ok(Number(userTokenABal.amount) == 2);
-    assert.ok(Number(userTokenBBal.amount) == 19);
-    assert.ok(Number(marketTokenABal.amount) == 110);
-    assert.ok(Number(marketTokenBBal.amount) == 182);
+    // assert.ok(Number(userTokenABal.amount) == 2);
+    // assert.ok(Number(userTokenBBal.amount) == 19);
+    // assert.ok(Number(marketTokenABal.amount) == 110);
+    // assert.ok(Number(marketTokenBBal.amount) == 182);
   });
 
   it.skip("Swapped from token b to token a", async () => {
@@ -381,7 +389,7 @@ describe("bazaar", () => {
 
     try {
       const tx = await Bazaar.methods
-        .swap(new anchor.BN(10), new anchor.BN(10), false)
+        .swap(new anchor.BN(10), new anchor.BN(10), false, authBump)
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,

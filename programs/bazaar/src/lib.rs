@@ -161,6 +161,7 @@ pub mod bazaar {
         minimum_amount_out: u128,
         trade_direction: bool,
         auth_bump: u8,
+        sol_bump: u8,
     ) -> Result<()> {
         // TODO figure out how to make this code not repeat
         // just add to account and from account
@@ -192,6 +193,13 @@ pub mod bazaar {
             let K_diff = K.checked_ceil_div(market_diff).unwrap();
             let amount_out = market_sol_amount.checked_sub(K_diff.0).unwrap();
 
+            msg!(
+                "marketADiff {}, marketBDiff {}, marketDiff {}, amountOut {}",
+                market_diff,
+                amount_out,
+                market_diff,
+                amount_out
+            );
             // TODO Add slippage by checking amount_out
             anchor_spl::token::transfer(
                 CpiContext::new(
@@ -217,9 +225,9 @@ pub mod bazaar {
                     ctx.accounts.system_program.to_account_info(),
                 ],
                 &[&[
-                    b"market_auth".as_ref(),
-                    ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                    &[auth_bump],
+                    b"token_sol".as_ref(),
+                    ctx.accounts.market_auth.to_account_info().key.as_ref(),
+                    &[sol_bump],
                 ]],
             )?;
         } else {
@@ -227,6 +235,13 @@ pub mod bazaar {
             let K_diff = K.checked_ceil_div(market_diff).unwrap();
             let amount_out = market_a_amount.checked_sub(K_diff.0).unwrap();
 
+            msg!(
+                "marketADiff {}, marketBDiff {}, marketDiff {}, amountOut {}",
+                market_diff,
+                amount_out,
+                market_diff,
+                amount_out
+            );
             invoke(
                 &system_instruction::transfer(
                     ctx.accounts.user.to_account_info().key,
@@ -242,13 +257,18 @@ pub mod bazaar {
 
             // transfer amount in tokens
             anchor_spl::token::transfer(
-                CpiContext::new(
+                CpiContext::new_with_signer(
                     ctx.accounts.token_program.to_account_info(),
                     anchor_spl::token::Transfer {
                         from: ctx.accounts.market_token_a.to_account_info(),
                         to: ctx.accounts.user_token_a.to_account_info(),
                         authority: ctx.accounts.user.to_account_info(),
                     },
+                    &[&[
+                        b"market_auth".as_ref(),
+                        ctx.accounts.exhibit.to_account_info().key.as_ref(),
+                        &[auth_bump],
+                    ]],
                 ),
                 amount_out as u64,
             );
@@ -353,10 +373,6 @@ pub struct InitializeMarket<'info> {
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
-    #[account(init, space = 8 + std::mem::size_of::<MarketState>(),
- payer = user, seeds = [b"market_state", exhibit.key().as_ref()], bump)]
-    pub market_state: Box<Account<'info, MarketState>>,
-
     /// CHECK: Need market auth since can't pass in market state as a signer
     #[account(init, payer = user, space = 8, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
     pub market_auth: AccountInfo<'info>,
@@ -373,8 +389,9 @@ pub struct InitializeMarket<'info> {
     // pub market_token_destination: Account<'info, TokenAccount>,
     #[account(init, payer = user, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Only transferring lamports
     #[account(init, payer = user, space = 8, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: Account<'info, MarketSol>,
+    pub market_token_sol: AccountInfo<'info>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -411,8 +428,9 @@ pub struct DepositLiquidity<'info> {
 
     #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: Account<'info, MarketSol>,
+    pub market_token_sol: AccountInfo<'info>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -427,7 +445,7 @@ pub struct DepositLiquidity<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[instruction(amount_in: u64, minimum_amount_out: u64, trade_direction: bool, auth_bump: u8)]
+#[instruction(amount_in: u128, minimum_amount_out: u128, trade_direction: bool, auth_bump: u8, sol_bump: u8)]
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// CHECK: just reading pubkey
@@ -443,8 +461,9 @@ pub struct Swap<'info> {
 
     #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: Account<'info, MarketSol>,
+    pub market_token_sol: AccountInfo<'info>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -478,8 +497,9 @@ pub struct WithdrawLiquidity<'info> {
 
     #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: Account<'info, MarketSol>,
+    pub market_token_sol: AccountInfo<'info>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -492,13 +512,6 @@ pub struct WithdrawLiquidity<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
-}
-
-#[account]
-#[derive(Default)]
-pub struct MarketState {
-    pub auth_bump: u8,
-    pub token_a_mint: Pubkey,
 }
 
 #[account]
