@@ -44,14 +44,37 @@ const connection = provider.connection;
 const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
-async function swapFunc(marketA: number, marketB: number, amountIn: number) {
+let decimals = 9;
+let decimalsVal = Math.pow(10, decimals);
+
+async function swapFunc(
+  marketA: number,
+  marketB: number,
+  userA: number,
+  userB: number,
+  amountIn: number
+) {
   let K = marketA * marketB;
 
   let marketDiff = marketA + amountIn;
   let Kdiff = K / marketDiff;
   let amountOut = marketB - Kdiff;
 
-  return [marketA, marketB, marketDiff, amountOut];
+  console.log(marketA, marketB, userA, userB, amountIn);
+  let results = [
+    (marketA + amountIn) / decimalsVal,
+    (marketB - amountOut) / decimalsVal,
+    (userA - amountIn) / decimalsVal,
+    (userB + amountOut) / decimalsVal,
+  ];
+  console.log(results);
+  return results;
+}
+
+function printAndTest(arg1, arg2, name = "") {
+  console.log(name, arg1, arg2);
+  assert.ok(arg1 == arg2);
+  console.log("passed", name);
 }
 describe("bazaar", () => {
   /* end goal should be for user to press a button that opens the display case and bazaar simultaneously
@@ -76,7 +99,6 @@ describe("bazaar", () => {
   let marketState: PublicKey;
   let marketAuth: PublicKey;
   let marketTokenFee: PublicKey;
-
   // tokenMint[0] is the pool liquidity token mint, [1] is the coin A mint
   let tokenMints: PublicKey[] = new Array(2);
 
@@ -85,10 +107,13 @@ describe("bazaar", () => {
   // userTokens are array of token accs for each user
   // userTokens[0] is token for user1, userTokens[i][0] is liq wallet, [1] is coin A
   let userTokens: PublicKey[][] = new Array(2);
-  let mintAmounts = [5, 50];
-  let initAmounts = [3, 10];
-  let liqAmounts = [3, 10];
-  let swapAmount = [2, 4];
+  let mintAmounts = [5 * decimalsVal, 50 * LAMPORTS_PER_SOL];
+  let initAmounts = [3 * decimalsVal, 10 * LAMPORTS_PER_SOL];
+  let liqAmounts = [3 * decimalsVal, 10 * LAMPORTS_PER_SOL];
+  let swapAmount = [
+    [1.5 * decimalsVal, 0.9 * LAMPORTS_PER_SOL],
+    [2 * LAMPORTS_PER_SOL, 1.4 * decimalsVal],
+  ];
   let temp;
   before("Init variables", async () => {
     let airdropees = [creator, ...user];
@@ -96,7 +121,7 @@ describe("bazaar", () => {
       await provider.connection.confirmTransaction(
         await provider.connection.requestAirdrop(
           dropee.publicKey,
-          mintAmounts[1] * LAMPORTS_PER_SOL
+          mintAmounts[1]
         ),
         "confirmed"
       );
@@ -112,14 +137,6 @@ describe("bazaar", () => {
       BAZAAR_PROGRAM_ID
     );
 
-    // tokenMints[0] = await createMint(
-    //   connection,
-    //   creator,
-    //   creator.publicKey,
-    //   creator.publicKey,
-    //   0
-    // );
-
     [marketTokens[0], temp] = await PublicKey.findProgramAddress(
       [Buffer.from("token_a"), marketAuth.toBuffer()],
       BAZAAR_PROGRAM_ID
@@ -130,23 +147,20 @@ describe("bazaar", () => {
       BAZAAR_PROGRAM_ID
     );
 
-    console.log("1");
     marketTokenFee = await getAssociatedTokenAddress(
       tokenMints[0],
       marketAuth,
       true
     );
 
-    console.log("2");
     tokenMints[1] = await createMint(
       connection,
       creator,
       creator.publicKey,
       creator.publicKey,
-      0
+      decimals
     );
 
-    console.log("3");
     for (let i = 0; i < 2; i++) {
       console.log("4", i);
 
@@ -189,7 +203,7 @@ describe("bazaar", () => {
     const tx = await Bazaar.methods
       .initializeMarket(
         new anchor.BN(initAmounts[0]),
-        new anchor.BN(initAmounts[1] * LAMPORTS_PER_SOL),
+        new anchor.BN(initAmounts[1]),
         authBump
       )
       .accounts({
@@ -216,25 +230,21 @@ describe("bazaar", () => {
     let userTokenABal = await getAccount(connection, userTokens[0][1]);
     let userSol = await connection.getBalance(user[0].publicKey);
 
-    console.log(Number(postMarketABal.amount), initAmounts[0]);
-    console.log(
+    printAndTest(
+      Number(postMarketABal.amount) / decimalsVal,
+      initAmounts[0] / decimalsVal
+    );
+    printAndTest(
       Math.round(Number(postMarketSol) / LAMPORTS_PER_SOL),
-      initAmounts[1]
+      initAmounts[1] / LAMPORTS_PER_SOL
     );
-    console.log(Number(userTokenABal.amount), mintAmounts[0] - initAmounts[0]);
-    console.log(
+    printAndTest(
+      Number(userTokenABal.amount) / decimalsVal,
+      (mintAmounts[0] - initAmounts[0]) / decimalsVal
+    );
+    printAndTest(
       Math.round(Number(userSol) / LAMPORTS_PER_SOL),
-      mintAmounts[1] - initAmounts[1]
-    );
-
-    assert.ok(Number(postMarketABal.amount) == initAmounts[0]);
-    assert.ok(
-      Math.round(Number(postMarketSol) / LAMPORTS_PER_SOL) == initAmounts[1]
-    );
-    assert.ok(Number(userTokenABal.amount) == mintAmounts[0] - initAmounts[0]);
-    assert.ok(
-      Math.round(Number(userSol) / LAMPORTS_PER_SOL) ==
-        mintAmounts[1] - initAmounts[1]
+      (mintAmounts[1] - initAmounts[1]) / LAMPORTS_PER_SOL
     );
 
     console.log("ended init market");
@@ -291,50 +301,52 @@ describe("bazaar", () => {
     let userSol = await connection.getBalance(user[0].publicKey);
     let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
-    console.log(Number(postMarketABal.amount), initAmounts[0] + liqAmounts[0]);
-    console.log(
+    printAndTest(
+      Number(postMarketABal.amount) / decimalsVal,
+      (initAmounts[0] + liqAmounts[0]) / decimalsVal
+    );
+    printAndTest(
       Math.round(Number(postMarketSol) / LAMPORTS_PER_SOL),
-      liqAmounts[1]
+      liqAmounts[1] / LAMPORTS_PER_SOL
     );
-    console.log(Number(userTokenABal.amount), mintAmounts[0] - liqAmounts[0]);
-    console.log(
+    printAndTest(
+      Number(userTokenABal.amount) / decimalsVal,
+      (mintAmounts[0] - liqAmounts[0]) / decimalsVal
+    );
+    printAndTest(
       Math.round(Number(userSol) / LAMPORTS_PER_SOL),
-      mintAmounts[1] - liqAmounts[1]
+      (mintAmounts[1] - liqAmounts[1]) / LAMPORTS_PER_SOL
     );
-    console.log(Number(userTokenLiqBal.amount), liqAmounts[0]);
-
-    assert.ok(Number(postMarketABal.amount) == initAmounts[0] + liqAmounts[0]);
-    assert.ok(
-      Math.round(Number(postMarketSol) / LAMPORTS_PER_SOL) == liqAmounts[1]
+    printAndTest(
+      Number(userTokenLiqBal.amount) / decimalsVal,
+      liqAmounts[0] / decimalsVal
     );
-    assert.ok(Number(userTokenABal.amount) == mintAmounts[0] - liqAmounts[0]);
-    assert.ok(
-      Math.round(Number(userSol) / LAMPORTS_PER_SOL) ==
-        mintAmounts[1] - liqAmounts[1]
-    );
-    assert.ok(Number(userTokenLiqBal.amount) == liqAmounts[0]);
   });
 
   it("Swapped from token a to token b", async () => {
     let marketABal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
-    let userTokenABal = await getAccount(connection, userTokens[0][1]);
-    let userSol = await connection.getBalance(user[0].publicKey);
+    let userTokenABal = await getAccount(connection, userTokens[1][1]);
+    let userSol = await connection.getBalance(user[1].publicKey);
 
-    console.log(Number(marketABal.amount));
-    console.log(Math.round(Number(marketSol) / LAMPORTS_PER_SOL));
-    console.log(Number(userTokenABal.amount));
-    console.log(Math.round(Number(userSol) / LAMPORTS_PER_SOL));
+    console.log(Number(marketABal.amount), "market a amt");
+    console.log(Number(marketSol) / LAMPORTS_PER_SOL, "market sol");
+    console.log(Number(userTokenABal.amount), "user a amt");
+    console.log(Number(userSol) / LAMPORTS_PER_SOL, "user sol");
 
-    console.log(
-      "swap func",
-      await swapFunc(Number(marketABal.amount), marketSol, swapAmount[0])
+    let swapVals = await swapFunc(
+      Number(marketABal.amount),
+      marketSol,
+      Number(userTokenABal.amount),
+      userSol,
+      swapAmount[0][0]
     );
+
     try {
       const tx = await Bazaar.methods
         .swap(
-          new anchor.BN(swapAmount[0]),
-          new anchor.BN(swapAmount[1]),
+          new anchor.BN(swapAmount[0][0]),
+          new anchor.BN(swapAmount[0][1]),
           true,
           authBump,
           solBump
@@ -360,71 +372,82 @@ describe("bazaar", () => {
 
     marketABal = await getAccount(connection, marketTokens[0]);
     marketSol = await connection.getBalance(marketTokens[1]);
-    userTokenABal = await getAccount(connection, userTokens[0][1]);
-    userSol = await connection.getBalance(user[0].publicKey);
+    userTokenABal = await getAccount(connection, userTokens[1][1]);
+    userSol = await connection.getBalance(user[1].publicKey);
 
-    console.log("post");
-    console.log(Number(marketABal.amount));
-    console.log(Math.round(Number(marketSol) / LAMPORTS_PER_SOL));
-    console.log(Number(userTokenABal.amount));
-    console.log(Math.round(Number(userSol) / LAMPORTS_PER_SOL));
-
-    // assert.ok(Number(userTokenABal.amount) == 2);
-    // assert.ok(Number(userTokenBBal.amount) == 19);
-    // assert.ok(Number(marketTokenABal.amount) == 110);
-    // assert.ok(Number(marketTokenBBal.amount) == 182);
+    printAndTest(Number(marketABal.amount) / decimalsVal, swapVals[0]);
+    printAndTest(Number(marketSol) / LAMPORTS_PER_SOL, swapVals[1]);
+    printAndTest(Number(userTokenABal.amount) / decimalsVal, swapVals[2]);
+    printAndTest(Number(userSol) / LAMPORTS_PER_SOL, swapVals[3]);
   });
 
-  it.skip("Swapped from token b to token a", async () => {
-    let userTokenABal = await getAccount(connection, userTokens[0][0]);
-    let userTokenBBal = await getAccount(connection, userTokens[0][1]);
-    let marketTokenABal = await getAccount(connection, marketTokens[0]);
-    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
+  it("Swapped from token b to token a", async () => {
+    let marketABal = await getAccount(connection, marketTokens[0]);
+    let marketSol = await connection.getBalance(marketTokens[1]);
+    let userTokenABal = await getAccount(connection, userTokens[1][1]);
+    let userSol = await connection.getBalance(user[1].publicKey);
 
-    console.log("pre");
-    console.log(Number(userTokenABal.amount));
-    console.log(Number(userTokenBBal.amount));
-    console.log(Number(marketTokenABal.amount));
-    console.log(Number(marketTokenBBal.amount));
+    console.log(Number(marketABal.amount), "market a amt");
+    console.log(Number(marketSol) / LAMPORTS_PER_SOL, "market sol");
+    console.log(Number(userTokenABal.amount), "user a amt");
+    console.log(Number(userSol) / LAMPORTS_PER_SOL, "user sol");
 
+    let swapVals = await swapFunc(
+      marketSol,
+      Number(marketABal.amount),
+      userSol,
+      Number(userTokenABal.amount),
+      swapAmount[1][0]
+    );
     try {
       const tx = await Bazaar.methods
-        .swap(new anchor.BN(10), new anchor.BN(10), false, authBump)
+        .swap(
+          new anchor.BN(swapAmount[1][0]),
+          new anchor.BN(swapAmount[1][1]),
+          false,
+          authBump,
+          solBump
+        )
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
           // marketTokenFee: marketTokenFee,
-          tokenAMint: tokenMints[0],
+          tokenAMint: tokenMints[1],
           marketTokenA: marketTokens[0],
           marketTokenSol: marketTokens[1],
-
-          userTokenA: userTokens[0][0],
-          user: user[0].publicKey,
+          userTokenA: userTokens[1][1],
+          user: user[1].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[0]])
+        .signers([user[1]])
         .rpc();
     } catch (error) {
       console.log("fuck swap", error);
     }
 
-    userTokenABal = await getAccount(connection, userTokens[0][0]);
-    userTokenBBal = await getAccount(connection, userTokens[0][1]);
-    marketTokenABal = await getAccount(connection, marketTokens[0]);
-    marketTokenBBal = await getAccount(connection, marketTokens[1]);
+    marketABal = await getAccount(connection, marketTokens[0]);
+    marketSol = await connection.getBalance(marketTokens[1]);
+    userTokenABal = await getAccount(connection, userTokens[1][1]);
+    userSol = await connection.getBalance(user[1].publicKey);
 
-    console.log("post");
-    console.log(Number(userTokenABal.amount));
-    console.log(Number(userTokenBBal.amount));
-    console.log(Number(marketTokenABal.amount));
-    console.log(Number(marketTokenBBal.amount));
-
-    assert.ok(Number(userTokenABal.amount) == 7);
-    assert.ok(Number(userTokenBBal.amount) == 9);
-    assert.ok(Number(marketTokenABal.amount) == 105);
-    assert.ok(Number(marketTokenBBal.amount) == 192);
+    printAndTest(
+      (Number(marketABal.amount) / decimalsVal).toFixed(4),
+      swapVals[1].toFixed(4)
+    );
+    printAndTest(
+      (Number(marketSol) / LAMPORTS_PER_SOL).toFixed(4),
+      swapVals[0].toFixed(4)
+    );
+    printAndTest(
+      (Number(userTokenABal.amount) / decimalsVal).toFixed(4),
+      swapVals[3].toFixed(4)
+    );
+    printAndTest(
+      (Number(userSol) / LAMPORTS_PER_SOL).toFixed(4),
+      swapVals[2].toFixed(4)
+    );
   });
 
   it.skip("withdrew liq", async () => {

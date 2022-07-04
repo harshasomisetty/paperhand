@@ -168,38 +168,31 @@ pub mod bazaar {
         // trade direction
 
         let market_a_amount = ctx.accounts.market_token_a.amount as u128;
-        let market_sol_amount = ctx
-            .accounts
-            .market_token_sol
-            .to_account_info()
-            .lamports
-            .borrow()
-            .checked_div(LAMPORTS_PER_SOL)
-            .unwrap() as u128;
+        let market_sol_amount = ctx.accounts.market_token_sol.to_account_info().lamports() as u128;
+        // .checked_div(LAMPORTS_PER_SOL)
+        // .unwrap() as u128;
 
         let user_a_amount = ctx.accounts.user_token_a.amount as u128;
-        let user_sol_amount = ctx
-            .accounts
-            .user
-            .lamports
-            .borrow()
-            .checked_div(LAMPORTS_PER_SOL)
-            .unwrap() as u128;
+        let user_sol_amount = ctx.accounts.user.lamports() as u128;
+        // .checked_div(LAMPORTS_PER_SOL)
+        // .unwrap() as u128;
 
         let K = market_a_amount * market_sol_amount;
 
         if trade_direction == true {
+            msg!("forward");
             let market_diff = market_a_amount.checked_add(amount_in).unwrap();
-            let K_diff = K.checked_ceil_div(market_diff).unwrap();
-            let amount_out = market_sol_amount.checked_sub(K_diff.0).unwrap();
+            let K_diff = K.checked_div(market_diff).unwrap();
+            let amount_out = market_sol_amount.checked_sub(K_diff).unwrap();
 
             msg!(
-                "marketADiff {}, marketBDiff {}, marketDiff {}, amountOut {}",
+                "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
                 market_diff,
+                amount_in,
                 amount_out,
-                market_diff,
-                amount_out
+                minimum_amount_out
             );
+            require!(amount_out > minimum_amount_out, MyError::SlippageError);
             // TODO Add slippage by checking amount_out
             anchor_spl::token::transfer(
                 CpiContext::new(
@@ -213,35 +206,28 @@ pub mod bazaar {
                 amount_in as u64,
             );
 
-            invoke_signed(
-                &system_instruction::transfer(
-                    ctx.accounts.market_token_sol.to_account_info().key,
-                    ctx.accounts.user.to_account_info().key,
-                    amount_out as u64,
-                ),
-                &[
-                    ctx.accounts.market_token_sol.to_account_info(),
-                    ctx.accounts.user.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                ],
-                &[&[
-                    b"token_sol".as_ref(),
-                    ctx.accounts.market_auth.to_account_info().key.as_ref(),
-                    &[sol_bump],
-                ]],
-            )?;
+            // msg!("transferring lamports");
+            **ctx
+                .accounts
+                .market_token_sol
+                .to_account_info()
+                .try_borrow_mut_lamports()? -= amount_out as u64;
+
+            **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
         } else {
+            msg!("reverse");
             let market_diff = market_sol_amount.checked_add(amount_in).unwrap();
-            let K_diff = K.checked_ceil_div(market_diff).unwrap();
-            let amount_out = market_a_amount.checked_sub(K_diff.0).unwrap();
+            let K_diff = K.checked_div(market_diff).unwrap();
+            let amount_out = market_a_amount.checked_sub(K_diff).unwrap();
 
             msg!(
-                "marketADiff {}, marketBDiff {}, marketDiff {}, amountOut {}",
+                "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
                 market_diff,
+                amount_in,
                 amount_out,
-                market_diff,
-                amount_out
+                minimum_amount_out
             );
+            require!(amount_out > minimum_amount_out, MyError::SlippageError);
             invoke(
                 &system_instruction::transfer(
                     ctx.accounts.user.to_account_info().key,
@@ -255,6 +241,7 @@ pub mod bazaar {
                 ],
             )?;
 
+            msg!("2nd transfer");
             // transfer amount in tokens
             anchor_spl::token::transfer(
                 CpiContext::new_with_signer(
@@ -262,7 +249,7 @@ pub mod bazaar {
                     anchor_spl::token::Transfer {
                         from: ctx.accounts.market_token_a.to_account_info(),
                         to: ctx.accounts.user_token_a.to_account_info(),
-                        authority: ctx.accounts.user.to_account_info(),
+                        authority: ctx.accounts.market_auth.to_account_info(),
                     },
                     &[&[
                         b"market_auth".as_ref(),
@@ -389,9 +376,8 @@ pub struct InitializeMarket<'info> {
     // pub market_token_destination: Account<'info, TokenAccount>,
     #[account(init, payer = user, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
-    /// CHECK: Only transferring lamports
     #[account(init, payer = user, space = 8, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
+    pub market_token_sol: Account<'info, MarketSol>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -430,7 +416,7 @@ pub struct DepositLiquidity<'info> {
     pub market_token_a: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
+    pub market_token_sol: Account<'info, MarketSol>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -463,7 +449,7 @@ pub struct Swap<'info> {
     pub market_token_a: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
+    pub market_token_sol: Account<'info, MarketSol>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -499,7 +485,7 @@ pub struct WithdrawLiquidity<'info> {
     pub market_token_a: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
+    pub market_token_sol: Account<'info, MarketSol>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -517,3 +503,9 @@ pub struct WithdrawLiquidity<'info> {
 #[account]
 #[derive(Default)]
 pub struct MarketSol {}
+
+#[error_code]
+pub enum MyError {
+    #[msg("Market Slippage too high")]
+    SlippageError,
+}
