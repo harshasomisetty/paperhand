@@ -8,7 +8,7 @@ use solana_program::{account_info::AccountInfo, program::invoke, program::invoke
 
 use spl_math::checked_ceil_div::CheckedCeilDiv;
 
-declare_id!("6Duew5DzYuBMvRPXTXRML2wvp2EvdPKgBofKhUwxHGQi");
+declare_id!("C71P9khhQ23ufjqBW6EvtN79CgXT5tPB73LKcTxtPPTC");
 
 #[program]
 pub mod bazaar {
@@ -84,6 +84,7 @@ pub mod bazaar {
         let market_token_b_amount = ctx
             .accounts
             .market_token_sol
+            .to_account_info()
             .lamports
             .borrow()
             .checked_div(LAMPORTS_PER_SOL)
@@ -169,6 +170,7 @@ pub mod bazaar {
         let market_sol_amount = ctx
             .accounts
             .market_token_sol
+            .to_account_info()
             .lamports
             .borrow()
             .checked_div(LAMPORTS_PER_SOL)
@@ -275,6 +277,7 @@ pub mod bazaar {
         let market_token_b_amount = ctx
             .accounts
             .market_token_sol
+            .to_account_info()
             .lamports
             .borrow()
             .checked_div(LAMPORTS_PER_SOL)
@@ -346,6 +349,7 @@ pub mod bazaar {
 #[derive(Accounts)]
 #[instruction(starting_token_a: u64, starting_sol: u64, auth_bump: u8)]
 pub struct InitializeMarket<'info> {
+    /// CHECK: just reading pubkey
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
@@ -369,8 +373,8 @@ pub struct InitializeMarket<'info> {
     // pub market_token_destination: Account<'info, TokenAccount>,
     #[account(init, payer = user, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
-    #[account(init, payer = user, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
+    #[account(init, payer = user, space = 8, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
+    pub market_token_sol: Account<'info, MarketSol>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -389,71 +393,7 @@ pub struct InitializeMarket<'info> {
 #[derive(Accounts)]
 #[instruction(pool_token_amount: u64, auth_bump: u8)]
 pub struct DepositLiquidity<'info> {
-    #[account(mut)]
-    pub exhibit: AccountInfo<'info>,
-
-    /// CHECK: Need market auth since can't pass in market state as a signer
-    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = exhibit.auth_bump)]
-    pub market_auth: AccountInfo<'info>,
-
-    #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
-    pub market_mint: Box<Account<'info, Mint>>,
-
-    // no idea
-    // pub market_token_destination: Box<Account<'info, TokenAccount>>,
-    #[account(mut)]
-    pub token_a_mint: Box<Account<'info, Mint>>,
-
-    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
-    pub market_token_a: Box<Account<'info, TokenAccount>>,
-    #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
-
-    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
-
-    #[account(mut, associated_token::mint = market_mint, associated_token::authority = user)]
-    pub user_token_liq: Box<Account<'info, TokenAccount>>,
-
-    #[account(mut)]
-    pub user: Signer<'info>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-}
-
-#[instruction(amount_in: u64, minimum_amount_out: u64, trade_direction: bool, auth_bump: u8)]
-#[derive(Accounts)]
-pub struct Swap<'info> {
-    #[account(mut)]
-    pub exhibit: AccountInfo<'info>,
-
-    /// CHECK: Need market auth since can't pass in market state as a signer
-    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
-    pub market_auth: AccountInfo<'info>,
-
-    #[account(mut)]
-    pub token_a_mint: Box<Account<'info, Mint>>,
-
-    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
-    pub market_token_a: Box<Account<'info, TokenAccount>>,
-    #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
-
-    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
-
-    #[account(mut)]
-    pub user: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(pool_token_amount: u64, auth_bump: u8)]
-pub struct WithdrawLiquidity<'info> {
+    /// CHECK: just reading pubkey
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
@@ -472,7 +412,74 @@ pub struct WithdrawLiquidity<'info> {
     #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
     pub market_token_a: Box<Account<'info, TokenAccount>>,
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_token_sol: AccountInfo<'info>,
+    pub market_token_sol: Account<'info, MarketSol>,
+
+    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
+    pub user_token_a: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut, associated_token::mint = market_mint, associated_token::authority = user)]
+    pub user_token_liq: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[instruction(amount_in: u64, minimum_amount_out: u64, trade_direction: bool, auth_bump: u8)]
+#[derive(Accounts)]
+pub struct Swap<'info> {
+    /// CHECK: just reading pubkey
+    #[account(mut)]
+    pub exhibit: AccountInfo<'info>,
+
+    /// CHECK: Need market auth since can't pass in market state as a signer
+    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
+    pub market_auth: AccountInfo<'info>,
+
+    #[account(mut)]
+    pub token_a_mint: Box<Account<'info, Mint>>,
+
+    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
+    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
+    pub market_token_sol: Account<'info, MarketSol>,
+
+    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
+    pub user_token_a: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(pool_token_amount: u64, auth_bump: u8)]
+pub struct WithdrawLiquidity<'info> {
+    /// CHECK: just reading pubkey
+    #[account(mut)]
+    pub exhibit: AccountInfo<'info>,
+
+    /// CHECK: Need market auth since can't pass in market state as a signer
+    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
+    pub market_auth: AccountInfo<'info>,
+
+    #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
+    pub market_mint: Box<Account<'info, Mint>>,
+
+    // no idea
+    // pub market_token_destination: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
+    pub token_a_mint: Box<Account<'info, Mint>>,
+
+    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
+    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
+    pub market_token_sol: Account<'info, MarketSol>,
 
     #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
     pub user_token_a: Box<Account<'info, TokenAccount>>,
@@ -493,3 +500,7 @@ pub struct MarketState {
     pub auth_bump: u8,
     pub token_a_mint: Pubkey,
 }
+
+#[account]
+#[derive(Default)]
+pub struct MarketSol {}
