@@ -450,66 +450,69 @@ describe("bazaar", () => {
     );
   });
 
-  it.skip("withdrew liq", async () => {
-    let mintInfo = await getMint(connection, tokenMints[2]);
+  it("withdrew liq", async () => {
+    let postMarketABal = await getAccount(connection, marketTokens[0]);
+    let postMarketSol = await connection.getBalance(marketTokens[1]);
+    let userTokenABal = await getAccount(connection, userTokens[0][1]);
+    let userSol = await connection.getBalance(user[0].publicKey);
+    let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
-    console.log(mintInfo.supply);
-    let postLiqBal = await getAccount(connection, userTokens[0][2]);
-    let userTokenABal = await getAccount(connection, userTokens[0][0]);
-    let userTokenBBal = await getAccount(connection, userTokens[0][1]);
-    let marketTokenABal = await getAccount(connection, marketTokens[0]);
-    let marketTokenBBal = await getAccount(connection, marketTokens[1]);
-
-    // console.log(Number(postMarketLiqBal.amount));
-    console.log(Number(postLiqBal.amount));
+    console.log(Number(postMarketABal.amount));
+    console.log(Number(postMarketSol));
     console.log(Number(userTokenABal.amount));
-    console.log(Number(userTokenBBal.amount));
-    console.log(Number(marketTokenABal.amount));
-    console.log(Number(marketTokenBBal.amount));
-
-    const tx = await Bazaar.methods
-      .withdrawLiquidity(new anchor.BN(10), authBump)
-      .accounts({
-        exhibit: exhibit,
-        marketAuth: marketAuth,
-        marketMint: tokenMints[2],
-        // marketTokenFee: marketTokenFee,
-        tokenAMint: tokenMints[0],
-        marketTokenA: marketTokens[0],
-        marketTokenSol: marketTokens[1],
-
-        userTokenA: userTokens[0][0],
-        userTokenLiq: userTokens[0][2],
-        user: user[0].publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([user[0]])
-      .rpc();
-
+    console.log(Number(userSol));
+    console.log(Number(userTokenLiqBal.amount));
+    try {
+      const tx = await Bazaar.methods
+        .withdrawLiquidity(new anchor.BN(liqAmounts[0]), authBump)
+        .accounts({
+          exhibit: exhibit,
+          marketAuth: marketAuth,
+          marketMint: tokenMints[0],
+          // marketTokenFee: marketTokenFee,
+          tokenAMint: tokenMints[1],
+          marketTokenA: marketTokens[0],
+          marketTokenSol: marketTokens[1],
+          userTokenA: userTokens[1][1],
+          userTokenLiq: userTokens[1][0],
+          user: user[1].publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user[1]])
+        .rpc();
+    } catch (error) {
+      console.log("fuck withdraw", error);
+    }
     console.log("finished withdraw liq tx");
 
-    mintInfo = await getMint(connection, tokenMints[2]);
+    postMarketABal = await getAccount(connection, marketTokens[0]);
+    postMarketSol = await connection.getBalance(marketTokens[1]);
+    userTokenABal = await getAccount(connection, userTokens[0][1]);
+    userSol = await connection.getBalance(user[0].publicKey);
+    userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
-    console.log("after mint", mintInfo.supply);
-    postLiqBal = await getAccount(connection, userTokens[0][2]);
-    userTokenABal = await getAccount(connection, userTokens[0][0]);
-    userTokenBBal = await getAccount(connection, userTokens[0][1]);
-    marketTokenABal = await getAccount(connection, marketTokens[0]);
-    marketTokenBBal = await getAccount(connection, marketTokens[1]);
-
-    console.log(Number(postLiqBal.amount));
-    console.log(Number(userTokenABal.amount));
-    console.log(Number(userTokenBBal.amount));
-    console.log(Number(marketTokenABal.amount));
-    console.log(Number(marketTokenBBal.amount));
-
-    assert.ok(Number(postLiqBal.amount) == 40);
-    assert.ok(Number(userTokenABal.amount) == 17);
-    assert.ok(Number(userTokenBBal.amount) == 28);
-    assert.ok(Number(marketTokenABal.amount) == 95);
-    assert.ok(Number(marketTokenBBal.amount) == 173);
+    printAndTest(
+      (Number(postMarketABal.amount) / decimalsVal).toFixed(3),
+      ((initAmounts[0] + liqAmounts[0]) / decimalsVal).toFixed(3)
+    );
+    printAndTest(
+      Math.round(Number(postMarketSol) / LAMPORTS_PER_SOL),
+      liqAmounts[1] / LAMPORTS_PER_SOL
+    );
+    printAndTest(
+      Number(userTokenABal.amount) / decimalsVal,
+      (mintAmounts[0] - liqAmounts[0]) / decimalsVal
+    );
+    printAndTest(
+      Math.round(Number(userSol) / LAMPORTS_PER_SOL),
+      (mintAmounts[1] - liqAmounts[1]) / LAMPORTS_PER_SOL
+    );
+    printAndTest(
+      Number(userTokenLiqBal.amount) / decimalsVal,
+      liqAmounts[0] / decimalsVal
+    );
   });
 
   Bazaar.provider.connection.onLogs("all", ({ logs }) => {

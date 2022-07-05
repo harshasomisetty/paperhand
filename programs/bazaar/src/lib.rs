@@ -319,23 +319,13 @@ pub mod bazaar {
             token_a_amount,
         );
 
-        invoke_signed(
-            &system_instruction::transfer(
-                ctx.accounts.market_token_sol.to_account_info().key,
-                ctx.accounts.user.to_account_info().key,
-                token_b_amount,
-            ),
-            &[
-                ctx.accounts.market_token_sol.to_account_info(),
-                ctx.accounts.user.to_account_info(),
-                ctx.accounts.system_program.to_account_info(),
-            ],
-            &[&[
-                b"market_auth".as_ref(),
-                ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                &[auth_bump],
-            ]],
-        );
+        **ctx
+            .accounts
+            .market_token_sol
+            .to_account_info()
+            .try_borrow_mut_lamports()? -= token_b_amount as u64;
+
+        **ctx.accounts.user.try_borrow_mut_lamports()? += token_b_amount as u64;
 
         anchor_spl::token::burn(
             CpiContext::new(
