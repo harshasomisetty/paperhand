@@ -35,6 +35,7 @@ import { creator, otherCreators, user } from "../utils/constants";
 import {
   initAssociatedAddressIfNeeded,
   getExhibitAddress,
+  getUserRedeemWallets,
 } from "../utils/actions";
 import { mintNFTs } from "../utils/createNFTs";
 
@@ -48,30 +49,6 @@ const metaplex = Metaplex.make(provider.connection).use(
 );
 
 // in seperate function
-async function getUserRedeemWallets(
-  redeemMint: PublicKey,
-  user
-): Promise<PublicKey[]> {
-  let userRedeemWallet = Array(2);
-
-  userRedeemWallet[0] = await getAssociatedTokenAddress(
-    redeemMint,
-    user[0].publicKey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
-
-  userRedeemWallet[1] = await getAssociatedTokenAddress(
-    redeemMint,
-    user[1].publicKey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
-  return userRedeemWallet;
-}
-
 describe("exhibition", () => {
   /*
     This test suite will involve 2 users, and consist of:
@@ -192,10 +169,10 @@ describe("exhibition", () => {
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
         user: user[0].publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        rent: SYSVAR_RENT_PUBKEY,
       })
       .signers([user[0]])
       .rpc();

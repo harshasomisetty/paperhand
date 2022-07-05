@@ -1,51 +1,39 @@
-import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Connection,
-} from "@solana/web3.js";
+import { PublicKey, Connection, AccountInfo } from "@solana/web3.js";
 import { useState, useEffect } from "react";
-import ProjectList from "./ProjectList";
-import EXHIBITION_IDL from "../../exhibitIdl.json";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+// import { useWallet } from "@solana/wallet-adapter-react";
+// import { Program } from "@project-serum/anchor";
 
-import { EXHIBITION_PROGRAM_ID, creator } from "../../../utils/constants";
+// import { IDL as EXHIBITION_IDL } from "@/target/types/exhibition";
+import * as ExhibitionJson from "@/target/idl/exhibition.json";
 
-import { creatorAdd, exhibitNames } from "../utils/data";
+// import { getProvider } from "@/utils/provider";
+import ProjectList from "@/components/ProjectList";
+import { Project } from "@/utils/interfaces";
 
-import { Program } from "@project-serum/anchor";
-import { getProvider } from "../utils/provider";
 const connection = new Connection("http://localhost:8899", "processed");
+const EXHIBITION_PROGRAM_ID = new PublicKey(
+  ExhibitionJson["metadata"]["address"]
+);
+
 const ExploreProjects = () => {
-  const [projects, setProjects] = useState([]);
-  const { wallet, publicKey, sendTransaction } = useWallet();
-  console.log("zero wall", wallet);
+  const [projects, setProjects] = useState<Project[]>([]);
+  // const { wallet, publicKey, sendTransaction } = useWallet();
   useEffect(() => {
     async function fetchData() {
       // let provider = await getProvider("http://localhost:8899", creator);
-      let provider = await getProvider(wallet);
-      let Exhibition = new Program(
-        EXHIBITION_IDL,
-        EXHIBITION_PROGRAM_ID,
-        provider
-      );
-      let existingExhibits: PublicKey[] = [];
-      for (let exhibitCurSymbol of exhibitNames) {
-        let [exhibit, exhibitBump] = await PublicKey.findProgramAddress(
-          [
-            Buffer.from("exhibit"),
-            Buffer.from(exhibitCurSymbol),
-            creatorAdd.toBuffer(),
-          ],
-          EXHIBITION_PROGRAM_ID
-        );
+      // let provider = await getProvider(wallet);
+      // let Exhibition = new Program(
+      //   EXHIBITION_IDL,
+      //   EXHIBITION_PROGRAM_ID,
+      //   provider
+      // );
 
-        let exhibitBal = await connection.getBalance(exhibit);
-        if (exhibitBal > 0) {
-          existingExhibits.push([exhibit, exhibitCurSymbol]);
-        }
-      }
-      setProjects(existingExhibits);
+      let allExhibitAccounts: Project[] = await connection.getProgramAccounts(
+        EXHIBITION_PROGRAM_ID
+      );
+      console.log("first project", allExhibitAccounts[0]?.pubkey.toString());
+      setProjects(allExhibitAccounts);
+      console.log(typeof allExhibitAccounts);
     }
     fetchData();
   }, []);
@@ -53,7 +41,9 @@ const ExploreProjects = () => {
     <div>
       <h2>Explore all Projects</h2>
       {projects.length > 0 ? (
-        <ProjectList projects={projects} />
+        <>
+          <ProjectList projects={projects} />
+        </>
       ) : (
         <p>No projects created yet! </p>
       )}

@@ -10,6 +10,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import {
   Keypair,
@@ -95,4 +96,28 @@ export async function getExhibitAddress(nft: Nft): Promise<PublicKey[]> {
   );
 
   return [exhibit, redeemMint];
+}
+
+export async function getUserRedeemWallets(
+  redeemMint: PublicKey,
+  user
+): Promise<PublicKey[]> {
+  let userRedeemWallet = Array(2);
+
+  userRedeemWallet[0] = await getAssociatedTokenAddress(
+    redeemMint,
+    user[0].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  userRedeemWallet[1] = await getAssociatedTokenAddress(
+    redeemMint,
+    user[1].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+  return userRedeemWallet;
 }

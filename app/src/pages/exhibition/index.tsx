@@ -1,6 +1,6 @@
 import * as React from "react";
-import Layout from "../../components/Layout";
-import ExploreExhibits from "../../components/ExploreExhibits";
+import Layout from "@/components/Layout";
+import ExploreExhibits from "@/components/ExploreExhibits";
 import { NextPage } from "next";
 import { useWallet } from "@solana/wallet-adapter-react";
 
@@ -18,7 +18,6 @@ const HomePage: NextPage = () => {
     return (
       <Layout title="Exhibition">
         <h1 className="text-center">Exhibition</h1>
-
         <p className="text-center">Wallet is Connected</p>
         <ExploreExhibits />
       </Layout>
