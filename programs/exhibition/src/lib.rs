@@ -39,13 +39,13 @@ pub mod exhibition {
         //     MyError::ExhibitConstraintViolated
         // );
 
-        let uh = exhibit_pubkey_verify(
-            ctx.accounts.exhibit.key(),
-            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
-            &ctx.accounts.nft_metadata.data.symbol,
-            id(),
-        )
-        .unwrap();
+        // let uh = exhibit_pubkey_verify(
+        //     ctx.accounts.exhibit.key(),
+        //     ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
+        //     &ctx.accounts.nft_metadata.data.symbol,
+        //     id(),
+        // )
+        // .unwrap();
         msg!("got to end of initialize");
         ctx.accounts.exhibit.exhibit_symbol = ctx
             .accounts
@@ -204,8 +204,7 @@ pub struct InitializeExhibit<'info> {
             creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 3),
             creator_single_seed(nft_metadata.data.creators.as_ref().unwrap(), 4),
             b"exhibit",
-            b"APE",
-            // nft_metadata.data.symbol.as_ref(),
+            nft_metadata.data.symbol.trim_matches(char::from(0)).as_ref(),
         ], bump)]
     pub exhibit: Box<Account<'info, Exhibit>>,
 
@@ -218,7 +217,6 @@ pub struct InitializeExhibit<'info> {
         mint::freeze_authority = exhibit
     )]
     pub redeem_mint: Account<'info, Mint>,
-
     #[account(mut)]
     pub nft_metadata: Box<Account<'info, TokenMetadata>>,
 

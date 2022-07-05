@@ -10,7 +10,7 @@ use mpl_token_metadata::{
 };
 
 pub fn creator_single_seed(creators: &Vec<Creator>, index: usize) -> &[u8] {
-    msg!("creators: {:?}", creators);
+    msg!("creators: {:?}, index: {}", creators, index);
     if index < creators.len() && creators[index].verified {
         creators[index].address.as_ref()
     } else {

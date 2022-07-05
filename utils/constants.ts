@@ -64,18 +64,7 @@ export let EXHIBITION_PROGRAM_ID = new PublicKey(
 const Bazaar = require("../target/idl/bazaar.json");
 export let BAZAAR_PROGRAM_ID = new PublicKey(Bazaar["metadata"]["address"]);
 
-// export let APE_URLS = [
-//   "https://arweave.net/70WuipZgUbiibV9_qfDN_2b12-21ocDLU0fn1sS4CPs",
-//   "https://arweave.net/pQC8oVliOJl1AmxlWpFiQ_VkhWDLFkkRY2fWDgvwUao",
-//   "https://arweave.net/k9PdPHHKjWEUliBwWBZpYbOG99Fgl8tQa8onI1GCnvA",
-//   "https://arweave.net/WDKNBqirJVVxa61G8FusAxKDR7P_NBWZVX26A8pCDvU",
-//   "https://arweave.net/rmdT61h7-vi3W9wzb3_eQMmLU5Yv6aPbBygzvg29ha0",
-//   "https://arweave.net/THn3kuBgloKL0i0mZavWqBwxShMCG12Gvv3IF2gEHlw",
-//   "https://arweave.net/ITslXlK-HX1UcJIfYKTpXViksZQJZUOIzcVKHuH6NuM",
-//   "https://arweave.net/NMigWBU7F1Qf69VHfm6O8vNGkblieqvsMej2abupoy4",
-//   "https://arweave.net/s30Qhgt-OTBSno49g4_x4ovfHEiUGJO5anltemHfIQ8",
-// ];
-
+// arweave urls of nft images
 export let APE_URLS: string[] = [
   "https://arweave.net/EbjdIwucGdm6wAdnOEVPdmFUgebLSQ8kQOSkpk6niJY",
   "https://arweave.net/JPjUvsXtZp5zqPt9f5HNwkDmwf1-efDE0nK_M_gO_b4",
@@ -84,6 +73,7 @@ export let APE_URLS: string[] = [
   "https://arweave.net/ATgVBjGiNkODVR8kIaJRgUWjn2ALtc3o-ds3sJ_yDOU",
 ];
 
+// my uploaded metadata for ape nfts
 export let APE_URIS: string[] = [
   "https://arweave.net/-8hG7nLuNJn_55vHEH6GjwaBL7Nq6GKTDma4TMVbduo",
   "https://arweave.net/TbLV-wcVcVvvniZ6p4nXGMUWk4HwEt4g_ynmf08V6E8",
@@ -110,5 +100,3 @@ export let BEAR_URIS: string[] = [
 
 export let APE_SYMBOL: string = "APE";
 export let BEAR_SYMBOL: string = "BEAR";
-
-export let AIRDROP_VALUE = 20 * LAMPORTS_PER_SOL;
