@@ -30,12 +30,13 @@ import {
 } from "@solana/web3.js";
 import assert from "assert";
 import { Exhibition } from "../target/types/exhibition";
-import { APE_URIS, BEAR_URIS, EXHIBITION_PROGRAM_ID } from "../utils/constants";
+import { EXHIBITION_PROGRAM_ID } from "../utils/constants";
 import { creator, otherCreators, user } from "../utils/constants";
 import {
   initAssociatedAddressIfNeeded,
   getExhibitAddress,
 } from "../utils/actions";
+import { mintNFTs } from "../utils/createNFTs";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -83,11 +84,8 @@ describe("exhibition", () => {
     7) Verify that the exhibit still has 1 NFT, and ensure we can retrieve the NFT metadata
   */
 
-  let uriData = [APE_URIS, BEAR_URIS];
-
   let mintCollectionCount = 2;
   let mintNftCount = 2;
-  console.log("mint counts", mintNftCount, mintCollectionCount);
   let nftList: Nft[][] = Array(mintCollectionCount);
 
   before("Init create and mint exhibits and Metadata", async () => {
@@ -102,52 +100,12 @@ describe("exhibition", () => {
       );
     }
 
-    console.log(
-      "1",
-      otherCreators[0].publicKey.toString(),
-      otherCreators[1].publicKey.toString()
+    nftList = await mintNFTs(
+      mintNftCount,
+      mintCollectionCount,
+      metaplex,
+      connection
     );
-    console.log("Creating and uploading NFTs...");
-    for (let i = 0; i < mintNftCount; i++) {
-      // exhibitMints[i] = Array(mintNftCount);
-      nftList[i] = Array(mintNftCount);
-
-      for (let j = 0; j < mintCollectionCount; j++) {
-        console.log("loop", i, j);
-
-        let { nft } = await metaplex.nfts().create({
-          uri: uriData[i][j],
-          mintAuthority: otherCreators[i],
-          updateAuthority: otherCreators[i],
-          owner: user[j].publicKey,
-          payer: otherCreators[i],
-          creators: [
-            {
-              address: otherCreators[i].publicKey,
-              share: 50,
-              verified: true,
-            },
-            {
-              address: creator.publicKey,
-              share: 50,
-              verified: false,
-            },
-          ],
-        });
-
-        const metadata = findMetadataPda(nft.mint);
-        let tx2 = new Transaction().add(
-          createSignMetadataInstruction({
-            metadata: metadata,
-            creator: otherCreators[i].publicKey,
-          })
-        );
-
-        await connection.sendTransaction(tx2, [otherCreators[i]]);
-
-        nftList[i][j] = nft;
-      }
-    }
   });
 
   it("Initialized exhibit!", async () => {
