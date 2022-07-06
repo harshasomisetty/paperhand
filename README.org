@@ -20,3 +20,5 @@ The Bazaar has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for 
 
 * Deploy script
 the test folder has a full workflow of interacting with the exhibition and bazaar contracts
+
+the deploy/testnet.ts is a script adapting features from the test files to start a new local-test-validator with the relavent data for easy network bootstrapping
