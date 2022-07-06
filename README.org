@@ -16,3 +16,7 @@ Every time a user deposits their NFT, they get a redeem token they can then trad
 Bazaar is a market factory that instantiates a trading stand (a trading pool) for an exhibit's redeem tokens, and WSOL.
 
 The Bazaar has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
+
+
+* Deploy script
+the test folder has a full workflow of interacting with the exhibition and bazaar contracts
