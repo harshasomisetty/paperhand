@@ -2,10 +2,10 @@ import React from "react";
 import Link from "next/link";
 
 import { Project } from "../utils/interfaces";
-interface ProjectCardProps {
+interface ExhibitCardProps {
   project: Project;
 }
-export default function ProjectCard({ project }: ProjectCardProps) {
+export default function ExhibitCard({ project }: ExhibitCardProps) {
   return (
     <Link href={"/exhibition/" + project.pubkey.toString()}>
       <div className="flex flex-col items-center place-content-around border bg-gray-800 bg-opacity-50 hover:bg-opacity-100 rounded-xl m-2 p-2 truncate overflow-hidden w-40 h-48">

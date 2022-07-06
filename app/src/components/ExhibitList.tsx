@@ -1,14 +1,14 @@
-import ProjectCard from "@/components/ProjectCard";
+import ExhibitCard from "@/components/ExhibitCard";
 import { Project } from "@/utils/interfaces";
 
-interface ProjectListProps {
+interface ExhibitListProps {
   projects: Project[];
 }
-export default function ProjectList({ projects }: ProjectListProps) {
+export default function ExhibitList({ projects }: ExhibitListProps) {
   return (
     <div className="grid grid-cols-3 justify-items-center auto-cols-max">
       {projects.map((project) => (
-        <ProjectCard project={project} />
+        <ExhibitCard project={project} />
       ))}
     </div>
   );

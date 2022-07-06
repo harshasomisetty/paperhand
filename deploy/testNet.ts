@@ -12,12 +12,14 @@ import { Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
+  getAccount,
   getAssociatedTokenAddress,
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
+  AccountInfo,
   Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
@@ -38,6 +40,11 @@ import {
   getUserRedeemWallets,
   initAssociatedAddressIfNeeded,
 } from "../utils/actions";
+
+interface Project {
+  pubkey: PublicKey;
+  account: AccountInfo<Buffer>;
+}
 
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
 const connection = new Connection("http://localhost:8899", "processed");
@@ -93,8 +100,12 @@ async function initializeExhibit() {
 
   let transaction = new Transaction().add(tx);
 
-  console.log(transaction);
-  await sendAndConfirmTransaction(connection, transaction, [creator]);
+  console.log("TX?", transaction);
+  try {
+    await sendAndConfirmTransaction(connection, transaction, [creator]);
+  } catch (error) {
+    console.log("sending tx :(", error);
+  }
   let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
   console.log("initialized exhibit!");
 }
@@ -124,43 +135,89 @@ async function insertNft() {
     user[0]
   );
 
-  let tx = await Exhibition.methods
-    .artifactInsert()
-    .accounts({
-      exhibit: exhibit,
-      redeemMint: redeemMint,
-      userRedeemWallet: userRedeemWallet[0],
-      nftMint: nft.mint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAccount.address,
-      nftArtifact: nftArtifact,
-      user: user[0].publicKey,
-      systemProgram: SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-    })
-    .transaction();
+  try {
+    let tx = await Exhibition.methods
+      .artifactInsert()
+      .accounts({
+        exhibit: exhibit,
+        redeemMint: redeemMint,
+        userRedeemWallet: userRedeemWallet[0],
+        nftMint: nft.mint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        nftUserToken: nftUserTokenAccount.address,
+        nftArtifact: nftArtifact,
+        user: user[0].publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .transaction();
 
-  let transaction = new Transaction().add(tx);
+    let transaction = new Transaction().add(tx);
 
-  console.log(transaction);
-  await sendAndConfirmTransaction(connection, transaction, [user[0]]);
+    console.log(transaction);
+    await sendAndConfirmTransaction(connection, transaction, [user[0]]);
+    console.log("sent tx");
+
+    // let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+    // console.log(exhibitInfo.)
+    let postNftArtifactBal = await getAccount(connection, nftArtifact);
+    console.log("artifact bal", postNftArtifactBal.amount);
+  } catch (error) {
+    console.log("fuck artifact", error);
+  }
+
+  console.log("inserted nft");
 }
+
+async function getAllExhibitions() {
+  let allExhibitAccounts = await connection.getProgramAccounts(
+    EXHIBITION_PROGRAM_ID
+  );
+  allExhibitAccounts.forEach((key) => {
+    console.log("exhibits", key.pubkey.toString());
+  });
+}
+
+async function getAllNfts() {
+  let exhibitAddress = "CrSR2a8nDcTFUoEkmDpdF1TtjuBqcbY73zDARFBD45nM";
+  let exhibit = new PublicKey(exhibitAddress);
+  let exhibitBal = await connection.getBalance(exhibit);
+  if (exhibitBal > 0) {
+    console.log("exhibit exists");
+    let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+
+    console.log("exhibit info", exhibitInfo.exhibitSymbol);
+    let allArtifactAccounts: Project[] = (
+      await connection.getTokenAccountsByOwner(exhibit, {
+        programId: TOKEN_PROGRAM_ID,
+      })
+    ).value;
+
+    console.log(
+      "all artifact accounts",
+      allArtifactAccounts,
+      typeof allArtifactAccounts
+    );
+    let artifactMints = [];
+    for (let i = 0; i < allArtifactAccounts.length; i++) {
+      let key = allArtifactAccounts[i].pubkey;
+
+      let tokenAccount = await getAccount(connection, key);
+      artifactMints.push(tokenAccount.mint);
+    }
+
+    console.log("setting nfts");
+    let allNFTs = await metaplex.nfts().findAllByMintList(artifactMints);
+    console.log(allNFTs.length);
+  }
+}
+// getAllExhibitions();
 async function fullFlow() {
   await airdropAndMint();
   await initializeExhibit();
-  await insertNft();
+  // await insertNft();
+  await getAllNfts();
 }
 fullFlow();
-
-// async function getAllExhibitions() {
-//   let allExhibitAccounts = await connection.getProgramAccounts(
-//     EXHIBITION_PROGRAM_ID
-//   );
-//   allExhibitAccounts.forEach((key) => {
-//     console.log("exhibits", key.pubkey.toString());
-//   });
-// }
-
-// getAllExhibitions();
