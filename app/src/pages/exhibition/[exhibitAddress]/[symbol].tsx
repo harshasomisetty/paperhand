@@ -1,4 +1,5 @@
 const NftPage = () => {
+  useEffect(() => {});
   return (
     <div>
       <p>bro</p>

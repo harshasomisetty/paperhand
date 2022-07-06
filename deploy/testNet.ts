@@ -53,9 +53,9 @@ const metaplex = Metaplex.make(connection)
   .use(keypairIdentity(creator))
   .use(bundlrStorage());
 
-let mintCollectionCount = 1;
-let mintNftCount = 1;
-let nftList: Nft[][] = Array(mintCollectionCount);
+let mintNumberOfCollections = 2;
+let mintNumberOfNfts = 4;
+let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
 async function airdropAndMint() {
@@ -70,14 +70,14 @@ async function airdropAndMint() {
     );
   }
 
-  console.log("minting nfts");
+  console.log("minting nfts...");
   nftList = await mintNFTs(
-    mintNftCount,
-    mintCollectionCount,
+    mintNumberOfNfts,
+    mintNumberOfCollections,
     metaplex,
     connection
   );
-  console.log("minted!");
+  console.log("minted all nfts!");
 }
 
 async function initializeExhibit() {
@@ -85,23 +85,23 @@ async function initializeExhibit() {
   let [exhibit, redeemMint] = await getExhibitAddress(nft);
 
   console.log(exhibit.toString());
-  const tx = await Exhibition.methods
-    .initializeExhibit()
-    .accounts({
-      exhibit: exhibit,
-      redeemMint: redeemMint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      creator: creator.publicKey,
-      rent: SYSVAR_RENT_PUBKEY,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
-
-  let transaction = new Transaction().add(tx);
-
-  console.log("TX?", transaction);
   try {
+    const tx = await Exhibition.methods
+      .initializeExhibit()
+      .accounts({
+        exhibit: exhibit,
+        redeemMint: redeemMint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        creator: creator.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    let transaction = new Transaction().add(tx);
+
+    console.log("TX?", transaction);
     await sendAndConfirmTransaction(connection, transaction, [creator]);
   } catch (error) {
     console.log("sending tx :(", error);
@@ -195,11 +195,6 @@ async function getAllNfts() {
       })
     ).value;
 
-    console.log(
-      "all artifact accounts",
-      allArtifactAccounts,
-      typeof allArtifactAccounts
-    );
     let artifactMints = [];
     for (let i = 0; i < allArtifactAccounts.length; i++) {
       let key = allArtifactAccounts[i].pubkey;
@@ -217,7 +212,7 @@ async function getAllNfts() {
 async function fullFlow() {
   await airdropAndMint();
   await initializeExhibit();
-  // await insertNft();
+  await insertNft();
   await getAllNfts();
 }
 fullFlow();

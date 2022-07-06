@@ -129,26 +129,29 @@ const uploadAllNfts = async () => {
 // uploadAllNfts();
 
 export async function mintNFTs(
-  mintNftCount: number,
-  mintCollectionCount: number,
+  mintNumberOfNfts: number,
+  mintNumberOfCollections: number,
   metaplex: Metaplex,
   connection: Connection
 ) {
   let uriData = [APE_URIS, BEAR_URIS];
-  let nftList: Nft[][] = Array(mintCollectionCount);
+  let nftList: Nft[][] = Array(mintNumberOfCollections);
+  console.log("1", uriData[1][0]);
   console.log("Creating and uploading NFTs...");
-  for (let i = 0; i < mintNftCount; i++) {
-    // exhibitMints[i] = Array(mintNftCount);
-    nftList[i] = Array(mintNftCount);
 
-    for (let j = 0; j < mintCollectionCount; j++) {
-      console.log("minting nft", i, j);
+  for (let i = 0; i < mintNumberOfCollections; i++) {
+    // exhibitMints[i] = Array(mintNumberOfNfts);
+    nftList[i] = Array(mintNumberOfNfts);
+
+    for (let j = 0; j < mintNumberOfNfts; j++) {
+      console.log("minting nft", i, j, "to user", j % 2);
+      console.log("URI", uriData[i][j]);
 
       let { nft } = await metaplex.nfts().create({
         uri: uriData[i][j],
-        mintAuthority: otherCreators[i],
+        mintAuthority: otherCreators[i], // other creator[i] created all of collection i
         updateAuthority: otherCreators[i],
-        owner: user[j].publicKey,
+        owner: user[j % 2].publicKey, // users alternate ownership of nfts,
         payer: otherCreators[i],
         creators: [
           {
@@ -175,8 +178,9 @@ export async function mintNFTs(
       await connection.sendTransaction(tx2, [otherCreators[i]]);
 
       nftList[i][j] = nft;
+      console.log("finsihed", i, j);
     }
   }
-
+  console.log("Finished Uploading...");
   return nftList;
 }
