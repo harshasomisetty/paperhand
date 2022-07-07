@@ -41,6 +41,7 @@ import {
   initAssociatedAddressIfNeeded,
 } from "../utils/actions";
 
+import { getOwnedNfts } from "../utils/createNFTs";
 interface Project {
   pubkey: PublicKey;
   account: AccountInfo<Buffer>;
@@ -103,10 +104,10 @@ async function initializeExhibit() {
 
     console.log("TX?", transaction);
     await sendAndConfirmTransaction(connection, transaction, [creator]);
+    let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
   } catch (error) {
-    console.log("sending tx :(", error);
+    console.log("sending init exhibit error ", error);
   }
-  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
   console.log("initialized exhibit!");
 }
 
@@ -160,14 +161,17 @@ async function insertNft() {
     await sendAndConfirmTransaction(connection, transaction, [user[0]]);
     console.log("sent tx");
 
-    // let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-    // console.log(exhibitInfo.)
     let postNftArtifactBal = await getAccount(connection, nftArtifact);
     console.log("artifact bal", postNftArtifactBal.amount);
   } catch (error) {
-    console.log("fuck artifact", error);
+    console.log("depositing artifact error", error);
   }
 
+  let postUserRedeemTokenBal = await getAccount(
+    connection,
+    userRedeemWallet[0]
+  );
+  console.log(Number(postUserRedeemTokenBal));
   console.log("inserted nft");
 }
 
@@ -216,3 +220,39 @@ async function fullFlow() {
   await getAllNfts();
 }
 fullFlow();
+
+async function printAdds() {
+  console.log(creator.publicKey.toString());
+  console.log("user 1", user[0].publicKey.toString());
+  console.log("user 2", user[1].publicKey.toString());
+  console.log("other creator 1", otherCreators[0].publicKey.toString());
+  console.log("other creator 2", otherCreators[1].publicKey.toString());
+}
+
+// printAdds();
+
+// getOwnedNfts(
+//   new PublicKey("BAxBxozdGCQcGMrK31fKpGRGf69Uk7ipE3JpzYsvHuUZ"),
+//   metaplex
+// );
+
+async function printRedeemTokenBal() {
+  let exhibit = new PublicKey("CrSR2a8nDcTFUoEkmDpdF1TtjuBqcbY73zDARFBD45nM");
+  let [redeemMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  let userRedeemWallet = await getAssociatedTokenAddress(
+    redeemMint,
+    user[0].publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  let postUserRedeemTokenBal = await getAccount(connection, userRedeemWallet);
+  console.log("redeem bal", Number(postUserRedeemTokenBal.amount));
+}
+
+// printRedeemTokenBal();

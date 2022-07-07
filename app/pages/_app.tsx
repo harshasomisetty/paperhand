@@ -1,4 +1,4 @@
-import "../styles/global.css";
+import "@/styles/globals.css";
 import React from "react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
@@ -18,11 +18,10 @@ import {
 import { clusterApiUrl } from "@solana/web3.js";
 import { AppProps } from "next/app";
 import { FC, useMemo } from "react";
-import "../styles/global.css";
 // Use require instead of import since order matters
 require("@solana/wallet-adapter-react-ui/styles.css");
 
-import Navbar from "../components/Navbar";
+import Navbar from "@/components/Navbar";
 
 // const logo = require("./logo.png");
 const MyApp = ({ Component, pageProps }: AppProps) => {

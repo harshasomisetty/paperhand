@@ -405,8 +405,7 @@ describe("bazaar", () => {
           new anchor.BN(swapAmount[1][0]),
           new anchor.BN(swapAmount[1][1]),
           false,
-          authBump,
-          solBump
+          authBump
         )
         .accounts({
           exhibit: exhibit,

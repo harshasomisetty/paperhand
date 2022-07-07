@@ -2,12 +2,9 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 
 // pub mod state;
-use crate::state::metaplex_anchor::TokenMetadata;
+// use crate::state::metaplex_anchor::TokenMetadata;
 
-use mpl_token_metadata::{
-    state::{Creator, Data, MAX_MASTER_EDITION_LEN, MAX_METADATA_LEN},
-    utils::try_from_slice_checked,
-};
+use mpl_token_metadata::state::Creator;
 
 pub fn creator_single_seed(creators: &Vec<Creator>, index: usize) -> &[u8] {
     msg!("creators: {:?}, index: {}", creators, index);
@@ -37,10 +34,8 @@ pub fn exhibit_pubkey_gen<'a>(
 }
 
 pub fn exhibit_pubkey_seeds<'a>(
-    exhibit_pubkey: Pubkey,
     creators: &'a Vec<Creator>,
     symbol: &'a String,
-    program_id: Pubkey,
     bump_seed: &'a [u8; 1],
 ) -> [&'a [u8]; 8] {
     [
@@ -61,7 +56,7 @@ pub fn exhibit_pubkey_verify<'a>(
     symbol: &'a String,
     program_id: Pubkey,
 ) -> Result<bool> {
-    let (pda, bump_seed) = exhibit_pubkey_gen(creators, symbol, program_id);
+    let (pda, _bump_seed) = exhibit_pubkey_gen(creators, symbol, program_id);
     msg!(
         "pda: {} exhibit: {}, symbol: {}",
         pda.to_string(),

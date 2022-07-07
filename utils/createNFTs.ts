@@ -6,6 +6,7 @@ import {
   findMetadataPda,
   Nft,
   UploadMetadataInput,
+  TokenMetadataProgram,
 } from "@metaplex-foundation/js";
 import {
   Metadata,
@@ -22,6 +23,7 @@ import {
   Transaction,
   LAMPORTS_PER_SOL,
   Connection,
+  PublicKey,
 } from "@solana/web3.js";
 import {
   APE_SYMBOL,
@@ -133,7 +135,7 @@ export async function mintNFTs(
   mintNumberOfCollections: number,
   metaplex: Metaplex,
   connection: Connection
-) {
+): Promise<Nft[][]> {
   let uriData = [APE_URIS, BEAR_URIS];
   let nftList: Nft[][] = Array(mintNumberOfCollections);
   console.log("1", uriData[1][0]);
@@ -183,4 +185,27 @@ export async function mintNFTs(
   }
   console.log("Finished Uploading...");
   return nftList;
+}
+
+export async function getOwnedNfts(
+  pubkey1: PublicKey,
+  metaplex: Metaplex
+): Promise<Nft[]> {
+  console.log(pubkey1.toString());
+  // const mints = await TokenMetadataProgram.metadataV1Accounts(metaplex)
+  // .selectMint()
+  // .whereCreator(1, pubkey)
+  // .getDataAsPublicKeys();
+
+  // console.log(mints);
+  console.log("user[0]", user[0].publicKey.toString());
+  let myNfts = await metaplex.nfts().findAllByOwner(user[0].publicKey);
+  console.log("length", myNfts.length);
+  myNfts = await metaplex.nfts().findAllByOwner(user[1].publicKey);
+  console.log("length", myNfts.length);
+  myNfts = await metaplex.nfts().findAllByOwner(otherCreators[0].publicKey);
+  console.log("length", myNfts.length);
+  myNfts = await metaplex.nfts().findAllByOwner(otherCreators[1].publicKey);
+  console.log("length", myNfts.length);
+  return myNfts;
 }

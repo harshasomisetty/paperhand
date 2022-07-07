@@ -4,15 +4,20 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Program } from "@project-serum/anchor";
 import { useRouter } from "next/router";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
-import { TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
+import {
+  TOKEN_PROGRAM_ID,
+  getAccount,
+  getAssociatedTokenAddress,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 
-import { IDL as EXHIBITION_IDL } from "@/target/types/exhibition";
+// import { IDL as EXHIBITION_IDL } from "@/target/types/exhibition";
 import * as ExhibitionJson from "@/target/idl/exhibition.json";
+const Exhibitidl = require("../../target/idl/exhibition.json");
 
 import { getProvider } from "@/utils/provider";
 import NftList from "@/components/NftList";
 
-const connection = new Connection("http://localhost:8899", "processed");
 const EXHIBITION_PROGRAM_ID = new PublicKey(
   ExhibitionJson["metadata"]["address"]
 );
@@ -20,22 +25,21 @@ const EXHIBITION_PROGRAM_ID = new PublicKey(
 // TODO check if exhibit even exists
 const ExploreProjects = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState("");
+  const [redeemTokenVal, setRedeemTokenVal] = useState<number>();
   const [nftList, setNftList] = useState<Nft[]>([]);
-  const { wallet, publicKey, sendTransaction } = useWallet();
+  const { wallet, publicKey } = useWallet();
+  const { connection } = useConnection();
   const router = useRouter();
-  const { exhibitAddress } = router.query;
+  // const { exhibitAddress } = router.query;
+  let exhibitAddress = "CrSR2a8nDcTFUoEkmDpdF1TtjuBqcbY73zDARFBD45nM";
 
   // console.log("zero wall", wallet);
   useEffect(() => {
     async function fetchData() {
       let provider = await getProvider(wallet);
-      let Exhibition = new Program(
-        EXHIBITION_IDL,
-        EXHIBITION_PROGRAM_ID,
-        provider
-      );
+      let Exhibition = new Program(Exhibitidl, EXHIBITION_PROGRAM_ID, provider);
 
-      const metaplex = Metaplex.make(provider.connection);
+      const metaplex = Metaplex.make(connection);
 
       let exhibit = new PublicKey(exhibitAddress);
 
@@ -62,6 +66,28 @@ const ExploreProjects = () => {
         let allNfts = await metaplex.nfts().findAllByMintList(artifactMints);
         setNftList(allNfts);
       }
+
+      if (publicKey) {
+        // get user redeem token bal
+        let [redeemMint] = await PublicKey.findProgramAddress(
+          [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+          EXHIBITION_PROGRAM_ID
+        );
+
+        let userRedeemWallet = await getAssociatedTokenAddress(
+          redeemMint,
+          publicKey,
+          false,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+
+        let postUserRedeemTokenBal = await getAccount(
+          connection,
+          userRedeemWallet
+        );
+        setRedeemTokenVal(Number(postUserRedeemTokenBal.amount));
+      }
     }
     if (wallet && exhibitAddress) {
       fetchData();
@@ -69,15 +95,17 @@ const ExploreProjects = () => {
   }, [wallet, exhibitAddress]);
   return (
     <div>
-      {wallet ? (
-        <div>
-          <h2>Explore the {exhibitSymbol} Exhibit</h2>
-          <h3>List of NFTs deposited in exhibit</h3>
-          <NftList nftList={nftList} exhibitKey={exhibitAddress} />
-        </div>
-      ) : (
-        <p>wallet not connected</p>
-      )}
+      <h2>Explore the {exhibitSymbol} Exhibit</h2>
+      <h3>List of NFTs deposited in exhibit</h3>
+      <div>
+        <NftList nftList={nftList} exhibitKey={exhibitAddress} />
+        {publicKey && (
+          <>
+            <p>redeem bal: {redeemTokenVal}</p>
+            {/* <Button>sdf</Button> */}
+          </>
+        )}
+      </div>
     </div>
   );
 };

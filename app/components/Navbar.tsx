@@ -1,14 +1,12 @@
 import Image from "next/image";
-import {useRouter} from "next/router";
-import {WalletMultiButton} from "@solana/wallet-adapter-react-ui";
+import { useRouter } from "next/router";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
-import LinkButton from "../components/LinkButton";
-import Airdrop from "../components/Airdrop";
-import ClearData from "../components/ClearData";
+import LinkButton from "@/components/LinkButton";
 
 const navButtonAttributes = `px-4 py-2 cursor-pointer text-black hover:text-white`;
 
-const tabs = ["exhibition", "bazaar"];
+const tabs = ["home", "exhibition", "bazaar"];
 const Navbar = () => {
   const router = useRouter();
   return (

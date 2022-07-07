@@ -4,16 +4,15 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount},
 };
 use solana_program;
-use solana_program::{account_info::AccountInfo, program::invoke, program::invoke_signed};
+use solana_program::{account_info::AccountInfo, program::invoke};
 
-use spl_math::checked_ceil_div::CheckedCeilDiv;
+use solana_program::{native_token::LAMPORTS_PER_SOL, system_instruction};
+// use spl_math::checked_ceil_div::CheckedCeilDiv;
 
-declare_id!("C71P9khhQ23ufjqBW6EvtN79CgXT5tPB73LKcTxtPPTC");
+declare_id!("7cysYXNdgFsJJ8mGRszhkNDej9rzKWNMKiAAthYcx8U3");
 
 #[program]
 pub mod bazaar {
-    use anchor_lang::system_program::Transfer;
-    use solana_program::{native_token::LAMPORTS_PER_SOL, system_instruction};
 
     use super::*;
 
@@ -34,7 +33,7 @@ pub mod bazaar {
                 },
             ),
             starting_token_a,
-        );
+        )?;
 
         msg!("second transfer");
         invoke(
@@ -119,7 +118,7 @@ pub mod bazaar {
                 },
             ),
             token_a_amount,
-        );
+        )?;
 
         invoke(
             &system_instruction::transfer(
@@ -161,7 +160,6 @@ pub mod bazaar {
         minimum_amount_out: u128,
         trade_direction: bool,
         auth_bump: u8,
-        sol_bump: u8,
     ) -> Result<()> {
         // TODO figure out how to make this code not repeat
         // just add to account and from account
@@ -172,18 +170,18 @@ pub mod bazaar {
         // .checked_div(LAMPORTS_PER_SOL)
         // .unwrap() as u128;
 
-        let user_a_amount = ctx.accounts.user_token_a.amount as u128;
-        let user_sol_amount = ctx.accounts.user.lamports() as u128;
+        // let user_a_amount = ctx.accounts.user_token_a.amount as u128;
+        // let user_sol_amount = ctx.accounts.user.lamports() as u128;
         // .checked_div(LAMPORTS_PER_SOL)
         // .unwrap() as u128;
 
-        let K = market_a_amount * market_sol_amount;
+        let k = market_a_amount * market_sol_amount;
 
         if trade_direction == true {
             msg!("forward");
             let market_diff = market_a_amount.checked_add(amount_in).unwrap();
-            let K_diff = K.checked_div(market_diff).unwrap();
-            let amount_out = market_sol_amount.checked_sub(K_diff).unwrap();
+            let k_diff = k.checked_div(market_diff).unwrap();
+            let amount_out = market_sol_amount.checked_sub(k_diff).unwrap();
 
             msg!(
                 "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
@@ -204,7 +202,7 @@ pub mod bazaar {
                     },
                 ),
                 amount_in as u64,
-            );
+            )?;
 
             // msg!("transferring lamports");
             **ctx
@@ -217,8 +215,8 @@ pub mod bazaar {
         } else {
             msg!("reverse");
             let market_diff = market_sol_amount.checked_add(amount_in).unwrap();
-            let K_diff = K.checked_div(market_diff).unwrap();
-            let amount_out = market_a_amount.checked_sub(K_diff).unwrap();
+            let k_diff = k.checked_div(market_diff).unwrap();
+            let amount_out = market_a_amount.checked_sub(k_diff).unwrap();
 
             msg!(
                 "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
@@ -258,7 +256,7 @@ pub mod bazaar {
                     ]],
                 ),
                 amount_out as u64,
-            );
+            )?;
         }
 
         // trade fee into pool
@@ -317,7 +315,7 @@ pub mod bazaar {
                 ]],
             ),
             token_a_amount,
-        );
+        )?;
 
         **ctx
             .accounts
@@ -421,7 +419,7 @@ pub struct DepositLiquidity<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[instruction(amount_in: u128, minimum_amount_out: u128, trade_direction: bool, auth_bump: u8, sol_bump: u8)]
+#[instruction(amount_in: u128, minimum_amount_out: u128, trade_direction: bool, auth_bump: u8)]
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// CHECK: just reading pubkey

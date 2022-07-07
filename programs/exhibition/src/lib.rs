@@ -1,29 +1,21 @@
-use crate::state::metaplex_anchor::MplTokenMetadata;
-use crate::state::{
-    metaplex_adapter::{MetadataArgs, TokenProgramVersion},
-    metaplex_anchor::TokenMetadata,
-};
+use crate::state::metaplex_anchor::TokenMetadata;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount},
 };
 use solana_program;
-use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, program::invoke, program::invoke_signed,
-    program_option::COption, system_instruction,
-};
+use solana_program::{account_info::AccountInfo, program_option::COption};
 pub mod state;
 pub mod utils;
 use crate::utils::{
     creator_single_seed, exhibit_pubkey_gen, exhibit_pubkey_seeds, exhibit_pubkey_verify,
 };
 
-declare_id!("9U8mXG1EqABTdERF3kA9JdnYaHirs4YsQDta2xzHjbPq");
+declare_id!("AqzBa4Xaiorxbu49AV6Ja9RsspZXSCWcJCZp3imeLLhg");
 
 #[program]
 pub mod exhibition {
-    use crate::utils::exhibit_pubkey_seeds;
 
     use super::*;
 
@@ -75,7 +67,7 @@ pub mod exhibition {
             MyError::UserLacksNFT
         );
 
-        let (pubkey, bump_seed) = exhibit_pubkey_gen(
+        let (_pubkey, bump_seed) = exhibit_pubkey_gen(
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
             id(),
@@ -83,10 +75,8 @@ pub mod exhibition {
 
         let borrowed_bump = &[bump_seed];
         let seeds = exhibit_pubkey_seeds(
-            ctx.accounts.exhibit.key(),
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
-            id(),
             borrowed_bump,
         );
         // msg!("pda")
@@ -113,7 +103,7 @@ pub mod exhibition {
                 },
             ),
             1,
-        );
+        )?;
 
         // ctx.accounts.artifact_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
@@ -135,7 +125,7 @@ pub mod exhibition {
         );
         // 1) transfer nft from pda to user nft account
 
-        let (pubkey, bump_seed) = exhibit_pubkey_gen(
+        let (_pubkey, bump_seed) = exhibit_pubkey_gen(
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
             id(),
@@ -143,10 +133,8 @@ pub mod exhibition {
 
         let borrowed_bump = &[bump_seed];
         let seeds = exhibit_pubkey_seeds(
-            ctx.accounts.exhibit.key(),
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
-            id(),
             borrowed_bump,
         );
         anchor_spl::token::transfer(
@@ -160,7 +148,7 @@ pub mod exhibition {
                 &[&seeds],
             ),
             1,
-        );
+        )?;
 
         // 2) burn redeem token from user
         anchor_spl::token::burn(
