@@ -20,7 +20,8 @@ export default function HomeView({ nftList }: HomeViewProps) {
   const { selectedNft, setSelectedNft } = useContext(NftContext);
   const [exhibitModal, setExhibitModal] = useState(false);
   const { connection } = useConnection();
-  const { wallet, publicKey, signTransaction } = useWallet();
+  const { wallet, publicKey, signTransaction, signAllTransactions } =
+    useWallet();
 
   async function initExhibit() {
     console.log("init exhibit");
@@ -48,7 +49,14 @@ export default function HomeView({ nftList }: HomeViewProps) {
       setExhibitModal(true);
     } else {
       console.log("alread inited");
-      // await instructionDepositNft();
+      await instructionDepositNft(
+        wallet,
+        publicKey,
+        signTransaction,
+        signAllTransactions,
+        selectedNft,
+        connection
+      );
     }
   }
   return (
@@ -56,7 +64,7 @@ export default function HomeView({ nftList }: HomeViewProps) {
       <NftList nftList={nftList} />
       {selectedNft && (
         <>
-          <p>Selected Nft Name: {selectedNft.name}</p>{" "}
+          <p>Selected Nft Name: {selectedNft.name}</p>
           <button className="border border-black" onClick={depositNft}>
             Click to deposit nft
           </button>

@@ -17,6 +17,7 @@ import { getExhibitAddress } from "@/utils/retrieveData";
 
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
   getAccount,
   getAssociatedTokenAddress,
   getOrCreateAssociatedTokenAccount,
@@ -70,8 +71,8 @@ export async function instructionInitializeExhibit(
 export async function instructionDepositNft(
   wallet: Wallet,
   publicKey: PublicKey,
-  // sendTransaction: any,
   signTransaction: any,
+  signAllTransactions: any,
   nft: Nft,
   connection: Connection
 ) {
@@ -83,33 +84,52 @@ export async function instructionDepositNft(
     EXHIBITION_PROGRAM_ID
   );
 
-  // let userRedeemWallet = await getUserRedeemWallets(redeemMint, user);
-  let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
-    connection,
-    user[0],
+  let userRedeemWallet = await getAssociatedTokenAddress(redeemMint, publicKey);
+
+  let nftUserTokenAccount = await getAssociatedTokenAddress(
     nft.mint,
-    user[0].publicKey
+    publicKey
   );
 
-  // create new user redeem token account outside of artifact insert
-  await initAssociatedAddressIfNeeded(
-    connection,
-    userRedeemWallet[0],
-    redeemMint,
-    user[0]
-  );
+  let bal = await connection.getBalance(userRedeemWallet);
+  if (bal == 0) {
+    let transaction = new Transaction();
+    let tx0 = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userRedeemWallet,
+      publicKey,
+      redeemMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(tx0);
+    transaction.feePayer = publicKey;
+    transaction.recentBlockhash = (
+      await connection.getRecentBlockhash("finalized")
+    ).blockhash;
+
+    transaction = await signTransaction(transaction);
+
+    const rawTransaction = transaction.serialize();
+
+    let signature = await connection.sendRawTransaction(rawTransaction);
+    await connection.confirmTransaction(signature, "confirmed");
+    console.log("create user redeem");
+  } else {
+    console.log("user redeem already created");
+  }
 
   let tx = await Exhibition.methods
     .artifactInsert()
     .accounts({
       exhibit: exhibit,
       redeemMint: redeemMint,
-      userRedeemWallet: userRedeemWallet[0],
+      userRedeemWallet: userRedeemWallet,
       nftMint: nft.mint,
       nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAccount.address,
+      nftUserToken: nftUserTokenAccount,
       nftArtifact: nftArtifact,
-      user: user[0].publicKey,
+      user: publicKey,
       systemProgram: SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -117,9 +137,19 @@ export async function instructionDepositNft(
     })
     .transaction();
 
-  let transaction = new Transaction().add(tx);
+  let transaction1 = new Transaction();
+  transaction1 = transaction1.add(tx);
 
-  console.log(transaction);
-  await sendAndConfirmTransaction(connection, transaction, [user[0]]);
-  console.log("sent tx");
+  transaction1.feePayer = publicKey;
+  transaction1.recentBlockhash = (
+    await connection.getRecentBlockhash("finalized")
+  ).blockhash;
+
+  transaction1 = await signTransaction(transaction1);
+
+  const rawTransaction1 = transaction1.serialize();
+
+  let signature = await connection.sendRawTransaction(rawTransaction1);
+  await connection.confirmTransaction(signature, "confirmed");
+  console.log("deposited nft");
 }
