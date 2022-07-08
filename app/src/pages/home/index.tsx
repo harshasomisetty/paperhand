@@ -1,24 +1,21 @@
 import { Metaplex } from "@metaplex-foundation/js";
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 
 import NftList from "@/components/NftList";
+import { NftProvider } from "@/context/NftContext";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 export default function Home() {
   const { connection } = useConnection();
-  const { wallet, publicKey, sendTransaction } = useWallet();
+  const { publicKey } = useWallet();
   const [nftList, setNftList] = useState(null);
   const mx = Metaplex.make(connection);
 
   useEffect(() => {
     const fetch = async () => {
-      // const list = await mx.nfts().findAllByOwner(new PublicKey(address));
-      console.log(publicKey.toString());
-      const list = await mx.nfts().findAllByOwner(publicKey);
-      setNftList(list);
+      const nftList = await mx.nfts().findAllByOwner(publicKey);
+      setNftList(nftList);
     };
-    // execute();
     if (publicKey) {
       fetch();
     }
@@ -27,8 +24,10 @@ export default function Home() {
     <>
       {publicKey ? (
         <div>
-          <p>Your NFTs</p>
-          <NftList nftList={nftList} />
+          <p>Select one of your NFTs to Deposit into an Exhibit</p>
+          <NftProvider>
+            <NftList nftList={nftList} />
+          </NftProvider>
         </div>
       ) : (
         <p> Please connect Wallet</p>

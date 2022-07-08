@@ -13,6 +13,7 @@ module.exports = withBundleAnalyzer({
     "@/target/*": ["target/*"],
     "@/utils/*": ["utils/*"],
     "@/styles/*": ["styles/*"],
+    "@/context/*": ["context/*"],
   },
   reactStrictMode: true,
 });

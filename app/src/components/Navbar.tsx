@@ -6,7 +6,7 @@ import LinkButton from "@/components/LinkButton";
 
 const navButtonAttributes = `px-4 py-2 cursor-pointer text-black hover:text-white`;
 
-const tabs = ["home", "exhibition", "bazaar"];
+const tabs: string[] = ["home", "exhibition"];
 const Navbar = () => {
   const router = useRouter();
   return (

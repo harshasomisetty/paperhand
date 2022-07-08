@@ -4,8 +4,8 @@ import { Nft } from "@metaplex-foundation/J's";
 
 interface NftCardProps {
   nft: Nft;
-  exhibitKey: String;
-  selected: boolean;
+  exhibitKey?: String;
+  selected?: boolean;
   extraInfo: boolean;
 }
 export default function NftCard({

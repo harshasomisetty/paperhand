@@ -1,18 +1,14 @@
-import * as React from "react";
-import { NextPage } from "next";
-import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import * as ExhibitionJson from "@/target/idl/exhibition.json";
-
+import { NextPage } from "next";
+import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-// import { getProvider } from "@/utils/provider";
+
 import ExhibitList from "@/components/ExhibitList";
 import { Project } from "@/utils/interfaces";
-
+import * as ExhibitionJson from "@/target/idl/exhibition.json";
 const EXHIBITION_PROGRAM_ID = new PublicKey(
   ExhibitionJson["metadata"]["address"]
 );
-import { Project } from "@/utils/interfaces";
 
 const ExhibitionPage: NextPage = () => {
   const { publicKey } = useWallet();

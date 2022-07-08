@@ -1,6 +1,6 @@
 import NftCard from "@/components/NftCard";
 import { Project } from "@/utils/interfaces";
-
+import { useNftContext } from "@/context/NftContext";
 import { Nft } from "@metaplex-foundation/js";
 
 interface NftListProps {
@@ -15,6 +15,8 @@ export default function NftList({
   selected,
   extraInfo = false,
 }: NftListProps) {
+  const { nftPubkey, setNftPubkey } = useNftContext();
+
   return (
     <div className="flex flex-row justify-items-center auto-cols-max">
       {nftList &&

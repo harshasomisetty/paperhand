@@ -20,25 +20,6 @@ pub mod exhibition {
     use super::*;
 
     pub fn initialize_exhibit(ctx: Context<InitializeExhibit>) -> Result<()> {
-        // require!(
-        //     exhibit_pubkey_verify(
-        //         ctx.accounts.exhibit.key(),
-        //         ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
-        //         &ctx.accounts.nft_metadata.data.symbol,
-        //         id(),
-        //     )
-        //     .unwrap(),
-        //     MyError::ExhibitConstraintViolated
-        // );
-
-        // let uh = exhibit_pubkey_verify(
-        //     ctx.accounts.exhibit.key(),
-        //     ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
-        //     &ctx.accounts.nft_metadata.data.symbol,
-        //     id(),
-        // )
-        // .unwrap();
-        msg!("got to end of initialize");
         ctx.accounts.exhibit.exhibit_symbol = ctx
             .accounts
             .nft_metadata
@@ -104,8 +85,6 @@ pub mod exhibition {
             ),
             1,
         )?;
-
-        // ctx.accounts.artifact_metadata.nft_metadata = ctx.accounts.nft_metadata.key();
 
         Ok(())
     }
