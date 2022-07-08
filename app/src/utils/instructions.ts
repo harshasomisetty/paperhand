@@ -72,7 +72,6 @@ export async function instructionDepositNft(
   wallet: Wallet,
   publicKey: PublicKey,
   signTransaction: any,
-  signAllTransactions: any,
   nft: Nft,
   connection: Connection
 ) {
@@ -92,8 +91,8 @@ export async function instructionDepositNft(
   );
 
   let bal = await connection.getBalance(userRedeemWallet);
+  let transaction = new Transaction();
   if (bal == 0) {
-    let transaction = new Transaction();
     let tx0 = createAssociatedTokenAccountInstruction(
       publicKey,
       userRedeemWallet,
@@ -103,18 +102,6 @@ export async function instructionDepositNft(
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     transaction = transaction.add(tx0);
-    transaction.feePayer = publicKey;
-    transaction.recentBlockhash = (
-      await connection.getRecentBlockhash("finalized")
-    ).blockhash;
-
-    transaction = await signTransaction(transaction);
-
-    const rawTransaction = transaction.serialize();
-
-    let signature = await connection.sendRawTransaction(rawTransaction);
-    await connection.confirmTransaction(signature, "confirmed");
-    console.log("create user redeem");
   } else {
     console.log("user redeem already created");
   }
@@ -137,19 +124,18 @@ export async function instructionDepositNft(
     })
     .transaction();
 
-  let transaction1 = new Transaction();
-  transaction1 = transaction1.add(tx);
+  transaction = transaction.add(tx);
 
-  transaction1.feePayer = publicKey;
-  transaction1.recentBlockhash = (
+  transaction.feePayer = publicKey;
+  transaction.recentBlockhash = (
     await connection.getRecentBlockhash("finalized")
   ).blockhash;
 
-  transaction1 = await signTransaction(transaction1);
+  transaction = await signTransaction(transaction);
 
-  const rawTransaction1 = transaction1.serialize();
+  const rawTransaction = transaction.serialize();
 
-  let signature = await connection.sendRawTransaction(rawTransaction1);
+  let signature = await connection.sendRawTransaction(rawTransaction);
   await connection.confirmTransaction(signature, "confirmed");
   console.log("deposited nft");
 }

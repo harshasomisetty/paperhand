@@ -48,12 +48,11 @@ export default function HomeView({ nftList }: HomeViewProps) {
       console.log("initing exhibit");
       setExhibitModal(true);
     } else {
-      console.log("alread inited");
+      console.log("exhibit alread inited");
       await instructionDepositNft(
         wallet,
         publicKey,
         signTransaction,
-        signAllTransactions,
         selectedNft,
         connection
       );
