@@ -118,3 +118,61 @@ export async function instructionDepositNft(
   await connection.confirmTransaction(signature, "confirmed");
   console.log("deposited nft");
 }
+
+export async function instructionWithdrawNft(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  signTransaction: any,
+  nft: Nft,
+  connection: Connection
+) {
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  await nft.metadataTask.run();
+
+  let [exhibit, redeemMint] = await getExhibitAddress(nft);
+
+  let [nftArtifact] = await PublicKey.findProgramAddress(
+    [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  let userRedeemWallet = await getAssociatedTokenAddress(redeemMint, publicKey);
+
+  let nftUserTokenAccount = await getAssociatedTokenAddress(
+    nft.mint,
+    publicKey
+  );
+
+  let transaction = new Transaction();
+
+  let withdraw_tx = await Exhibition.methods
+    .artifactWithdraw()
+    .accounts({
+      exhibit: exhibit,
+      redeemMint: redeemMint,
+      userRedeemWallet: userRedeemWallet,
+      nftMint: nft.mint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      nftUserToken: nftUserTokenAccount,
+      nftArtifact: nftArtifact,
+      user: publicKey,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .transaction();
+
+  transaction = transaction.add(withdraw_tx);
+
+  transaction.feePayer = publicKey;
+  transaction.recentBlockhash = (
+    await connection.getRecentBlockhash("finalized")
+  ).blockhash;
+
+  transaction = await signTransaction(transaction);
+
+  const rawTransaction = transaction.serialize();
+
+  let signature = await connection.sendRawTransaction(rawTransaction);
+  await connection.confirmTransaction(signature, "confirmed");
+  console.log("Withdrew nft!");
+}

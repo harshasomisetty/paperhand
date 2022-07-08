@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { Nft } from "@metaplex-foundation/js";
@@ -18,11 +18,12 @@ import {
   getAllExhibitArtifacts,
   getUserRedeemTokenBal,
 } from "@/utils/retrieveData";
+import { NftContext, NftProvider } from "@/context/NftContext";
+import SingleExhibitView from "@/views/SingleExhibitView";
 
 // TODO check if exhibit even exists
 const ExploreProjects = () => {
-  const [exhibitSymbol, setExhibitSymbol] = useState("");
-  const [redeemTokenVal, setRedeemTokenVal] = useState<number>();
+  const [exhibitSymbol, setExhibitSymbol] = useState();
   const [nftList, setNftList] = useState<Nft[]>([]);
   const { wallet, publicKey } = useWallet();
   const { connection } = useConnection();
@@ -44,13 +45,6 @@ const ExploreProjects = () => {
 
         let allNfts = await getAllExhibitArtifacts(exhibit, connection);
         setNftList(allNfts);
-
-        let userRedeemTokenBal = await getUserRedeemTokenBal(
-          exhibit,
-          publicKey,
-          connection
-        );
-        setRedeemTokenVal(Number(userRedeemTokenBal));
       }
     }
     if (wallet && publicKey && exhibitAddress) {
@@ -58,23 +52,21 @@ const ExploreProjects = () => {
     }
   }, [wallet, exhibitAddress, publicKey]);
   return (
-    <div>
-      <h2>Explore the {exhibitSymbol} Exhibit</h2>
-      <h3>List of NFTs deposited in exhibit</h3>
-      <div>
-        <NftList
-          nftList={nftList}
-          exhibitKey={exhibitAddress}
-          extraInfo={true}
-        />
-        {publicKey && (
-          <>
-            <p>redeem bal: {redeemTokenVal}</p>
-            {/* <Button>sdf</Button> */}
-          </>
-        )}
-      </div>
-    </div>
+    <>
+      {publicKey ? (
+        <div>
+          <p>Select one of your NFTs to Deposit into an Exhibit</p>
+          <NftProvider>
+            <SingleExhibitView
+              nftList={nftList}
+              exhibitSymbol={exhibitSymbol}
+            />
+          </NftProvider>
+        </div>
+      ) : (
+        <p> Please connect Wallet</p>
+      )}
+    </>
   );
 };
 

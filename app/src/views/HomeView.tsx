@@ -1,9 +1,6 @@
 import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
-import {
-  instructionDepositNft,
-  instructionInitializeExhibit,
-} from "@/utils/instructions";
+import { instructionDepositNft } from "@/utils/instructions";
 import {
   checkIfAccountExists,
   checkIfExhibitExists,
@@ -11,6 +8,7 @@ import {
 } from "@/utils/retrieveData";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
 interface HomeViewProps {
@@ -18,26 +16,10 @@ interface HomeViewProps {
 }
 export default function HomeView({ nftList }: HomeViewProps) {
   const { selectedNft, setSelectedNft } = useContext(NftContext);
-  const [exhibitModal, setExhibitModal] = useState(false);
   const { connection } = useConnection();
-  const { wallet, publicKey, signTransaction, signAllTransactions } =
-    useWallet();
+  const { wallet, publicKey, signTransaction } = useWallet();
 
-  async function initExhibit() {
-    console.log("init exhibit");
-
-    await selectedNft.metadataTask.run();
-    await instructionInitializeExhibit(
-      wallet,
-      publicKey,
-      signTransaction,
-      selectedNft,
-      connection
-    );
-    let exhibitExists = await checkIfExhibitExists(selectedNft, connection);
-    console.log("inited? ", exhibitExists.toString());
-  }
-
+  const router = useRouter();
   async function depositNft() {
     console.log("depsoiting", selectedNft.name);
 
@@ -48,6 +30,7 @@ export default function HomeView({ nftList }: HomeViewProps) {
       selectedNft,
       connection
     );
+    router.reload(window.location.pathname);
   }
   return (
     <div>
