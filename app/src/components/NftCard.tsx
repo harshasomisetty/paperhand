@@ -31,11 +31,11 @@ export default function NftCard({
   }, []);
   return (
     <button
-      className={`flex flex-col items-center place-content-around border bg-gray-800 bg-opacity-50 hover:bg-opacity-100 rounded-xl m-2 p-2 truncate overflow-hidden w-min ${
+      className={`flex flex-col items-center place-content-around border bg-gray-800 bg-opacity-50 hover:bg-opacity-100 rounded-XL m-2 p-2 truncate overflow-hidden w-min ${
         selected ? "border-red-200" : ""
       }`}
       onClick={() => {
-        console.log("bruh", index);
+        console.log("nft index: ", index);
         setSelectedNft(nft);
       }}
     >

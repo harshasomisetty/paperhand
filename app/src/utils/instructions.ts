@@ -13,7 +13,7 @@ import {
   EXHIBITION_PROGRAM_ID,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
-import { getExhibitAddress } from "@/utils/retrieveData";
+import { checkIfExhibitExists, getExhibitAddress } from "@/utils/retrieveData";
 
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -25,49 +25,6 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
-export async function instructionInitializeExhibit(
-  wallet: Wallet,
-  publicKey: PublicKey,
-  signTransaction: any,
-  nft: Nft,
-  connection: Connection
-) {
-  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-
-  await nft.metadataTask.run();
-  console.log("creators", nft.creators);
-  let [exhibit, redeemMint] = await getExhibitAddress(nft);
-
-  console.log(exhibit.toString());
-  const tx = await Exhibition.methods
-    .initializeExhibit()
-    .accounts({
-      exhibit: exhibit,
-      redeemMint: redeemMint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      creator: publicKey,
-      rent: SYSVAR_RENT_PUBKEY,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
-
-  let transaction = new Transaction().add(tx);
-
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
-
-  transaction = await signTransaction(transaction);
-
-  const rawTransaction = transaction.serialize();
-
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  await connection.confirmTransaction(signature, "confirmed");
-  console.log("Initialized exhibit!");
-}
-
 export async function instructionDepositNft(
   wallet: Wallet,
   publicKey: PublicKey,
@@ -76,6 +33,8 @@ export async function instructionDepositNft(
   connection: Connection
 ) {
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  await nft.metadataTask.run();
+
   let [exhibit, redeemMint] = await getExhibitAddress(nft);
 
   let [nftArtifact] = await PublicKey.findProgramAddress(
@@ -90,10 +49,30 @@ export async function instructionDepositNft(
     publicKey
   );
 
-  let bal = await connection.getBalance(userRedeemWallet);
   let transaction = new Transaction();
+
+  let exhibitExists = await checkIfExhibitExists(nft, connection);
+  if (!exhibitExists) {
+    const init_tx = await Exhibition.methods
+      .initializeExhibit()
+      .accounts({
+        exhibit: exhibit,
+        redeemMint: redeemMint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        creator: publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(init_tx);
+
+    console.log("initing exhibit");
+  }
+  let bal = await connection.getBalance(userRedeemWallet);
   if (bal == 0) {
-    let tx0 = createAssociatedTokenAccountInstruction(
+    let redeem_tx = createAssociatedTokenAccountInstruction(
       publicKey,
       userRedeemWallet,
       publicKey,
@@ -101,12 +80,12 @@ export async function instructionDepositNft(
       TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
-    transaction = transaction.add(tx0);
+    transaction = transaction.add(redeem_tx);
   } else {
     console.log("user redeem already created");
   }
 
-  let tx = await Exhibition.methods
+  let insert_tx = await Exhibition.methods
     .artifactInsert()
     .accounts({
       exhibit: exhibit,
@@ -124,7 +103,7 @@ export async function instructionDepositNft(
     })
     .transaction();
 
-  transaction = transaction.add(tx);
+  transaction = transaction.add(insert_tx);
 
   transaction.feePayer = publicKey;
   transaction.recentBlockhash = (

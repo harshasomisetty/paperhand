@@ -14,7 +14,6 @@ export default function ExhibitCard({ exhibit }: ExhibitCardProps) {
   useEffect(() => {
     async function fetchData() {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
-      console.log(fetchedData);
       setExhibitData(fetchedData);
     }
 
