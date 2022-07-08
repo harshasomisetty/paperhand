@@ -1,14 +1,15 @@
 import ExhibitCard from "@/components/ExhibitCard";
-import { Project } from "@/utils/interfaces";
+
+import { PublicKey } from "@solana/web3.js";
 
 interface ExhibitListProps {
-  projects: Project[];
+  exhibits: PublicKey[];
 }
-export default function ExhibitList({ projects }: ExhibitListProps) {
+export default function ExhibitList({ exhibits }: ExhibitListProps) {
   return (
     <div className="grid grid-cols-3 justify-items-center auto-cols-max">
-      {projects.map((project, ind) => (
-        <ExhibitCard project={project} key={ind} />
+      {exhibits.map((exhibit, ind) => (
+        <ExhibitCard exhibit={exhibit} key={ind} />
       ))}
     </div>
   );

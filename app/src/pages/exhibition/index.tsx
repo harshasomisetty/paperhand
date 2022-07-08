@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 
 import ExhibitList from "@/components/ExhibitList";
-import { Project } from "@/utils/interfaces";
+// import { Project } from "@/utils/interfaces";
 import * as ExhibitionJson from "@/target/idl/exhibition.json";
 const EXHIBITION_PROGRAM_ID = new PublicKey(
   ExhibitionJson["metadata"]["address"]
@@ -14,13 +14,20 @@ const ExhibitionPage: NextPage = () => {
   const { publicKey } = useWallet();
   const { connection } = useConnection();
 
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [exhibits, setExhibits] = useState<PublicKey[]>([]);
   useEffect(() => {
     async function fetchData() {
-      let allExhibitAccounts: Project[] = await connection.getProgramAccounts(
+      let allExhibitAccounts = await connection.getProgramAccounts(
         EXHIBITION_PROGRAM_ID
       );
-      setProjects(allExhibitAccounts);
+
+      let exhibitPubkeys: PublicKey[] = [];
+
+      allExhibitAccounts.forEach((exhibitAccount) =>
+        exhibitPubkeys.push(exhibitAccount.pubkey)
+      );
+
+      setExhibits(exhibitPubkeys);
     }
     fetchData();
   }, []);
@@ -29,8 +36,8 @@ const ExhibitionPage: NextPage = () => {
       <h2>Explore all Exhibits</h2>
       {publicKey ? (
         <div>
-          {projects.length > 0 ? (
-            <ExhibitList projects={projects} />
+          {exhibits.length > 0 ? (
+            <ExhibitList exhibits={exhibits} />
           ) : (
             <p>No projects created yet! </p>
           )}

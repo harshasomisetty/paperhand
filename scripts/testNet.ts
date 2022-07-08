@@ -39,6 +39,7 @@ import {
   getProvider,
   getUserRedeemWallets,
   initAssociatedAddressIfNeeded,
+  checkIfExhibitExists,
 } from "../utils/actions";
 
 import { getOwnedNfts } from "../utils/createNFTs";
@@ -55,7 +56,7 @@ const metaplex = Metaplex.make(connection)
   .use(bundlrStorage());
 
 let mintNumberOfCollections = 2;
-let mintNumberOfNfts = 4;
+let mintNumberOfNfts = 3;
 let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
@@ -85,30 +86,27 @@ async function initializeExhibit() {
   let nft = nftList[0][0];
   let [exhibit, redeemMint] = await getExhibitAddress(nft);
 
-  console.log(exhibit.toString());
-  try {
-    const tx = await Exhibition.methods
-      .initializeExhibit()
-      .accounts({
-        exhibit: exhibit,
-        redeemMint: redeemMint,
-        nftMetadata: nft.metadataAccount.publicKey,
-        creator: creator.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
+  const tx = await Exhibition.methods
+    .initializeExhibit()
+    .accounts({
+      exhibit: exhibit,
+      redeemMint: redeemMint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      creator: creator.publicKey,
+      rent: SYSVAR_RENT_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
 
-    let transaction = new Transaction().add(tx);
+  let transaction = new Transaction().add(tx);
 
-    console.log("TX?", transaction);
-    await sendAndConfirmTransaction(connection, transaction, [creator]);
-    let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-  } catch (error) {
-    console.log("sending init exhibit error ", error);
-  }
-  console.log("initialized exhibit!");
+  let signature = await sendAndConfirmTransaction(connection, transaction, [
+    creator,
+  ]);
+  await connection.confirmTransaction(signature, "confirmed");
+  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+  console.log("initialized exhibit!", exhibitInfo.exhibitSymbol);
 }
 
 async function insertNft() {
@@ -136,43 +134,43 @@ async function insertNft() {
     user[0]
   );
 
-  try {
-    let tx = await Exhibition.methods
-      .artifactInsert()
-      .accounts({
-        exhibit: exhibit,
-        redeemMint: redeemMint,
-        userRedeemWallet: userRedeemWallet[0],
-        nftMint: nft.mint,
-        nftMetadata: nft.metadataAccount.publicKey,
-        nftUserToken: nftUserTokenAccount.address,
-        nftArtifact: nftArtifact,
-        user: user[0].publicKey,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        rent: SYSVAR_RENT_PUBKEY,
-      })
-      .transaction();
+  let tx = await Exhibition.methods
+    .artifactInsert()
+    .accounts({
+      exhibit: exhibit,
+      redeemMint: redeemMint,
+      userRedeemWallet: userRedeemWallet[0],
+      nftMint: nft.mint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      nftUserToken: nftUserTokenAccount.address,
+      nftArtifact: nftArtifact,
+      user: user[0].publicKey,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+    })
+    .transaction();
 
-    let transaction = new Transaction().add(tx);
+  let transaction = new Transaction().add(tx);
 
-    console.log(transaction);
-    await sendAndConfirmTransaction(connection, transaction, [user[0]]);
-    console.log("sent tx");
+  let signature = await sendAndConfirmTransaction(connection, transaction, [
+    user[0],
+  ]);
 
-    let postNftArtifactBal = await getAccount(connection, nftArtifact);
-    console.log("artifact bal", postNftArtifactBal.amount);
-  } catch (error) {
-    console.log("depositing artifact error", error);
-  }
+  await connection.confirmTransaction(signature, "confirmed");
+  let postNftArtifactBal = await getAccount(connection, nftArtifact);
 
   let postUserRedeemTokenBal = await getAccount(
     connection,
     userRedeemWallet[0]
   );
-  console.log(Number(postUserRedeemTokenBal));
-  console.log("inserted nft");
+
+  console.log(
+    "Inserted NFT! artifact bal, userRedeemBal",
+    postNftArtifactBal.amount,
+    Number(postUserRedeemTokenBal)
+  );
 }
 
 async function getAllExhibitions() {

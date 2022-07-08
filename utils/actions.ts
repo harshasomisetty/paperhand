@@ -121,3 +121,24 @@ export async function getUserRedeemWallets(
   );
   return userRedeemWallet;
 }
+
+export async function checkIfAccountExists(
+  account: PublicKey,
+  connection: Connection
+): Promise<Boolean> {
+  let bal = await connection.getBalance(account);
+  if (bal > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+export async function checkIfExhibitExists(
+  nft: Nft,
+  connection: Connection
+): Promise<Boolean> {
+  let [exhibit] = await getExhibitAddress(nft);
+  let exhibitExists = await checkIfAccountExists(exhibit, connection);
+  return exhibitExists;
+}

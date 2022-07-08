@@ -6,8 +6,13 @@ import {
 } from "@solana/spl-token";
 import { PublicKey, Connection } from "@solana/web3.js";
 
-import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
+import {
+  EXHIBITION_PROGRAM_ID,
+  getExhibitProgramAndProvider,
+} from "@/utils/constants";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
+import { Wallet } from "@project-serum/anchor";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 export async function getUserRedeemTokenBal(
   exhibit: PublicKey,
@@ -96,4 +101,13 @@ export async function checkIfExhibitExists(
   let [exhibit] = await getExhibitAddress(nft);
   let exhibitExists = await checkIfAccountExists(exhibit, connection);
   return exhibitExists;
+}
+
+export async function getExhibitAccountData(
+  exhibit: PublicKey,
+  wallet: Wallet
+) {
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+  return exhibitInfo;
 }
