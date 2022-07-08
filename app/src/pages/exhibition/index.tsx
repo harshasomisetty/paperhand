@@ -26,19 +26,17 @@ const ExhibitionPage: NextPage = () => {
   }, []);
   return (
     <>
+      <h2>Explore all Exhibits</h2>
       {publicKey ? (
         <div>
-          <h2>Explore all Exhibits</h2>
           {projects.length > 0 ? (
-            <>
-              <ExhibitList projects={projects} />
-            </>
+            <ExhibitList projects={projects} />
           ) : (
             <p>No projects created yet! </p>
           )}
         </div>
       ) : (
-        <p className="text-center">plis connect wallet</p>
+        <p className="text-center">Please connect wallet</p>
       )}
     </>
   );

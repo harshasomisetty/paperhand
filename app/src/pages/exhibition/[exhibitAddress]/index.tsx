@@ -14,6 +14,7 @@ import { getExhibitProgramAndProvider } from "@/utils/constants";
 
 import NftList from "@/components/NftList";
 import {
+  checkIfAccountExists,
   getAllExhibitArtifacts,
   getUserRedeemTokenBal,
 } from "@/utils/retrieveData";
@@ -28,7 +29,6 @@ const ExploreProjects = () => {
   const router = useRouter();
   const { exhibitAddress } = router.query;
 
-  // console.log("zero wall", wallet);
   useEffect(() => {
     async function fetchData() {
       console.log("fetching");
@@ -36,9 +36,9 @@ const ExploreProjects = () => {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
 
       let exhibit = new PublicKey(exhibitAddress);
-      let exhibitBal = await connection.getBalance(exhibit);
 
-      if (exhibitBal > 0) {
+      let exhibitExists = await checkIfAccountExists(exhibit, connection);
+      if (exhibitExists) {
         let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
 

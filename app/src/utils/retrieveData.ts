@@ -54,3 +54,46 @@ export async function getAllExhibitArtifacts(
   let allNfts = await metaplex.nfts().findAllByMintList(artifactMints);
   return allNfts;
 }
+
+export async function getExhibitAddress(nft: Nft): Promise<PublicKey[]> {
+  let seeds: Buffer[] = [];
+  nft.creators?.forEach((creatorKey) => {
+    if (creatorKey.verified) {
+      // console.log("verified", creatorKey.address.toString());
+      seeds.push(creatorKey.address.toBuffer());
+    }
+  });
+
+  let [exhibit] = await PublicKey.findProgramAddress(
+    [...seeds, Buffer.from("exhibit"), Buffer.from(nft.metadata?.symbol)],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  let [redeemMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  return [exhibit, redeemMint];
+}
+
+export async function checkIfAccountExists(
+  account: PublicKey,
+  connection: Connection
+): Promise<Boolean> {
+  let bal = await connection.getBalance(account);
+  if (bal > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+export async function checkIfExhibitExists(
+  nft: Nft,
+  connection: Connection
+): Promise<Boolean> {
+  let [exhibit] = await getExhibitAddress(nft);
+  let exhibitExists = await checkIfAccountExists(exhibit, connection);
+  return exhibitExists;
+}

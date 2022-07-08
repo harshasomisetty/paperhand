@@ -1,22 +1,24 @@
+import { Nft } from "@metaplex-foundation/js";
 import { PublicKey } from "@solana/web3.js";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
-export const NftContext = createContext({
-  nftPubkey: PublicKey | null,
-  // nftPubkey: number | null,
-  setNftPubkey: async (nftPubkey) => null,
+interface NftContextInterface {
+  selectedNft: Nft | null;
+  setSelectedNft: () => void;
+}
+export const NftContext = createContext<NftContextInterface>({
+  // nftPubkey: PublicKey | null,
+  selectedNft: null,
+  setSelectedNft: () => {},
 });
 
 export const useNftContext = () => useContext(NftContext);
 
 export const NftProvider = ({ children }) => {
-  const [nftPubkey, setNftPubkey] = useState(null);
+  const [selectedNft, setSelectedNft] = useState<Nft>();
 
-  return (
-    <NftContext.Provider value={{ nftPubkey, setNftPubkey }}>
-      {children}
-    </NftContext.Provider>
-  );
-  // return <NftContext.Provider value={ { nftPubkey, setNftPubkey } }> { children } < /ThemeContext.Provider>
+  const value = useMemo(() => ({ selectedNft, setSelectedNft }), [selectedNft]);
+
+  return <NftContext.Provider value={value}>{children}</NftContext.Provider>;
 };

@@ -1,9 +1,8 @@
 import { Metaplex } from "@metaplex-foundation/js";
 import { useEffect, useState } from "react";
-
-import NftList from "@/components/NftList";
 import { NftProvider } from "@/context/NftContext";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import HomeView from "@/views/HomeView";
 
 export default function Home() {
   const { connection } = useConnection();
@@ -26,7 +25,7 @@ export default function Home() {
         <div>
           <p>Select one of your NFTs to Deposit into an Exhibit</p>
           <NftProvider>
-            <NftList nftList={nftList} />
+            <HomeView nftList={nftList} />
           </NftProvider>
         </div>
       ) : (
