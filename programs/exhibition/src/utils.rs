@@ -7,7 +7,7 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use mpl_token_metadata::state::Creator;
 
 pub fn creator_single_seed(creators: &Vec<Creator>, index: usize) -> &[u8] {
-    msg!("creators: {:?}, index: {}", creators, index);
+    // msg!("creators: {:?}, index: {}", creators, index);
     if index < creators.len() && creators[index].verified {
         creators[index].address.as_ref()
     } else {

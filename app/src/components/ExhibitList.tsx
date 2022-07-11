@@ -7,7 +7,7 @@ interface ExhibitListProps {
 }
 export default function ExhibitList({ exhibits }: ExhibitListProps) {
   return (
-    <div className="grid grid-cols-3 justify-items-center auto-cols-max">
+    <div className="flex flex-row justify-items-center auto-cols-max">
       {exhibits.map((exhibit, ind) => (
         <ExhibitCard exhibit={exhibit} key={ind} />
       ))}

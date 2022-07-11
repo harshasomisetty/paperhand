@@ -38,7 +38,7 @@ export default function HomeView({ nftList }: HomeViewProps) {
       {selectedNft && (
         <>
           <p>Selected Nft Name: {selectedNft.name}</p>
-          <button className="border border-black" onClick={depositNft}>
+          <button className="btn" onClick={depositNft}>
             Click to deposit nft
           </button>
         </>

@@ -40,7 +40,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
   );
 
   return (
-    <div className="m-2 text-black font-mono h-screen">
+    <div className="h-screen" data-theme="light">
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>

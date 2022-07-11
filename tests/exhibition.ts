@@ -129,6 +129,7 @@ describe("exhibition", () => {
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
     assert.ok(exhibitInfo.exhibitSymbol === nft.symbol.replace(/\0.*$/g, ""));
+    assert.ok(exhibitInfo.artifactCount === 0);
   });
 
   it("Inserted correct nft into corresponding artifact!", async () => {
@@ -194,6 +195,7 @@ describe("exhibition", () => {
     assert.ok(Number(postUserRedeemTokenBal.amount) == 1);
     assert.ok(Number(postUserNftTokenBal.amount) == 0);
     assert.ok(Number(postNftArtifactBal.amount) == 1);
+    assert.ok(exhibitInfo.artifactCount === 1);
   });
 
   it("inserted second nft from user 2", async () => {
@@ -264,12 +266,12 @@ describe("exhibition", () => {
       .accounts({
         exhibit: exhibit,
         redeemMint: redeemMint,
-        user: user[0].publicKey,
         userRedeemWallet: userRedeemWallet[0],
         nftMint: nft.mint,
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
+        user: user[0].publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -286,6 +288,10 @@ describe("exhibition", () => {
       nftUserTokenAccount.address
     );
 
+    let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+
+    assert.ok(exhibitInfo.artifactCount === 1);
+
     assert.ok(Number(postUserRedeemTokenBal.amount) == 0);
     assert.ok(Number(postUserNftTokenBal.amount) == 1);
     assert.ok((await connection.getAccountInfo(nftArtifact)) == null);
@@ -299,9 +305,6 @@ describe("exhibition", () => {
     let allExhibitAccounts = await connection.getProgramAccounts(
       EXHIBITION_PROGRAM_ID
     );
-    // allExhibitAccounts.forEach((key) => {
-    // console.log("exhibits", key.pubkey.toString());
-    // });
 
     let allArtifactAccounts = await connection.getTokenAccountsByOwner(
       exhibit,

@@ -1,9 +1,8 @@
 #!/bin/bash
 
-folders="app app2/src"
+folders="./app/src/target"
 
-for folder in $folders; do
-    target="${folder}/target"
-    rm -rf "${target}"
-    cp -rf target "${target}"
+for targetfolder in $folders; do
+    rm -rf "${targetfolder}"
+    cp -rf target "${targetfolder}"
 done

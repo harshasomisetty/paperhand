@@ -28,6 +28,7 @@ pub mod exhibition {
             .trim_matches(char::from(0))
             .to_string();
 
+        ctx.accounts.exhibit.artifact_count = 0;
         Ok(())
     }
 
@@ -86,6 +87,7 @@ pub mod exhibition {
             1,
         )?;
 
+        ctx.accounts.exhibit.artifact_count = ctx.accounts.exhibit.artifact_count + 1;
         Ok(())
     }
 
@@ -154,6 +156,7 @@ pub mod exhibition {
             &[&seeds],
         ))?;
 
+        ctx.accounts.exhibit.artifact_count = ctx.accounts.exhibit.artifact_count - 1;
         Ok(())
     }
 }
@@ -282,6 +285,7 @@ pub struct Exhibit {
     // pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
     pub auth_bump: u8,
+    pub artifact_count: u8,
 }
 
 #[error_code]

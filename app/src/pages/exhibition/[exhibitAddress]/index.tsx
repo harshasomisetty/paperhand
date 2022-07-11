@@ -55,13 +55,13 @@ const ExploreProjects = () => {
     <>
       {publicKey ? (
         <div>
-          <p>Select one of your NFTs to Deposit into an Exhibit</p>
           <NftProvider>
             <SingleExhibitView
               nftList={nftList}
               exhibitSymbol={exhibitSymbol}
             />
           </NftProvider>
+          {/* <SwapView /> */}
         </div>
       ) : (
         <p> Please connect Wallet</p>
