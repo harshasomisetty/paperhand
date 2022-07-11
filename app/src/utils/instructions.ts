@@ -35,14 +35,17 @@ export async function instructionDepositNft(
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
   await nft.metadataTask.run();
 
-  let [exhibit, redeemMint] = await getExhibitAddress(nft);
+  let [exhibit, voucherMint] = await getExhibitAddress(nft);
 
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  let userRedeemWallet = await getAssociatedTokenAddress(redeemMint, publicKey);
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
 
   let nftUserTokenAccount = await getAssociatedTokenAddress(
     nft.mint,
@@ -57,7 +60,7 @@ export async function instructionDepositNft(
       .initializeExhibit()
       .accounts({
         exhibit: exhibit,
-        redeemMint: redeemMint,
+        voucherMint: voucherMint,
         nftMetadata: nft.metadataAccount.publicKey,
         creator: publicKey,
         rent: SYSVAR_RENT_PUBKEY,
@@ -70,27 +73,27 @@ export async function instructionDepositNft(
 
     console.log("initing exhibit");
   }
-  let bal = await connection.getBalance(userRedeemWallet);
+  let bal = await connection.getBalance(userVoucherWallet);
   if (bal == 0) {
-    let redeem_tx = createAssociatedTokenAccountInstruction(
+    let voucher_tx = createAssociatedTokenAccountInstruction(
       publicKey,
-      userRedeemWallet,
+      userVoucherWallet,
       publicKey,
-      redeemMint,
+      voucherMint,
       TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
-    transaction = transaction.add(redeem_tx);
+    transaction = transaction.add(voucher_tx);
   } else {
-    console.log("user redeem already created");
+    console.log("user voucher already created");
   }
 
   let insert_tx = await Exhibition.methods
     .artifactInsert()
     .accounts({
       exhibit: exhibit,
-      redeemMint: redeemMint,
-      userRedeemWallet: userRedeemWallet,
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet,
       nftMint: nft.mint,
       nftMetadata: nft.metadataAccount.publicKey,
       nftUserToken: nftUserTokenAccount,
@@ -129,14 +132,17 @@ export async function instructionWithdrawNft(
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
   await nft.metadataTask.run();
 
-  let [exhibit, redeemMint] = await getExhibitAddress(nft);
+  let [exhibit, voucherMint] = await getExhibitAddress(nft);
 
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  let userRedeemWallet = await getAssociatedTokenAddress(redeemMint, publicKey);
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
 
   let nftUserTokenAccount = await getAssociatedTokenAddress(
     nft.mint,
@@ -149,8 +155,8 @@ export async function instructionWithdrawNft(
     .artifactWithdraw()
     .accounts({
       exhibit: exhibit,
-      redeemMint: redeemMint,
-      userRedeemWallet: userRedeemWallet,
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet,
       nftMint: nft.mint,
       nftMetadata: nft.metadataAccount.publicKey,
       nftUserToken: nftUserTokenAccount,

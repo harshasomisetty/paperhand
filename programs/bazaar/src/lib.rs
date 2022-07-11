@@ -18,7 +18,7 @@ pub mod bazaar {
 
     pub fn initialize_market(
         ctx: Context<InitializeMarket>,
-        starting_token_a: u64,
+        starting_token_voucher: u64,
         starting_token_sol: u64,
         auth_bump: u8,
     ) -> Result<()> {
@@ -27,12 +27,12 @@ pub mod bazaar {
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.user_token_a.to_account_info(),
-                    to: ctx.accounts.market_token_a.to_account_info(),
+                    from: ctx.accounts.user_token_voucher.to_account_info(),
+                    to: ctx.accounts.market_token_voucher.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            starting_token_a,
+            starting_token_voucher,
         )?;
 
         msg!("second transfer");
@@ -64,7 +64,7 @@ pub mod bazaar {
                     &[auth_bump],
                 ]],
             ),
-            starting_token_a,
+            starting_token_voucher,
         )?;
 
         Ok(())
@@ -79,7 +79,7 @@ pub mod bazaar {
         let pool_tokens = &pool_token_amount;
 
         // amount of tokens currently in market wallets
-        let market_token_a_amount = ctx.accounts.market_token_a.amount;
+        let market_token_voucher_amount = ctx.accounts.market_token_voucher.amount;
         let market_token_b_amount = ctx
             .accounts
             .market_token_sol
@@ -90,8 +90,8 @@ pub mod bazaar {
             .unwrap();
 
         // proportion of tokens needed to deposit to get desired pool tokens back
-        let token_a_amount = pool_tokens
-            .checked_mul(market_token_a_amount)
+        let token_voucher_amount = pool_tokens
+            .checked_mul(market_token_voucher_amount)
             .unwrap()
             .checked_div(pool_token_supply)
             .unwrap();
@@ -103,8 +103,8 @@ pub mod bazaar {
 
         msg!(
             "token amounts: {}, {}",
-            &ctx.accounts.user_token_a.amount,
-            &token_a_amount
+            &ctx.accounts.user_token_voucher.amount,
+            &token_voucher_amount
         );
 
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
@@ -112,12 +112,12 @@ pub mod bazaar {
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.user_token_a.to_account_info(),
-                    to: ctx.accounts.market_token_a.to_account_info(),
+                    from: ctx.accounts.user_token_voucher.to_account_info(),
+                    to: ctx.accounts.market_token_voucher.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            token_a_amount,
+            token_voucher_amount,
         )?;
 
         invoke(
@@ -165,12 +165,12 @@ pub mod bazaar {
         // just add to account and from account
         // trade direction
 
-        let market_a_amount = ctx.accounts.market_token_a.amount as u128;
+        let market_a_amount = ctx.accounts.market_token_voucher.amount as u128;
         let market_sol_amount = ctx.accounts.market_token_sol.to_account_info().lamports() as u128;
         // .checked_div(LAMPORTS_PER_SOL)
         // .unwrap() as u128;
 
-        // let user_a_amount = ctx.accounts.user_token_a.amount as u128;
+        // let user_a_amount = ctx.accounts.user_token_voucher.amount as u128;
         // let user_sol_amount = ctx.accounts.user.lamports() as u128;
         // .checked_div(LAMPORTS_PER_SOL)
         // .unwrap() as u128;
@@ -196,8 +196,8 @@ pub mod bazaar {
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
                     anchor_spl::token::Transfer {
-                        from: ctx.accounts.user_token_a.to_account_info(),
-                        to: ctx.accounts.market_token_a.to_account_info(),
+                        from: ctx.accounts.user_token_voucher.to_account_info(),
+                        to: ctx.accounts.market_token_voucher.to_account_info(),
                         authority: ctx.accounts.user.to_account_info(),
                     },
                 ),
@@ -245,8 +245,8 @@ pub mod bazaar {
                 CpiContext::new_with_signer(
                     ctx.accounts.token_program.to_account_info(),
                     anchor_spl::token::Transfer {
-                        from: ctx.accounts.market_token_a.to_account_info(),
-                        to: ctx.accounts.user_token_a.to_account_info(),
+                        from: ctx.accounts.market_token_voucher.to_account_info(),
+                        to: ctx.accounts.user_token_voucher.to_account_info(),
                         authority: ctx.accounts.market_auth.to_account_info(),
                     },
                     &[&[
@@ -278,7 +278,7 @@ pub mod bazaar {
         let pool_tokens = &pool_token_amount;
 
         // amount of tokens currently in market wallets
-        let market_token_a_amount = ctx.accounts.market_token_a.amount;
+        let market_token_voucher_amount = ctx.accounts.market_token_voucher.amount;
         let market_token_b_amount = ctx
             .accounts
             .market_token_sol
@@ -288,8 +288,8 @@ pub mod bazaar {
             .checked_div(LAMPORTS_PER_SOL)
             .unwrap();
 
-        let token_a_amount = pool_tokens
-            .checked_mul(market_token_a_amount)
+        let token_voucher_amount = pool_tokens
+            .checked_mul(market_token_voucher_amount)
             .unwrap()
             .checked_div(pool_token_supply)
             .unwrap();
@@ -304,8 +304,8 @@ pub mod bazaar {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.market_token_a.to_account_info(),
-                    to: ctx.accounts.user_token_a.to_account_info(),
+                    from: ctx.accounts.market_token_voucher.to_account_info(),
+                    to: ctx.accounts.user_token_voucher.to_account_info(),
                     authority: ctx.accounts.market_auth.to_account_info(),
                 },
                 &[&[
@@ -314,7 +314,7 @@ pub mod bazaar {
                     &[auth_bump],
                 ]],
             ),
-            token_a_amount,
+            token_voucher_amount,
         )?;
 
         **ctx
@@ -342,7 +342,7 @@ pub mod bazaar {
 }
 
 #[derive(Accounts)]
-#[instruction(starting_token_a: u64, starting_sol: u64, auth_bump: u8)]
+#[instruction(starting_token_voucher: u64, starting_sol: u64, auth_bump: u8)]
 pub struct InitializeMarket<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
@@ -359,16 +359,16 @@ pub struct InitializeMarket<'info> {
     pub market_token_fee: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
-    pub token_a_mint: Box<Account<'info, Mint>>,
+    pub token_voucher_mint: Box<Account<'info, Mint>>,
     // no idea
     // pub market_token_destination: Account<'info, TokenAccount>,
-    #[account(init, payer = user, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
-    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(init, payer = user, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = token_voucher_mint, token::authority = market_auth, bump)]
+    pub market_token_voucher: Box<Account<'info, TokenAccount>>,
     #[account(init, payer = user, space = 8, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
     pub market_token_sol: Account<'info, MarketSol>,
 
-    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, associated_token::mint = token_voucher_mint, associated_token::authority = user)]
+    pub user_token_voucher: Box<Account<'info, TokenAccount>>,
 
     #[account(init, payer = user, associated_token::mint = market_mint, associated_token::authority = user)]
     pub user_token_liq: Box<Account<'info, TokenAccount>>,
@@ -398,16 +398,16 @@ pub struct DepositLiquidity<'info> {
     // no idea
     // pub market_token_destination: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub token_a_mint: Box<Account<'info, Mint>>,
+    pub token_voucher_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
-    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = token_voucher_mint, token::authority = market_auth, bump)]
+    pub market_token_voucher: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
     pub market_token_sol: Account<'info, MarketSol>,
 
-    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, associated_token::mint = token_voucher_mint, associated_token::authority = user)]
+    pub user_token_voucher: Box<Account<'info, TokenAccount>>,
 
     #[account(mut, associated_token::mint = market_mint, associated_token::authority = user)]
     pub user_token_liq: Box<Account<'info, TokenAccount>>,
@@ -431,16 +431,16 @@ pub struct Swap<'info> {
     pub market_auth: AccountInfo<'info>,
 
     #[account(mut)]
-    pub token_a_mint: Box<Account<'info, Mint>>,
+    pub token_voucher_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
-    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = token_voucher_mint, token::authority = market_auth, bump)]
+    pub market_token_voucher: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
     pub market_token_sol: Account<'info, MarketSol>,
 
-    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, associated_token::mint = token_voucher_mint, associated_token::authority = user)]
+    pub user_token_voucher: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -467,16 +467,16 @@ pub struct WithdrawLiquidity<'info> {
     // no idea
     // pub market_token_destination: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub token_a_mint: Box<Account<'info, Mint>>,
+    pub token_voucher_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [b"token_a".as_ref(), market_auth.key().as_ref()], token::mint = token_a_mint, token::authority = market_auth, bump)]
-    pub market_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = token_voucher_mint, token::authority = market_auth, bump)]
+    pub market_token_voucher: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
     pub market_token_sol: Account<'info, MarketSol>,
 
-    #[account(mut, associated_token::mint = token_a_mint, associated_token::authority = user)]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
+    #[account(mut, associated_token::mint = token_voucher_mint, associated_token::authority = user)]
+    pub user_token_voucher: Box<Account<'info, TokenAccount>>,
 
     #[account(mut, associated_token::mint = market_mint, associated_token::authority = user)]
     pub user_token_liq: Box<Account<'info, TokenAccount>>,

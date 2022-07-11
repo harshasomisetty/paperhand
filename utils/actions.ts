@@ -90,36 +90,36 @@ export async function getExhibitAddress(nft: Nft): Promise<PublicKey[]> {
     EXHIBITION_PROGRAM_ID
   );
 
-  let [redeemMint] = await PublicKey.findProgramAddress(
-    [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  return [exhibit, redeemMint];
+  return [exhibit, voucherMint];
 }
 
-export async function getUserRedeemWallets(
-  redeemMint: PublicKey,
+export async function getUserVoucherWallets(
+  voucherMint: PublicKey,
   user
 ): Promise<PublicKey[]> {
-  let userRedeemWallet = Array(2);
+  let userVoucherWallet = Array(2);
 
-  userRedeemWallet[0] = await getAssociatedTokenAddress(
-    redeemMint,
+  userVoucherWallet[0] = await getAssociatedTokenAddress(
+    voucherMint,
     user[0].publicKey,
     false,
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
-  userRedeemWallet[1] = await getAssociatedTokenAddress(
-    redeemMint,
+  userVoucherWallet[1] = await getAssociatedTokenAddress(
+    voucherMint,
     user[1].publicKey,
     false,
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
-  return userRedeemWallet;
+  return userVoucherWallet;
 }
 
 export async function checkIfAccountExists(

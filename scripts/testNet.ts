@@ -33,11 +33,12 @@ import {
   otherCreators,
   user,
   EXHIBITION_PROGRAM_ID,
+  BAZAAR_PROGRAM_ID,
 } from "../utils/constants";
 import {
   getExhibitAddress,
   getProvider,
-  getUserRedeemWallets,
+  getUserVoucherWallets,
   initAssociatedAddressIfNeeded,
   checkIfExhibitExists,
 } from "../utils/actions";
@@ -49,6 +50,8 @@ interface Project {
 }
 
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
+import { Bazaar, IDL as BAZAAR_IDL } from "../target/types/bazaar";
+import { BN } from "bn.js";
 const connection = new Connection("http://localhost:8899", "processed");
 
 const metaplex = Metaplex.make(connection)
@@ -60,10 +63,34 @@ let mintNumberOfNfts = 3;
 let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
+let Bazaar;
+
+let nft;
+let exhibit, voucherMint;
+//voucher wallets for both users
+let userVoucherWallet;
+// nft token account
+let nftUserTokenAccount;
+
+// mint decimals for swap
+let decimals = 9;
+let decimalsVal = Math.pow(10, decimals);
+
+// swap init amounts
+let initAmounts = [1, 10 * LAMPORTS_PER_SOL];
+
+// mint accounts, 0 is liquidity, array to be able to copy over code
+let tokenMints = new Array(1);
+// bazaar's token accounts, 0 is voucher account, 1 is sol account, 2 is
+let marketTokens = new Array(2);
+// user 0's tokens, token 0 is liquidity account, token 1 is voucher account
+let userTokens = new Array(2);
+
 async function airdropAndMint() {
   let provider = await getProvider("http://localhost:8899", creator);
   console.log("Prog id", EXHIBITION_PROGRAM_ID.toString());
   Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+  Bazaar = new Program(BAZAAR_IDL, BAZAAR_PROGRAM_ID, provider);
   let airdropees = [creator, ...otherCreators, ...user];
   for (const dropee of airdropees) {
     await connection.confirmTransaction(
@@ -83,14 +110,14 @@ async function airdropAndMint() {
 }
 
 async function initializeExhibit() {
-  let nft = nftList[0][0];
-  let [exhibit, redeemMint] = await getExhibitAddress(nft);
+  nft = nftList[0][0];
+  [exhibit, voucherMint] = await getExhibitAddress(nft);
 
   const tx = await Exhibition.methods
     .initializeExhibit()
     .accounts({
       exhibit: exhibit,
-      redeemMint: redeemMint,
+      voucherMint: voucherMint,
       nftMetadata: nft.metadataAccount.publicKey,
       creator: creator.publicKey,
       rent: SYSVAR_RENT_PUBKEY,
@@ -110,27 +137,24 @@ async function initializeExhibit() {
 }
 
 async function insertNft() {
-  let nft = nftList[0][0];
-  let [exhibit, redeemMint] = await getExhibitAddress(nft);
-
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  let userRedeemWallet = await getUserRedeemWallets(redeemMint, user);
-  let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+  userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
+  nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
     connection,
     user[0],
     nft.mint,
     user[0].publicKey
   );
 
-  // create new user redeem token account outside of artifact insert
+  // create new user voucher token account outside of artifact insert
   await initAssociatedAddressIfNeeded(
     connection,
-    userRedeemWallet[0],
-    redeemMint,
+    userVoucherWallet[0],
+    voucherMint,
     user[0]
   );
 
@@ -138,8 +162,8 @@ async function insertNft() {
     .artifactInsert()
     .accounts({
       exhibit: exhibit,
-      redeemMint: redeemMint,
-      userRedeemWallet: userRedeemWallet[0],
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet[0],
       nftMint: nft.mint,
       nftMetadata: nft.metadataAccount.publicKey,
       nftUserToken: nftUserTokenAccount.address,
@@ -161,15 +185,15 @@ async function insertNft() {
   await connection.confirmTransaction(signature, "confirmed");
   let postNftArtifactBal = await getAccount(connection, nftArtifact);
 
-  let postUserRedeemTokenBal = await getAccount(
+  let postUserVoucherTokenBal = await getAccount(
     connection,
-    userRedeemWallet[0]
+    userVoucherWallet[0]
   );
 
   console.log(
-    "Inserted NFT! artifact bal, userRedeemBal",
+    "Inserted NFT! artifact bal, userVoucherBal",
     postNftArtifactBal.amount,
-    Number(postUserRedeemTokenBal)
+    Number(postUserVoucherTokenBal)
   );
 }
 
@@ -183,8 +207,6 @@ async function getAllExhibitions() {
 }
 
 async function getAllNfts() {
-  let exhibitAddress = "CrSR2a8nDcTFUoEkmDpdF1TtjuBqcbY73zDARFBD45nM";
-  let exhibit = new PublicKey(exhibitAddress);
   let exhibitBal = await connection.getBalance(exhibit);
   if (exhibitBal > 0) {
     console.log("exhibit exists");
@@ -210,12 +232,109 @@ async function getAllNfts() {
     console.log(allNFTs.length);
   }
 }
+
+async function initializeSwap() {
+  console.log("in initialize swap");
+  // create new user voucher token account outside of artifact insert
+  let temp;
+
+  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_auth"), exhibit.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_sol"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  console.log("got pdas");
+  let marketTokenFee = await getAssociatedTokenAddress(
+    tokenMints[0],
+    marketAuth,
+    true
+  );
+
+  // userTokens[0] = await getUserVoucherWallets(voucherMint, user);
+
+  // let userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
+
+  userTokens[0] = await getAssociatedTokenAddress(
+    tokenMints[0],
+    user[0].publicKey
+  );
+
+  userTokens[1] = await getAssociatedTokenAddress(
+    voucherMint,
+    user[0].publicKey
+  );
+
+  console.log("auth", marketAuth.toString());
+  console.log("market mint", tokenMints[0].toString());
+  try {
+    let userTokenVoucherBal = await getAccount(connection, userTokens[1]);
+
+    console.log(
+      "user voucher",
+      Number(userTokenVoucherBal.amount),
+      initAmounts[0]
+    );
+
+    console.log("making tx");
+    const tx = await Bazaar.methods
+      .initializeMarket(
+        new BN(initAmounts[0]),
+        new BN(initAmounts[1]),
+        authBump
+      )
+      .accounts({
+        exhibit: exhibit,
+        marketAuth: marketAuth,
+        marketMint: tokenMints[0],
+        marketTokenFee: marketTokenFee,
+        tokenVoucherMint: voucherMint,
+        marketTokenVoucher: marketTokens[0],
+        marketTokenSol: marketTokens[1],
+        userTokenVoucher: userTokens[1],
+        userTokenLiq: userTokens[0],
+        user: user[0].publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([user[0]])
+      .rpc();
+
+    let transaction = new Transaction().add(tx);
+    console.log("about to send tx");
+    let signature = await sendAndConfirmTransaction(connection, transaction, [
+      user[0],
+    ]);
+
+    await connection.confirmTransaction(signature, "confirmed");
+    console.log("inited market");
+  } catch (error) {
+    console.log("failed init", error);
+  }
+}
 // getAllExhibitions();
 async function fullFlow() {
   await airdropAndMint();
   await initializeExhibit();
   await insertNft();
-  await getAllNfts();
+  await initializeSwap();
+  // await getAllNfts();
 }
 fullFlow();
 
@@ -234,23 +353,23 @@ async function printAdds() {
 //   metaplex
 // );
 
-async function printRedeemTokenBal() {
+async function printVoucherTokenBal() {
   let exhibit = new PublicKey("CrSR2a8nDcTFUoEkmDpdF1TtjuBqcbY73zDARFBD45nM");
-  let [redeemMint] = await PublicKey.findProgramAddress(
-    [Buffer.from("redeem_mint"), exhibit.toBuffer()],
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  let userRedeemWallet = await getAssociatedTokenAddress(
-    redeemMint,
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
     user[0].publicKey,
     false,
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
-  let postUserRedeemTokenBal = await getAccount(connection, userRedeemWallet);
-  console.log("redeem bal", Number(postUserRedeemTokenBal.amount));
+  let postUserVoucherTokenBal = await getAccount(connection, userVoucherWallet);
+  console.log("voucher bal", Number(postUserVoucherTokenBal.amount));
 }
 
-// printRedeemTokenBal();
+// printVoucherTokenBal();

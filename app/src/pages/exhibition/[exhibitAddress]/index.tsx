@@ -16,10 +16,11 @@ import NftList from "@/components/NftList";
 import {
   checkIfAccountExists,
   getAllExhibitArtifacts,
-  getUserRedeemTokenBal,
+  getUserVoucherTokenBal,
 } from "@/utils/retrieveData";
 import { NftContext, NftProvider } from "@/context/NftContext";
 import SingleExhibitView from "@/views/SingleExhibitView";
+import SwapView from "@/views/SwapView";
 
 // TODO check if exhibit even exists
 const ExploreProjects = () => {
@@ -51,17 +52,18 @@ const ExploreProjects = () => {
       fetchData();
     }
   }, [wallet, exhibitAddress, publicKey]);
+
   return (
     <>
       {publicKey ? (
-        <div>
+        <div className="grid grid-cols-2">
           <NftProvider>
             <SingleExhibitView
               nftList={nftList}
               exhibitSymbol={exhibitSymbol}
             />
           </NftProvider>
-          {/* <SwapView /> */}
+          <SwapView />
         </div>
       ) : (
         <p> Please connect Wallet</p>

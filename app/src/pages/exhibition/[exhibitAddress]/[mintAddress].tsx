@@ -54,7 +54,7 @@ const NftPage = () => {
         </div>
       ) : (
         <div>
-          <p>bro</p>
+          <p>Nft data not loaded</p>
         </div>
       )}
     </>

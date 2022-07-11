@@ -66,8 +66,8 @@ pub mod exhibition {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::MintTo {
-                    mint: ctx.accounts.redeem_mint.to_account_info(),
-                    to: ctx.accounts.user_redeem_wallet.to_account_info(),
+                    mint: ctx.accounts.voucher_mint.to_account_info(),
+                    to: ctx.accounts.user_voucher_wallet.to_account_info(),
                     authority: ctx.accounts.exhibit.to_account_info(),
                 },
                 &[&seeds],
@@ -131,13 +131,13 @@ pub mod exhibition {
             1,
         )?;
 
-        // 2) burn redeem token from user
+        // 2) burn voucher token from user
         anchor_spl::token::burn(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info().clone(),
                 anchor_spl::token::Burn {
-                    from: ctx.accounts.user_redeem_wallet.to_account_info(),
-                    mint: ctx.accounts.redeem_mint.to_account_info(),
+                    from: ctx.accounts.user_voucher_wallet.to_account_info(),
+                    mint: ctx.accounts.voucher_mint.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
                 &[&seeds],
@@ -181,12 +181,12 @@ pub struct InitializeExhibit<'info> {
     #[account(
         init,
         payer = creator,
-        seeds = [b"redeem_mint".as_ref(), exhibit.key().as_ref()], bump,
+        seeds = [b"voucher_mint".as_ref(), exhibit.key().as_ref()], bump,
         mint::decimals = 1,
         mint::authority = exhibit,
         mint::freeze_authority = exhibit
     )]
-    pub redeem_mint: Account<'info, Mint>,
+    pub voucher_mint: Account<'info, Mint>,
     #[account(mut)]
     pub nft_metadata: Box<Account<'info, TokenMetadata>>,
 
@@ -201,15 +201,15 @@ pub struct InitializeExhibit<'info> {
 pub struct ArtifactInsert<'info> {
     #[account(
         mut,
-        constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
+        constraint = voucher_mint.mint_authority == COption::Some(exhibit.key())
     )]
-    pub redeem_mint: Account<'info, Mint>,
+    pub voucher_mint: Account<'info, Mint>,
     #[account(
         mut,
-        associated_token::mint = redeem_mint,
+        associated_token::mint = voucher_mint,
         associated_token::authority = user
     )]
-    pub user_redeem_wallet: Account<'info, TokenAccount>,
+    pub user_voucher_wallet: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub nft_mint: Box<Account<'info, Mint>>,
@@ -245,16 +245,16 @@ pub struct ArtifactWithdraw<'info> {
 
     #[account(
         mut,
-        constraint = redeem_mint.mint_authority == COption::Some(exhibit.key())
+        constraint = voucher_mint.mint_authority == COption::Some(exhibit.key())
     )]
-    pub redeem_mint: Account<'info, Mint>,
+    pub voucher_mint: Account<'info, Mint>,
 
     #[account(
         mut,
-        associated_token::mint = redeem_mint,
+        associated_token::mint = voucher_mint,
         associated_token::authority = user
     )]
-    pub user_redeem_wallet: Account<'info, TokenAccount>,
+    pub user_voucher_wallet: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub nft_mint: Box<Account<'info, Mint>>,
