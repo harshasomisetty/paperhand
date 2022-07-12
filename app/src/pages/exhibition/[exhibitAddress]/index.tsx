@@ -12,7 +12,6 @@ import {
 
 import { getExhibitProgramAndProvider } from "@/utils/constants";
 
-import NftList from "@/components/NftList";
 import {
   checkIfAccountExists,
   getAllExhibitArtifacts,
@@ -33,17 +32,14 @@ const ExploreProjects = () => {
 
   useEffect(() => {
     async function fetchData() {
-      console.log("fetching");
-
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
 
       let exhibit = new PublicKey(exhibitAddress);
-
       let exhibitExists = await checkIfAccountExists(exhibit, connection);
+
       if (exhibitExists) {
         let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
-
         let allNfts = await getAllExhibitArtifacts(exhibit, connection);
         setNftList(allNfts);
       }

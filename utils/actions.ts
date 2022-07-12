@@ -127,6 +127,7 @@ export async function checkIfAccountExists(
   connection: Connection
 ): Promise<Boolean> {
   let bal = await connection.getBalance(account);
+  console.log("balance: ", bal);
   if (bal > 0) {
     return true;
   } else {

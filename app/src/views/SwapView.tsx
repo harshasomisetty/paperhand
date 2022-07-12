@@ -13,7 +13,10 @@ import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { MarketData } from "@/utils/interfaces";
-import { getExhibitProgramAndProvider } from "@/utils/constants";
+import {
+  BAZAAR_PROGRAM_ID,
+  getExhibitProgramAndProvider,
+} from "@/utils/constants";
 import SwapCard from "@/components/SwapCard";
 import LiquidityCard from "@/components/LiquidityCard";
 interface SwapViewProps {
@@ -25,18 +28,28 @@ export default function SwapView({ bruh }: HomeViewProps) {
   const { wallet, publicKey, signTransaction } = useWallet();
   const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [menuDefault, setMenuDefault] = useState(true);
+  const [swapActive, setSwapActive] = useState(false);
   const router = useRouter();
 
   const { exhibitAddress } = router.query;
 
   useEffect(() => {
     async function fetchData() {
-      console.log("fetching");
+      console.log("fetching swap view");
 
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
       let exhibit = new PublicKey(exhibitAddress);
-      let mdata = await getMarketData(exhibit, publicKey, connection);
-      setMarketData(mdata);
+      let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+        [Buffer.from("market_auth"), exhibit.toBuffer()],
+        BAZAAR_PROGRAM_ID
+      );
+
+      let swapExists = await checkIfAccountExists(marketAuth, connection);
+      setSwapActive(swapExists);
+      if (swapExists) {
+        let mdata = await getMarketData(exhibit, publicKey, connection);
+        setMarketData(mdata);
+      }
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
@@ -47,28 +60,37 @@ export default function SwapView({ bruh }: HomeViewProps) {
     setMenuDefault(!menuDefault);
   }
   return (
-    <div>
-      {marketData ? (
-        <div className="flex flex-col items-center">
-          <ul
-            className="menu menu-vertical lg:menu-horizontal bg-base-100 rounded-box border-2"
-            onClick={switchMenu}
-          >
-            <li>
-              <a className={`${menuDefault && "active"}`}>Swap</a>
-            </li>
-            <li>
-              <a className={`${!menuDefault && "active"}`}>Liquidity</a>
-            </li>
-          </ul>
-          {menuDefault ? (
-            <SwapCard MarketData={marketData} />
+    <div className="flex flex-col items-center place-content-center">
+      {swapActive ? (
+        <>
+          {marketData ? (
+            <>
+              <ul
+                className="menu menu-vertical lg:menu-horizontal bg-base-100 rounded-box border-2"
+                onClick={switchMenu}
+              >
+                <li>
+                  <a className={`${menuDefault && "active"}`}>Swap</a>
+                </li>
+                <li>
+                  <a className={`${!menuDefault && "active"}`}>Liquidity</a>
+                </li>
+              </ul>
+              {menuDefault ? (
+                <SwapCard MarketData={marketData} />
+              ) : (
+                <LiquidityCard MarketData={marketData} />
+              )}
+            </>
           ) : (
-            <LiquidityCard MarketData={marketData} />
+            <p>Loading market data</p>
           )}
-        </div>
+        </>
       ) : (
-        <p>Loading market data</p>
+        <>
+          <h3>Bazaar has not been activated yet</h3>
+          <button className="btn btn-primary">Activate Bazaar</button>
+        </>
       )}
     </div>
   );

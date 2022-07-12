@@ -87,7 +87,7 @@ export async function getExhibitAddress(nft: Nft): Promise<PublicKey[]> {
 export async function checkIfAccountExists(
   account: PublicKey,
   connection: Connection
-): Promise<Boolean> {
+): Promise<boolean> {
   let bal = await connection.getBalance(account);
   if (bal > 0) {
     return true;
