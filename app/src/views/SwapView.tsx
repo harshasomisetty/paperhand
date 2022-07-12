@@ -19,6 +19,7 @@ import {
 } from "@/utils/constants";
 import SwapCard from "@/components/SwapCard";
 import LiquidityCard from "@/components/LiquidityCard";
+import InitSwapCard from "@/components/InitSwapCard";
 interface SwapViewProps {
   bruh: string | null;
 }
@@ -87,10 +88,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
           )}
         </>
       ) : (
-        <>
-          <h3>Bazaar has not been activated yet</h3>
-          <button className="btn btn-primary">Activate Bazaar</button>
-        </>
+        <InitSwapCard />
       )}
     </div>
   );

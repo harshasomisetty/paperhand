@@ -133,7 +133,6 @@ const SwapCard = ({ MarketData }) => {
             type="text"
             placeholder="To"
             className="input input-bordered"
-            /* onChange={() => updateInputs(false)} */
             value={bottomInput}
             onChange={(e) => updateInputs(e.target.value, false)}
           />
