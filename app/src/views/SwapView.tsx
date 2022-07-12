@@ -36,8 +36,6 @@ export default function SwapView({ bruh }: HomeViewProps) {
 
   useEffect(() => {
     async function fetchData() {
-      console.log("fetching swap view");
-
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
       let exhibit = new PublicKey(exhibitAddress);
       let [marketAuth, authBump] = await PublicKey.findProgramAddress(

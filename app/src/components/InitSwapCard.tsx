@@ -40,7 +40,6 @@ const InitSwapCard = () => {
         connection
       );
       let userSol = await connection.getBalance(publicKey);
-      console.log("balances: ", userTokenVoucherBal, userSol);
       setUserData([
         Number(userTokenVoucherBal) / decimalsVal,
         Number(userSol) / LAMPORTS_PER_SOL,

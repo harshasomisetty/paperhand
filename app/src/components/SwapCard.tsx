@@ -7,24 +7,8 @@ import { instructionSwap } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { decimalsVal } from "@/utils/constants";
-const SolHeader = ({ UserSolBal }) => {
-  // console.log("sol header", UserSolBal);
-  return (
-    <div className="">
-      <p>Sol </p>
-      <p>Balance: {UserSolBal / LAMPORTS_PER_SOL}</p>
-    </div>
-  );
-};
-const VoucherHeader = ({ UserVoucherBal }) => {
-  // console.log("voucher header", UserVoucherBal);
-  return (
-    <div className="">
-      <p>Voucher</p>
-      <p>Balance: {UserVoucherBal / decimalsVal}</p>
-    </div>
-  );
-};
+import { SolInput, VoucherInput } from "@/components/MarketInputs";
+
 const SwapCard = ({ MarketData }) => {
   // console.log("swapcard data", MarketData);
   const [fromSol, setFromSol] = useState(true);
@@ -123,11 +107,7 @@ const SwapCard = ({ MarketData }) => {
       <div className="card-body">
         <h2 className="card-title">Swap</h2>
         <div className="form-control">
-          {fromSol ? (
-            <SolHeader UserSolBal={MarketData.userSolBal} />
-          ) : (
-            <VoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
-          )}
+          {fromSol ? <SolInput /> : <VoucherInput />}
           <input
             type="text"
             placeholder="From"
@@ -148,11 +128,7 @@ const SwapCard = ({ MarketData }) => {
         </label>
 
         <div className="form-control">
-          {!fromSol ? (
-            <SolHeader UserSolBal={MarketData.userSolBal} />
-          ) : (
-            <VoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
-          )}
+          {!fromSol ? <SolInput /> : <VoucherInput />}
           <input
             type="text"
             placeholder="To"

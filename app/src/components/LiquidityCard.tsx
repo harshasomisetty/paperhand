@@ -7,48 +7,11 @@ import { instructionSwap } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { decimalsVal, getExhibitProgramAndProvider } from "@/utils/constants";
-const SolHeader = ({ UserSolBal }) => {
-  // console.log("sol header", UserSolBal);
-  return (
-    <div className="">
-      <p>Sol </p>
-      <p>Balance: {UserSolBal / LAMPORTS_PER_SOL}</p>
-    </div>
-  );
-};
-const VoucherHeader = ({ UserVoucherBal }) => {
-  // console.log("voucher header", UserVoucherBal);
-  return (
-    <div className="">
-      <p>Voucher</p>
-      <p>Balance: {UserVoucherBal / decimalsVal}</p>
-    </div>
-  );
-};
+import { BazaarData, SolInput, VoucherInput } from "@/components/MarketInputs";
+
 const LiquidityCard = ({ MarketData }) => {
   const [topInput, setTopInput] = useState<number>();
   const [bottomInput, setBottomInput] = useState<number>();
-
-  const { connection } = useConnection();
-  const { wallet, publicKey, signTransaction } = useWallet();
-  const router = useRouter();
-  const { exhibitAddress } = router.query;
-  const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
-
-  useEffect(() => {
-    async function fetchData() {
-      console.log("fetching swap view");
-
-      let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-      let exhibit = new PublicKey(exhibitAddress);
-
-      let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-      setExhibitSymbol(exhibitInfo.exhibitSymbol);
-    }
-    if (wallet && publicKey && exhibitAddress) {
-      fetchData();
-    }
-  }, [wallet, exhibitAddress, publicKey]);
 
   async function executeSwap() {
     console.log("swapping");
@@ -62,7 +25,7 @@ const LiquidityCard = ({ MarketData }) => {
       signTransaction,
       connection
     );
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   // TODO AVOID NEGATIVE VALUES
@@ -96,7 +59,7 @@ const LiquidityCard = ({ MarketData }) => {
       <div className="card-body">
         <h2 className="card-title">Liquidity</h2>
         <div className="form-control">
-          <SolHeader UserSolBal={MarketData.userSolBal} />
+          <SolInput />
           <input
             type="text"
             placeholder="From"
@@ -107,7 +70,7 @@ const LiquidityCard = ({ MarketData }) => {
         </div>
 
         <div className="form-control">
-          <VoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
+          <VoucherInput />
           <input
             type="text"
             placeholder="To"
@@ -121,26 +84,7 @@ const LiquidityCard = ({ MarketData }) => {
             Add Liquidity
           </button>
         </div>
-        <table className="table table-compact w-full border rounded-lg items-end">
-          <tbody>
-            <tr>
-              <th>Base</th>
-              <td>SOL</td>
-            </tr>
-            <tr>
-              <th>Pool Liquidity (SOL)</th>
-              <td>{MarketData.marketSolBal / LAMPORTS_PER_SOL}</td>
-            </tr>
-            <tr>
-              <th>Pool Liquidity ({exhibitSymbol})</th>
-              <td>{MarketData.marketVoucherBal / decimalsVal}</td>
-            </tr>
-            <tr>
-              <th>LP supply</th>
-              <td>temp</td>
-            </tr>
-          </tbody>
-        </table>
+        <BazaarData />
       </div>
     </div>
   );
