@@ -67,7 +67,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
           {marketData ? (
             <>
               <ul
-                className="menu menu-vertical lg:menu-horizontal bg-base-100 rounded-box border-2"
+                className="menu menu-horizontal bg-base-100 rounded-box border-2"
                 onClick={switchMenu}
               >
                 <li>

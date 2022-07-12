@@ -7,7 +7,7 @@ import { instructionSwap } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { decimalsVal } from "@/utils/constants";
-const UserSolHeader = ({ UserSolBal }) => {
+const SolHeader = ({ UserSolBal }) => {
   // console.log("sol header", UserSolBal);
   return (
     <div className="">
@@ -16,7 +16,7 @@ const UserSolHeader = ({ UserSolBal }) => {
     </div>
   );
 };
-const UserVoucherHeader = ({ UserVoucherBal }) => {
+const VoucherHeader = ({ UserVoucherBal }) => {
   // console.log("voucher header", UserVoucherBal);
   return (
     <div className="">
@@ -124,9 +124,9 @@ const SwapCard = ({ MarketData }) => {
         <h2 className="card-title">Swap</h2>
         <div className="form-control">
           {fromSol ? (
-            <UserSolHeader UserSolBal={MarketData.userSolBal} />
+            <SolHeader UserSolBal={MarketData.userSolBal} />
           ) : (
-            <UserVoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
+            <VoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
           )}
           <input
             type="text"
@@ -149,9 +149,9 @@ const SwapCard = ({ MarketData }) => {
 
         <div className="form-control">
           {!fromSol ? (
-            <UserSolHeader UserSolBal={MarketData.userSolBal} />
+            <SolHeader UserSolBal={MarketData.userSolBal} />
           ) : (
-            <UserVoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
+            <VoucherHeader UserVoucherBal={MarketData.userVoucherBal} />
           )}
           <input
             type="text"
