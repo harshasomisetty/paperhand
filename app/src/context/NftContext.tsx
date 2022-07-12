@@ -5,7 +5,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 
 interface NftContextInterface {
   selectedNft: Nft | null;
-  setSelectedNft: () => void;
+  setSelectedNftPubkey: () => void;
 }
 export const NftContext = createContext<NftContextInterface>({
   // nftPubkey: PublicKey | null,

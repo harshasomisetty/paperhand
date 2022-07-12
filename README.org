@@ -1,7 +1,7 @@
 #+title: NFTAMM
 
 * Overview
-NFTAMM is a system that allows people to fungitize their NFTs with redeemable tokens, and trade these redeemables in an AMM.
+NFTAMM is a system that allows people to fungitize their NFTs with voucherable tokens, and trade these voucherables in an AMM.
 
 This allows for an easily determinable floor for people to use.
 

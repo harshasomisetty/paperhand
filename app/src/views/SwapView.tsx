@@ -64,7 +64,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
           {menuDefault ? (
             <SwapCard MarketData={marketData} />
           ) : (
-            <LiquidityCard />
+            <LiquidityCard MarketData={marketData} />
           )}
         </div>
       ) : (
