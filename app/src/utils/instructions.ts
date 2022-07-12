@@ -195,6 +195,105 @@ export async function instructionWithdrawNft(
   console.log("Withdrew nft!");
 }
 
+export async function instructionInitSwap(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  solIn: number,
+  voucherIn: number,
+  signTransaction: any,
+  connection: Connection
+) {
+  console.log("in instruction", solIn, voucherIn);
+  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_auth"), exhibit.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let marketTokens = new Array(2);
+
+  let temp;
+
+  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_sol"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let userTokenVoucher = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  let tokenMints = new Array(1);
+
+  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let marketTokenFee = await getAssociatedTokenAddress(
+    tokenMints[0],
+    marketAuth,
+    true
+  );
+
+  let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
+  // console.log("auth", marketAuth.toString());
+  // console.log("market mint", tokenMints[0].toString());
+  // let userTokenVoucherBal = await getAccount(connection, userTokens[1]);
+
+  // console.log(
+  //   "user voucher",
+  //   Number(userTokenVoucherBal.amount),
+  //   initAmounts[0]
+  // );
+
+  console.log("instruction values", solIn, voucherIn);
+  console.log("making tx");
+  const init_tx = await Bazaar.methods
+    .initializeMarket(new BN(voucherIn), new BN(solIn), authBump)
+    .accounts({
+      exhibit: exhibit,
+      marketAuth: marketAuth,
+      marketMint: tokenMints[0],
+      marketTokenFee: marketTokenFee,
+      tokenVoucherMint: voucherMint,
+      marketTokenVoucher: marketTokens[0],
+      marketTokenSol: marketTokens[1],
+      userTokenVoucher: userTokenVoucher,
+      userTokenLiq: userTokenLiq,
+      user: publicKey,
+      rent: SYSVAR_RENT_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  let transaction = new Transaction().add(init_tx);
+  try {
+    await manualSendTransaction(
+      transaction,
+      publicKey,
+      connection,
+      signTransaction
+    );
+  } catch (error) {
+    console.log("initing error", error);
+  }
+}
+
 export async function instructionSwap(
   wallet: Wallet,
   publicKey: PublicKey,

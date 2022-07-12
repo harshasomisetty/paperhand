@@ -23,8 +23,9 @@ const Navbar = () => {
                   ? "border-b rounded-none border-black"
                   : ""
               } `}
+              key={tabName}
             >
-              <Link key={tabName} href={"/" + tabName}>
+              <Link href={"/" + tabName}>
                 <div>{tabName[0].toUpperCase() + tabName.slice(1)}</div>
               </Link>
             </li>
