@@ -26,3 +26,5 @@ export async function getBazaarProgramAndProvider(wallet: Wallet) {
   let Bazaar = new Program(BAZAAR_IDL, BAZAAR_PROGRAM_ID, provider);
   return { Bazaar, provider };
 }
+
+export const decimalsVal = 1 * Math.pow(10, 9);

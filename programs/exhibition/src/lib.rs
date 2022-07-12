@@ -29,6 +29,7 @@ pub mod exhibition {
             .to_string();
 
         ctx.accounts.exhibit.artifact_count = 0;
+        ctx.accounts.exhibit.decimals = 9;
         Ok(())
     }
 
@@ -72,7 +73,9 @@ pub mod exhibition {
                 },
                 &[&seeds],
             ),
-            1,
+            1000000000,
+            // 1u64.checked_mul(10u8.pow(ctx.accounts.exhibit.decimals as u32) as u64)
+            // .unwrap(),
         )?;
 
         anchor_spl::token::transfer(
@@ -142,7 +145,9 @@ pub mod exhibition {
                 },
                 &[&seeds],
             ),
-            1,
+            1000000000,
+            // 1u64.checked_mul(10u8.pow(ctx.accounts.exhibit.decimals as u32) as u64)
+            // .unwrap(),
         )?;
 
         // 3) close pda nft artifact
@@ -286,6 +291,7 @@ pub struct Exhibit {
     pub exhibit_symbol: String,
     pub auth_bump: u8,
     pub artifact_count: u8,
+    pub decimals: u8,
 }
 
 #[error_code]

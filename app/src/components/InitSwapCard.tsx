@@ -51,7 +51,7 @@ const InitSwapCard = () => {
               <p>Voucher Balance: {userData[0]}</p>
               <input
                 type="text"
-                placeholder="Starting Voucher Amoun"
+                placeholder="Starting Voucher Amount"
                 className="input input-bordered"
               />
             </div>

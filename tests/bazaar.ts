@@ -323,7 +323,7 @@ describe("bazaar", () => {
     );
   });
 
-  it("Swapped from token a to token b", async () => {
+  it("Swapped from voucher to sol", async () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userTokenVoucherBal = await getAccount(connection, userTokens[1][1]);
@@ -380,7 +380,7 @@ describe("bazaar", () => {
     printAndTest(Number(userSol) / LAMPORTS_PER_SOL, swapVals[3]);
   });
 
-  it("Swapped from token b to token a", async () => {
+  it("Swapped from sol to voucher", async () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userTokenVoucherBal = await getAccount(connection, userTokens[1][1]);

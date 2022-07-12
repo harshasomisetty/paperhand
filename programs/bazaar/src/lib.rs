@@ -175,6 +175,8 @@ pub mod bazaar {
         // .checked_div(LAMPORTS_PER_SOL)
         // .unwrap() as u128;
 
+        msg!("market data: {}, {}", market_a_amount, market_sol_amount);
+
         let k = market_a_amount * market_sol_amount;
 
         if trade_direction == true {
@@ -184,14 +186,22 @@ pub mod bazaar {
             let amount_out = market_sol_amount.checked_sub(k_diff).unwrap();
 
             msg!(
-                "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
+                "k {}, marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
+                k,
                 market_diff,
                 amount_in,
                 amount_out,
                 minimum_amount_out
             );
             require!(amount_out > minimum_amount_out, MyError::SlippageError);
-            // TODO Add slippage by checking amount_out
+
+            msg!(
+                "user bal: {}, {}",
+                ctx.accounts.user.to_account_info().lamports(),
+                ctx.accounts.user_token_voucher.amount
+            );
+            msg!("first transfer");
+
             anchor_spl::token::transfer(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
@@ -203,6 +213,7 @@ pub mod bazaar {
                 ),
                 amount_in as u64,
             )?;
+            msg!("second transfer");
 
             // msg!("transferring lamports");
             **ctx
@@ -225,6 +236,8 @@ pub mod bazaar {
                 amount_out,
                 minimum_amount_out
             );
+            msg!("first transfer");
+
             require!(amount_out > minimum_amount_out, MyError::SlippageError);
             invoke(
                 &system_instruction::transfer(

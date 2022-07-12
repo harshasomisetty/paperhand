@@ -72,13 +72,16 @@ let userVoucherWallet;
 // nft token account
 let nftUserTokenAccount;
 
+// market pda
+let marketAuth;
+let authBump;
 // mint decimals for swap
 let decimals = 9;
 let decimalsVal = Math.pow(10, decimals);
 
 // swap init amounts
-let initAmounts = [1, 10 * LAMPORTS_PER_SOL];
-
+let initAmounts = [0.5 * decimalsVal, 10 * LAMPORTS_PER_SOL];
+let swapAmount = [0.5 * decimalsVal, 3 * LAMPORTS_PER_SOL];
 // mint accounts, 0 is liquidity, array to be able to copy over code
 let tokenMints = new Array(1);
 // bazaar's token accounts, 0 is voucher account, 1 is sol account, 2 is
@@ -238,7 +241,7 @@ async function initializeSwap() {
   // create new user voucher token account outside of artifact insert
   let temp;
 
-  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+  [marketAuth, authBump] = await PublicKey.findProgramAddress(
     [Buffer.from("market_auth"), exhibit.toBuffer()],
     BAZAAR_PROGRAM_ID
   );
@@ -264,10 +267,6 @@ async function initializeSwap() {
     marketAuth,
     true
   );
-
-  // userTokens[0] = await getUserVoucherWallets(voucherMint, user);
-
-  // let userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
 
   userTokens[0] = await getAssociatedTokenAddress(
     tokenMints[0],
@@ -328,12 +327,37 @@ async function initializeSwap() {
     console.log("failed init", error);
   }
 }
+
+async function quickSwap() {
+  try {
+    const tx = await Bazaar.methods
+      .swap(new BN(swapAmount[0]), new BN(swapAmount[1]), true, authBump)
+      .accounts({
+        exhibit: exhibit,
+        marketAuth: marketAuth,
+        // marketTokenFee: marketTokenFee,
+        tokenVoucherMint: voucherMint,
+        marketTokenVoucher: marketTokens[0],
+        marketTokenSol: marketTokens[1],
+        userTokenVoucher: userTokens[1],
+        user: user[0].publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([user[0]])
+      .rpc();
+  } catch (error) {
+    console.log("fuck swap", error);
+  }
+}
 // getAllExhibitions();
 async function fullFlow() {
   await airdropAndMint();
   await initializeExhibit();
   await insertNft();
   await initializeSwap();
+  // await quickSwap();
   // await getAllNfts();
 }
 fullFlow();

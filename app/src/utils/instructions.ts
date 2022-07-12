@@ -1,5 +1,5 @@
 import { Nft } from "@metaplex-foundation/js";
-import { Wallet } from "@project-serum/anchor";
+import { BN, Wallet } from "@project-serum/anchor";
 import {
   PublicKey,
   Connection,
@@ -10,7 +10,10 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
+  BAZAAR_PROGRAM_ID,
+  decimalsVal,
   EXHIBITION_PROGRAM_ID,
+  getBazaarProgramAndProvider,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
 import { checkIfExhibitExists, getExhibitAddress } from "@/utils/retrieveData";
@@ -25,6 +28,26 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
+async function manualSendTransaction(
+  transaction: Transaction,
+  publicKey: PublicKey,
+  connection: Connection,
+  signTransaction: any
+) {
+  transaction.feePayer = publicKey;
+  transaction.recentBlockhash = (
+    await connection.getRecentBlockhash("finalized")
+  ).blockhash;
+
+  transaction = await signTransaction(transaction);
+
+  const rawTransaction = transaction.serialize();
+  console.log("raw tx", rawTransaction);
+  let signature = await connection.sendRawTransaction(rawTransaction);
+  console.log("sent raw, waiting");
+  await connection.confirmTransaction(signature, "confirmed");
+  console.log("sent tx!!!");
+}
 export async function instructionDepositNft(
   wallet: Wallet,
   publicKey: PublicKey,
@@ -107,18 +130,12 @@ export async function instructionDepositNft(
     .transaction();
 
   transaction = transaction.add(insert_tx);
-
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
-
-  transaction = await signTransaction(transaction);
-
-  const rawTransaction = transaction.serialize();
-
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  await connection.confirmTransaction(signature, "confirmed");
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
   console.log("deposited nft");
 }
 
@@ -169,16 +186,95 @@ export async function instructionWithdrawNft(
 
   transaction = transaction.add(withdraw_tx);
 
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
-
-  transaction = await signTransaction(transaction);
-
-  const rawTransaction = transaction.serialize();
-
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  await connection.confirmTransaction(signature, "confirmed");
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
   console.log("Withdrew nft!");
+}
+
+export async function instructionSwap(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  amountIn: number,
+  minAmountOut: number,
+  forward: boolean,
+  signTransaction: any,
+  connection: Connection
+) {
+  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_auth"), exhibit.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let marketTokens = new Array(2);
+
+  let temp;
+
+  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_sol"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let userTokenVoucher = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  let transaction = new Transaction();
+  console.log(
+    "amounts in/out",
+    amountIn * decimalsVal,
+    minAmountOut * LAMPORTS_PER_SOL
+  );
+  let swapAmount;
+  if (forward) {
+    console.log("from voucher to sol");
+    swapAmount = [amountIn * decimalsVal, minAmountOut * LAMPORTS_PER_SOL];
+  } else {
+    console.log("from sol to voucher");
+    swapAmount = [amountIn * LAMPORTS_PER_SOL, minAmountOut * decimalsVal];
+  }
+  console.log("swap amounts", swapAmount);
+  const swap_tx = await Bazaar.methods
+    .swap(new BN(swapAmount[0]), new BN(swapAmount[1]), forward, authBump)
+    .accounts({
+      exhibit: exhibit,
+      marketAuth: marketAuth,
+      // marketTokenFee: marketTokenFee,
+      tokenVoucherMint: voucherMint,
+      marketTokenVoucher: marketTokens[0],
+      marketTokenSol: marketTokens[1],
+      userTokenVoucher: userTokenVoucher,
+      user: publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+  transaction = transaction.add(swap_tx);
+  try {
+    await manualSendTransaction(
+      transaction,
+      publicKey,
+      connection,
+      signTransaction
+    );
+  } catch (error) {
+    console.log("phantom send tx", error);
+  }
 }
