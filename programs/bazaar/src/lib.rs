@@ -101,12 +101,7 @@ pub mod bazaar {
             .checked_div(pool_token_supply)
             .unwrap();
 
-        msg!(
-            "token amounts: {}, {}",
-            &ctx.accounts.user_token_voucher.amount,
-            &token_voucher_amount
-        );
-
+        msg!("voucher transfer");
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
         anchor_spl::token::transfer(
             CpiContext::new(
@@ -120,6 +115,7 @@ pub mod bazaar {
             token_voucher_amount,
         )?;
 
+        msg!("lamports transfer");
         invoke(
             &system_instruction::transfer(
                 ctx.accounts.user.to_account_info().key,
@@ -133,6 +129,7 @@ pub mod bazaar {
             ],
         )?;
 
+        msg!("minting liq toknes");
         // mint tokens to depositor after depositor provides liquidity
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
@@ -180,6 +177,7 @@ pub mod bazaar {
         let k = market_a_amount * market_sol_amount;
 
         if trade_direction == true {
+            // going from voucher to sol
             msg!("forward");
             let market_diff = market_a_amount.checked_add(amount_in).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
@@ -224,6 +222,7 @@ pub mod bazaar {
 
             **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
         } else {
+            //going from voucher to sol
             msg!("reverse");
             let market_diff = market_sol_amount.checked_add(amount_in).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();

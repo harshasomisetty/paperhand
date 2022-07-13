@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { HiChevronDoubleDown } from "react-icons/hi";
 
 import { MarketData } from "@/utils/interfaces";
-import { instructionSwap } from "@/utils/instructions";
+import {
+  instructionDepositLiquidity,
+  instructionSwap,
+} from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { decimalsVal, getExhibitProgramAndProvider } from "@/utils/constants";
@@ -19,19 +22,22 @@ const LiquidityCard = ({
   const [topInput, setTopInput] = useState<number>();
   const [bottomInput, setBottomInput] = useState<number>();
 
+  const { connection } = useConnection();
+  const { wallet, publicKey, signTransaction } = useWallet();
+  const router = useRouter();
+  const { exhibitAddress } = router.query;
+
   async function executeAddLiq() {
     console.log("swapping");
-    await instructionSwap(
+    await instructionDepositLiquidity(
       wallet,
       publicKey,
       new PublicKey(exhibitAddress),
-      Number(topInput),
       Number(bottomInput),
-      fromSol,
       signTransaction,
       connection
     );
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   // TODO AVOID NEGATIVE VALUES
@@ -83,11 +89,6 @@ const LiquidityCard = ({
             value={bottomInput}
             onChange={(e) => updateInputs(e.target.value, false)}
           />
-        </div>
-        <div className="form-control">
-          <button className="btn btn-primary" onClick={executeAddLiq}>
-            Add Liquidity
-          </button>
         </div>
         <div className="form-control">
           <button className="btn btn-primary" onClick={executeAddLiq}>

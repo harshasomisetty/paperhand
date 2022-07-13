@@ -97,7 +97,7 @@ async function airdropAndMint() {
   let airdropees = [creator, ...otherCreators, ...user];
   for (const dropee of airdropees) {
     await connection.confirmTransaction(
-      await connection.requestAirdrop(dropee.publicKey, 20 * LAMPORTS_PER_SOL),
+      await connection.requestAirdrop(dropee.publicKey, 40 * LAMPORTS_PER_SOL),
       "confirmed"
     );
   }

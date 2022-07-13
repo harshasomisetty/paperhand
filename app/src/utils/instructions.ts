@@ -16,7 +16,11 @@ import {
   getBazaarProgramAndProvider,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
-import { checkIfExhibitExists, getExhibitAddress } from "@/utils/retrieveData";
+import {
+  checkIfExhibitExists,
+  getExhibitAddress,
+  getSwapAccounts,
+} from "@/utils/retrieveData";
 
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -207,34 +211,10 @@ export async function instructionInitSwap(
   console.log("in instruction", solIn, voucherIn);
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
-  let [voucherMint] = await PublicKey.findProgramAddress(
-    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
-  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_auth"), exhibit.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  let marketTokens = new Array(2);
+  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
+    await getSwapAccounts(exhibit, publicKey);
 
   let temp;
-
-  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_sol"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  let userTokenVoucher = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
-
   let tokenMints = new Array(1);
 
   [tokenMints[0], temp] = await PublicKey.findProgramAddress(
@@ -249,18 +229,7 @@ export async function instructionInitSwap(
   );
 
   let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
-  // console.log("auth", marketAuth.toString());
-  // console.log("market mint", tokenMints[0].toString());
-  // let userTokenVoucherBal = await getAccount(connection, userTokens[1]);
 
-  // console.log(
-  //   "user voucher",
-  //   Number(userTokenVoucherBal.amount),
-  //   initAmounts[0]
-  // );
-
-  console.log("instruction values", solIn, voucherIn);
-  console.log("making tx");
   const init_tx = await Bazaar.methods
     .initializeMarket(new BN(voucherIn), new BN(solIn), authBump)
     .accounts({
@@ -306,33 +275,8 @@ export async function instructionSwap(
 ) {
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
-  let [voucherMint] = await PublicKey.findProgramAddress(
-    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
-  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_auth"), exhibit.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  let marketTokens = new Array(2);
-
-  let temp;
-
-  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_sol"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  let userTokenVoucher = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
+  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
+    await getSwapAccounts(exhibit, publicKey);
 
   let transaction = new Transaction();
   console.log(
@@ -366,6 +310,62 @@ export async function instructionSwap(
     })
     .transaction();
   transaction = transaction.add(swap_tx);
+  try {
+    await manualSendTransaction(
+      transaction,
+      publicKey,
+      connection,
+      signTransaction
+    );
+  } catch (error) {
+    console.log("phantom send tx", error);
+  }
+}
+
+export async function instructionDepositLiquidity(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  liqAmount: number,
+  signTransaction: any,
+  connection: Connection
+) {
+  console.log("in instruction dpeo");
+  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+
+  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
+    await getSwapAccounts(exhibit, publicKey);
+
+  let tokenMints = new Array(1);
+  let temp;
+  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
+
+  let transaction = new Transaction();
+  const deposit_liq_tx = await Bazaar.methods
+    .depositLiquidity(new BN(liqAmount * decimalsVal), authBump)
+    .accounts({
+      exhibit: exhibit,
+      marketAuth: marketAuth,
+      marketMint: tokenMints[0],
+      // marketTokenFee: marketTokenFee,
+      tokenVoucherMint: voucherMint,
+      marketTokenVoucher: marketTokens[0],
+      marketTokenSol: marketTokens[1],
+      userTokenVoucher: userTokenVoucher,
+      userTokenLiq: userTokenLiq,
+      user: publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+  transaction = transaction.add(deposit_liq_tx);
+  console.log("made tx", transaction);
   try {
     await manualSendTransaction(
       transaction,

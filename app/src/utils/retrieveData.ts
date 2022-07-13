@@ -157,3 +157,37 @@ export async function getMarketData(
     userSolBal: Number(userSol),
   };
 }
+
+export async function getSwapAccounts(
+  exhibit: PublicKey,
+  publicKey: PublicKey
+): Promise<[PublicKey, PublicKey, number, PublicKey[], PublicKey]> {
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_auth"), exhibit.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let marketTokens = new Array(2);
+
+  let temp;
+
+  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_sol"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let userTokenVoucher = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+  return [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher];
+}
