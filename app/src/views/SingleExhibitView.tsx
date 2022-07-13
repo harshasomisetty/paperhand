@@ -42,14 +42,11 @@ export default function SingleExhibitView({
     <>
       {exhibitSymbol && (
         <div>
-          <h2>Explore the {exhibitSymbol} Exhibit</h2>
-          <h3>List of NFTs deposited in exhibit</h3>
-          <p>Select one of your NFTs to Deposit into an Exhibit</p>
-          <NftList
-            nftList={nftList}
-            exhibitKey={exhibitAddress}
-            extraInfo={true}
-          />
+          <h2>
+            Explore the NFTs in the{" "}
+            <span style={{ fontWeight: "bold" }}>{exhibitSymbol}</span> Exhibit
+          </h2>
+          <NftList nftList={nftList} exhibitKey={exhibitAddress} />
           {publicKey && selectedNft && (
             <button className="btn btn-primary" onClick={withdrawNft}>
               Withdraw nft

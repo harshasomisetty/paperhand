@@ -15,7 +15,6 @@ export default function ExhibitCard({ exhibit }: ExhibitCardProps) {
     async function fetchData() {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
       setExhibitData(fetchedData);
-      console.log(fetchedData);
     }
 
     fetchData();

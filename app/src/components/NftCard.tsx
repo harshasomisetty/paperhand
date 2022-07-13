@@ -7,14 +7,8 @@ interface NftCardProps {
   nft: Nft;
   exhibitKey?: String;
   index: number;
-  extraInfo: boolean;
 }
-export default function NftCard({
-  nft,
-  exhibitKey,
-  index,
-  extraInfo,
-}: NftCardProps) {
+export default function NftCard({ nft, exhibitKey, index }: NftCardProps) {
   const [nftImage, setNftImage] = useState();
   const { selectedNft, setSelectedNft } = useContext(NftContext);
 
@@ -31,7 +25,7 @@ export default function NftCard({
 
   return (
     <div
-      className={`card card-normal w-96 bg-base-100 cursor-pointer shadow-xl border-transparent hover:border-4 ${
+      className={`card card-compact w-40 bg-base-100 cursor-pointer shadow-xl border-transparent hover:border-4 ${
         selectedNft && selectedNft.mint.toString() === nft.mint.toString()
           ? "border-4 opacity-75"
           : ""
@@ -44,17 +38,22 @@ export default function NftCard({
       <figure>
         <img src={nftImage} alt={nft.name} />
       </figure>
-      <div className="card-body">
-        <h2 className="card-title">{nft.name}</h2>
-        <p>
-          <span style={{ fontWeight: "bold" }}>{nft.symbol}</span> collection
-        </p>
-        {extraInfo && (
-          <div className="card-actions justify-end">
+      <div className="card-body flex flex-row justify-between">
+        <div>
+          <h2 className="card-title">{nft.name}</h2>
+          {!exhibitKey && (
+            <p>
+              <span style={{ fontWeight: "bold" }}>{nft.symbol}</span>{" "}
+              collection
+            </p>
+          )}
+        </div>
+        {exhibitKey && (
+          <div className="card-actions">
             <Link
               href={"/exhibition/" + exhibitKey + "/" + nft.mint.toString()}
             >
-              <button className="btn btn-info">Click for NFT info</button>
+              <button className="btn btn-info">info</button>
             </Link>
           </div>
         )}
