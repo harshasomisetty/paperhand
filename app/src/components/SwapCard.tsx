@@ -9,8 +9,8 @@ import { useRouter } from "next/router";
 import { decimalsVal } from "@/utils/constants";
 import { SolInput, VoucherInput } from "@/components/MarketInputs";
 
-const SwapCard = ({ MarketData }) => {
-  // console.log("swapcard data", MarketData);
+const SwapCard = ({ marketData }: { marketData: MarketData }) => {
+  // console.log("swapcard data", marketData);
   const [fromSol, setFromSol] = useState(true);
   const [topInput, setTopInput] = useState<number>();
   const [bottomInput, setBottomInput] = useState<number>();
@@ -45,7 +45,7 @@ const SwapCard = ({ MarketData }) => {
   // TODO AVOID NEGATIVE VALUES
   function updateInputs(value, topInput) {
     let solInput, voucherInput;
-    let K = MarketData.marketVoucherBal * MarketData.marketSolBal;
+    let K = marketData.marketVoucherBal * marketData.marketSolBal;
 
     console.log("top input?", topInput.toString());
 
@@ -53,9 +53,9 @@ const SwapCard = ({ MarketData }) => {
       // update voucher res on user depositing sol
       solInput = Number(value.replace(/[a-z]/gi, "")) * LAMPORTS_PER_SOL;
 
-      let marketDiff = MarketData.marketSolBal + solInput;
+      let marketDiff = marketData.marketSolBal + solInput;
       let Kdiff = K / marketDiff;
-      let amountOut = MarketData.marketVoucherBal - Kdiff;
+      let amountOut = marketData.marketVoucherBal - Kdiff;
 
       console.log("1", K, solInput, marketDiff, Kdiff, amountOut);
 
@@ -66,9 +66,9 @@ const SwapCard = ({ MarketData }) => {
 
       voucherInput = Number(value.replace(/[a-z]/gi, "")) * decimalsVal;
 
-      let marketDiff = MarketData.marketVoucherBal - voucherInput;
+      let marketDiff = marketData.marketVoucherBal - voucherInput;
       let Kdiff = K / marketDiff;
-      let amountIn = (Kdiff - MarketData.marketSolBal) / LAMPORTS_PER_SOL;
+      let amountIn = (Kdiff - marketData.marketSolBal) / LAMPORTS_PER_SOL;
 
       console.log("2", K, voucherInput, marketDiff, Kdiff, amountIn);
 
@@ -78,9 +78,9 @@ const SwapCard = ({ MarketData }) => {
       //update sol res on user depoing voucher
       voucherInput = Number(value.replace(/[a-z]/gi, "")) * decimalsVal;
 
-      let marketDiff = MarketData.marketVoucherBal + voucherInput;
+      let marketDiff = marketData.marketVoucherBal + voucherInput;
       let Kdiff = K / marketDiff;
-      let amountOut = (MarketData.marketSolBal - Kdiff) / LAMPORTS_PER_SOL;
+      let amountOut = (marketData.marketSolBal - Kdiff) / LAMPORTS_PER_SOL;
 
       console.log("3", K, voucherInput, marketDiff, Kdiff, amountOut);
 
@@ -91,9 +91,9 @@ const SwapCard = ({ MarketData }) => {
 
       solInput = Number(value.replace(/[a-z]/gi, "")) * LAMPORTS_PER_SOL;
 
-      let marketDiff = MarketData.marketSolBal - solInput;
+      let marketDiff = marketData.marketSolBal - solInput;
       let Kdiff = K / marketDiff;
-      let amountIn = Kdiff - MarketData.marketVoucherBal;
+      let amountIn = Kdiff - marketData.marketVoucherBal;
 
       console.log("4", K, solInput, marketDiff, Kdiff, amountIn);
 
@@ -107,7 +107,11 @@ const SwapCard = ({ MarketData }) => {
       <div className="card-body">
         <h2 className="card-title">Swap</h2>
         <div className="form-control">
-          {fromSol ? <SolInput /> : <VoucherInput />}
+          {fromSol ? (
+            <SolInput userSol={marketData.userSolBal} />
+          ) : (
+            <VoucherInput userVoucher={marketData.userVoucherBal} />
+          )}
           <input
             type="text"
             placeholder="From"
@@ -128,7 +132,11 @@ const SwapCard = ({ MarketData }) => {
         </label>
 
         <div className="form-control">
-          {!fromSol ? <SolInput /> : <VoucherInput />}
+          {!fromSol ? (
+            <SolInput userSol={marketData.userSolBal} />
+          ) : (
+            <VoucherInput userVoucher={marketData.userVoucherBal} />
+          )}
           <input
             type="text"
             placeholder="To"

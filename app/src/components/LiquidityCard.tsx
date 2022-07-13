@@ -9,11 +9,17 @@ import { useRouter } from "next/router";
 import { decimalsVal, getExhibitProgramAndProvider } from "@/utils/constants";
 import { BazaarData, SolInput, VoucherInput } from "@/components/MarketInputs";
 
-const LiquidityCard = ({ MarketData }) => {
+const LiquidityCard = ({
+  marketData,
+  exhibitSymbol,
+}: {
+  marketData: MarketData;
+  exhibitSymbol: string;
+}) => {
   const [topInput, setTopInput] = useState<number>();
   const [bottomInput, setBottomInput] = useState<number>();
 
-  async function executeSwap() {
+  async function executeAddLiq() {
     console.log("swapping");
     await instructionSwap(
       wallet,
@@ -31,23 +37,22 @@ const LiquidityCard = ({ MarketData }) => {
   // TODO AVOID NEGATIVE VALUES
   function updateInputs(value, topInput) {
     let solInput, voucherInput;
-    let K = MarketData.marketVoucherBal * MarketData.marketSolBal;
 
     console.log("top input?", topInput.toString(), value);
 
     if (topInput == true) {
       solInput = Number(value.replace(/[a-z]/gi, "")) * LAMPORTS_PER_SOL;
 
-      let marketPercent = solInput / MarketData.marketSolBal;
-      let amountOut = MarketData.marketVoucherBal * marketPercent;
+      let marketPercent = solInput / marketData.marketSolBal;
+      let amountOut = marketData.marketVoucherBal * marketPercent;
 
       setTopInput(value.replace(/[a-z]/gi, ""));
       setBottomInput(amountOut / decimalsVal);
     } else {
       voucherInput = Number(value.replace(/[a-z]/gi, "")) * decimalsVal;
 
-      let marketPercent = voucherInput / MarketData.marketVoucherBal;
-      let amountIn = MarketData.marketSolBal * marketPercent;
+      let marketPercent = voucherInput / marketData.marketVoucherBal;
+      let amountIn = marketData.marketSolBal * marketPercent;
 
       setTopInput(amountIn / LAMPORTS_PER_SOL);
       setBottomInput(value.replace(/[a-z]/gi, ""));
@@ -59,7 +64,7 @@ const LiquidityCard = ({ MarketData }) => {
       <div className="card-body">
         <h2 className="card-title">Liquidity</h2>
         <div className="form-control">
-          <SolInput />
+          <SolInput userSol={marketData.userSolBal} />
           <input
             type="text"
             placeholder="From"
@@ -70,7 +75,7 @@ const LiquidityCard = ({ MarketData }) => {
         </div>
 
         <div className="form-control">
-          <VoucherInput />
+          <VoucherInput userVoucher={marketData.userVoucherBal} />
           <input
             type="text"
             placeholder="To"
@@ -80,11 +85,20 @@ const LiquidityCard = ({ MarketData }) => {
           />
         </div>
         <div className="form-control">
-          <button className="btn btn-primary" onClick={executeSwap}>
+          <button className="btn btn-primary" onClick={executeAddLiq}>
             Add Liquidity
           </button>
         </div>
-        <BazaarData />
+        <div className="form-control">
+          <button className="btn btn-primary" onClick={executeAddLiq}>
+            Add Liquidity
+          </button>
+        </div>
+        <BazaarData
+          marketSol={marketData.marketSolBal}
+          marketVoucher={marketData.marketVoucherBal}
+          exhibitSymbol={exhibitSymbol}
+        />
       </div>
     </div>
   );

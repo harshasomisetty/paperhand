@@ -6,10 +6,17 @@ import { useEffect, useState } from "react";
 
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { instructionInitSwap } from "@/utils/instructions";
-const InitSwapCard = () => {
+import { MarketData } from "@/utils/interfaces";
+
+const InitSwapCard = ({
+  userSolBal,
+  userVoucherBal,
+}: {
+  userSolBal: number;
+  userVoucherBal: number;
+}) => {
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
-  const [userData, setUserData] = useState<number[] | null>();
   const router = useRouter();
   const [topInput, setTopInput] = useState<string>();
   const [bottomInput, setBottomInput] = useState<string>();
@@ -31,33 +38,14 @@ const InitSwapCard = () => {
     router.reload(window.location.pathname);
   }
 
-  useEffect(() => {
-    async function fetchData() {
-      let exhibit = new PublicKey(exhibitAddress);
-      let userTokenVoucherBal = await getUserVoucherTokenBal(
-        exhibit,
-        publicKey,
-        connection
-      );
-      let userSol = await connection.getBalance(publicKey);
-      setUserData([
-        Number(userTokenVoucherBal) / decimalsVal,
-        Number(userSol) / LAMPORTS_PER_SOL,
-      ]);
-    }
-
-    if (wallet && publicKey && exhibitAddress) {
-      fetchData();
-    }
-  }, [wallet, exhibitAddress, publicKey]);
   return (
     <>
-      {userData ? (
+      {userSolBal ? (
         <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
           <div className="card-body">
             <h2 className="card-title">Init Bazaar for this Exhibit!</h2>
             <div className="form-control">
-              <p>Sol Balance: {userData[1]}</p>
+              <p>Sol Balance: {userSolBal / LAMPORTS_PER_SOL}</p>
               <input
                 type="text"
                 placeholder="Starting Sol Amount"
@@ -70,7 +58,7 @@ const InitSwapCard = () => {
             </div>
 
             <div className="form-control">
-              <p>Voucher Balance: {userData[0]}</p>
+              <p>Voucher Balance: {userVoucherBal / decimalsVal}</p>
               <input
                 type="text"
                 placeholder="Starting Voucher Amount"

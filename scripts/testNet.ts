@@ -59,7 +59,7 @@ const metaplex = Metaplex.make(connection)
   .use(bundlrStorage());
 
 let mintNumberOfCollections = 2;
-let mintNumberOfNfts = 5;
+let mintNumberOfNfts = 3;
 let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
