@@ -37,20 +37,27 @@ const NftPage = () => {
   return (
     <>
       {nftData ? (
-        <div className="flex flex-row">
-          <div>
-            <p>name: {nftData.name}</p>
-            <p>mint: {nftData.mint.toString()}</p>
-            <p>symbol: {nftData.symbol}</p>
-            <p>uri: {nftData.uri}</p>
-            <p>creators</p>
-            <ul>
-              {nftData.creators.map((creator, ind) => (
-                <li key={ind}> {creator.address.toString()} </li>
-              ))}
-            </ul>
+        <div className="hero min-h-screen bg-base-200">
+          <div className="hero-content flex-col lg:flex-row">
+            <img
+              src={nftData.metadata.image}
+              alt={nftData.name}
+              className="max-w-sm rounded-lg shadow-2xl"
+            />
+            <div>
+              {/* <button class="btn btn-primary">Get Started</button> */}
+              <h1 className="text-5xl font-bold">{nftData.name}</h1>
+              <h2>{nftData.symbol} Collection</h2>
+              <p>mint: {nftData.mint.toString()}</p>
+              <p>uri: {nftData.uri}</p>
+              <p>creators</p>
+              <ul>
+                {nftData.creators.map((creator, ind) => (
+                  <li key={ind}> {creator.address.toString()} </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <img src={nftData.metadata.image} alt={nftData.name} />
         </div>
       ) : (
         <div>
