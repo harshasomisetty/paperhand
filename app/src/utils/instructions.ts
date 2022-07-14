@@ -333,7 +333,7 @@ export async function instructionDepositLiquidity(
   wallet: Wallet,
   publicKey: PublicKey,
   exhibit: PublicKey,
-  liqAmount: number,
+  vouchers: number,
   signTransaction: any,
   connection: Connection
 ) {
@@ -369,7 +369,7 @@ export async function instructionDepositLiquidity(
   }
 
   const deposit_liq_tx = await Bazaar.methods
-    .depositLiquidity(new BN(liqAmount), authBump)
+    .depositLiquidity(new BN(vouchers), authBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,

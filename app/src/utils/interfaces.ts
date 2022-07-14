@@ -10,4 +10,5 @@ export interface MarketData {
   marketSolBal: number;
   userVoucherBal: number;
   userSolBal: number;
+  userLiqBal: number;
 }

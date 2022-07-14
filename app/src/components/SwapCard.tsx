@@ -6,6 +6,12 @@ import { MarketData } from "@/utils/interfaces";
 import { instructionSwap } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
+import {
+  SolDisplay,
+  VoucherDisplay,
+  VoucherSlider,
+  YesOrNoButtons,
+} from "./MarketInputs";
 
 const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
   const marketSol = marketData.marketSolBal;
@@ -53,116 +59,62 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
       amountOut = marketSol - Kdiff;
     }
 
-    // console.log(
-    //   "updated inputs",
-    //   vouchers,
-    //   marketVoucher,
-    //   newBuyVouchers,
-    //   K,
-    //   marketDiff,
-    //   Kdiff,
-    //   amountOut / LAMPORTS_PER_SOL
-    // );
-
     setVouchers(vouchers);
     setSolOutput(amountOut / LAMPORTS_PER_SOL);
     setBuyVouchers(newBuyVouchers);
   }
 
-  const iconSize = 50;
-
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
       <div className="card-body">
         <h2 className="card-title">Swap Vouchers</h2>
-        <div className="flex flex-row w-full justify-evenly">
-          <button
-            className={`btn btn-success ${!buyVouchers && "opacity-50"}`}
-            onClick={() => {
-              updateInputs(0, true);
-            }}
-          >
-            Buy
-          </button>
-          <button
-            className={`btn btn-error ${buyVouchers && "opacity-50"}`}
-            onClick={() => {
-              updateInputs(0, false);
-            }}
-          >
-            Sell
-          </button>
-        </div>
-
-        <input
-          type="range"
-          min="0"
+        <YesOrNoButtons
+          yesText={"Buy"}
+          noText={"Sell"}
+          yesBool={buyVouchers}
+          updateInputs={updateInputs}
+        />
+        <VoucherSlider
           max={buyVouchers ? marketVoucher - 1 : userVoucher}
           value={vouchers}
-          step={`${(buyVouchers ? marketVoucher : userVoucher) < 10} && "1"`}
-          className="range range-sm"
           onChange={(e) => {
             updateInputs(Number(e.target.value), buyVouchers);
           }}
         />
 
-        {(buyVouchers ? marketVoucher > 0 : userVoucher > 0) && (
-          <div className="w-full flex justify-between text-xs px-2">
-            {[
-              ...Array((buyVouchers ? marketVoucher - 1 : userVoucher) + 1),
-            ].map((i) => (
-              <span key={i}>|</span>
-            ))}
-          </div>
-        )}
-        <div className="stat-desc place-self-end">
-          Max: {buyVouchers ? marketVoucher - 1 : userVoucher}
-        </div>
         <div className="flex flex-row shadow items-center">
           <div className="stat place-items-center">
             {buyVouchers ? (
-              <>
-                <div className="stat-title">Sol</div>
-                <div className="stat-value">{solOutput.toFixed(2)}</div>
-                <div className="stat-desc">
-                  Balance: {userSol / LAMPORTS_PER_SOL}
-                </div>
-              </>
+              <SolDisplay solOutput={solOutput} userSol={userSol} />
             ) : (
-              <>
-                <div className="stat-title">Vouchers</div>
-                <div className="stat-value">{vouchers}</div>
-                <div className="stat-desc">Balance: {userVoucher}</div>
-              </>
+              <VoucherDisplay vouchers={vouchers} userVoucher={userVoucher} />
             )}
           </div>
 
-          <HiChevronDoubleRight size={iconSize} />
+          <HiChevronDoubleRight size={50} />
 
           <div className="stat place-items-center text-success">
             {!buyVouchers ? (
-              <>
-                <div className="stat-title">Sol</div>
-                <div className="stat-value">{solOutput.toFixed(2)}</div>
-                <div className="stat-desc">
-                  Balance: {userSol / LAMPORTS_PER_SOL}
-                </div>
-              </>
+              <SolDisplay solOutput={solOutput} userSol={userSol} />
             ) : (
-              <>
-                <div className="stat-title">Vouchers</div>
-                <div className="stat-value">{vouchers}</div>
-                <div className="stat-desc">Balance: {userVoucher}</div>
-              </>
+              <VoucherDisplay vouchers={vouchers} userVoucher={userVoucher} />
             )}
           </div>
         </div>
         {wallet ? (
           <>
             {(buyVouchers ? marketVoucher : userVoucher) >= 1 ? (
-              <button className="btn btn-primary" onClick={executeSwap}>
-                Swap
-              </button>
+              <>
+                {vouchers >= 1 ? (
+                  <button className="btn btn-primary" onClick={executeSwap}>
+                    Swap
+                  </button>
+                ) : (
+                  <button class="btn" disabled="disabled">
+                    Choose an amount to Swap
+                  </button>
+                )}
+              </>
             ) : (
               <button class="btn" disabled="disabled">
                 Not Enough tokens to Swap

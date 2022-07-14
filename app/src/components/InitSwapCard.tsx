@@ -9,75 +9,96 @@ import { instructionInitSwap } from "@/utils/instructions";
 import { MarketData } from "@/utils/interfaces";
 
 const InitSwapCard = ({
-  userSolBal,
-  userVoucherBal,
+  userSol,
+  userVoucher,
 }: {
-  userSolBal: number;
-  userVoucherBal: number;
+  userSol: number;
+  userVoucher: number;
 }) => {
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
   const router = useRouter();
-  const [topInput, setTopInput] = useState<string>();
-  const [bottomInput, setBottomInput] = useState<string>();
+  const [vouchers, setVouchers] = useState<number>(0);
+  const [solOutput, setSolOutput] = useState<number>(0);
 
   const { exhibitAddress } = router.query;
 
   async function executeInitSwap() {
     console.log("initing swap");
-    // console.log(topInput, bottomInput);
     await instructionInitSwap(
       wallet,
       publicKey,
       new PublicKey(exhibitAddress),
-      Number(topInput),
-      Number(bottomInput),
+      solOutput,
+      vouchers,
       signTransaction,
       connection
     );
     router.reload(window.location.pathname);
   }
-
   return (
     <>
-      {userSolBal ? (
+      {userSol ? (
         <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
           <div className="card-body">
             <h2 className="card-title">Init Bazaar for this Exhibit!</h2>
-            <div className="form-control">
-              <p>Sol Balance: {userSolBal / LAMPORTS_PER_SOL}</p>
-              <input
-                type="text"
-                placeholder="Starting Sol Amount"
-                className="input input-bordered"
-                value={topInput}
-                onChange={(e) =>
-                  setTopInput(e.target.value.replace(/[a-z]/gi, ""))
-                }
-              />
-            </div>
 
-            <div className="form-control">
-              <p>Voucher Balance: {userVoucherBal}</p>
+            <div className="stat place-items-center">
+              <div className="stat-title">Vouchers</div>
+              <input
+                type="range"
+                min="0"
+                max={userVoucher}
+                value={vouchers}
+                step={`${userVoucher < 10} && "1"`}
+                className="range range-sm"
+                onChange={(e) => {
+                  setVouchers(Number(e.target.value));
+                }}
+              />
+
+              {userVoucher > 0 && (
+                <div className="w-full flex justify-between text-xs px-2">
+                  {[...Array(userVoucher + 1)].map((i) => (
+                    <span key={i}>|</span>
+                  ))}
+                </div>
+              )}
+              <div className="stat-value">{vouchers}</div>
+              <div className="stat-desc">Balance: {userVoucher}</div>
+              <div className="divider"></div>
+              <div className="stat-title">Sol</div>
+              <input
+                type="range"
+                min="0"
+                max={userSol / LAMPORTS_PER_SOL}
+                step={0.01}
+                value={solOutput}
+                className="range range-sm"
+                onChange={(e) => {
+                  setSolOutput(Number(e.target.value));
+                }}
+              />
+
               <input
                 type="text"
-                placeholder="Starting Voucher Amount"
-                className="input input-bordered"
-                value={bottomInput}
-                onChange={(e) =>
-                  setBottomInput(e.target.value.replace(/[a-z]/gi, ""))
-                }
+                value={solOutput.toFixed(2)}
+                onChange={(e) => setSolOutput(Number(e.target.value))}
+                className="input input-bordered stat-value input-lg w-full max-w-xs"
               />
+              <div className="stat-desc">
+                Balance: {(userSol / LAMPORTS_PER_SOL).toFixed(2)}
+              </div>
             </div>
-            <div className="form-control">
-              <button className="btn btn-primary" onClick={executeInitSwap}>
-                Activate Bazaar
-              </button>
-            </div>
+          </div>
+          <div className="form-control">
+            <button className="btn btn-primary" onClick={executeInitSwap}>
+              Activate Bazaar
+            </button>
           </div>
         </div>
       ) : (
-        <p>sldjfLoading Market Data</p>
+        <p>sldjfLoading Market Data: {userSol}</p>
       )}
     </>
   );

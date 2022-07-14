@@ -1,18 +1,136 @@
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-export const SolInput = ({ userSol }: { userSol: number }) => {
+export const SolDisplay = ({
+  solOutput,
+  userSol,
+  depositLiq,
+}: {
+  solOutput: number;
+  userSol: number;
+  depositLiq: boolean;
+}) => {
   return (
-    <div className="">
-      <p>Sol Balance: {userSol / LAMPORTS_PER_SOL}</p>
+    <>
+      <div className="stat-title">Sol</div>
+      <div
+        className={`stat-value ${depositLiq ? "text-error" : "text-success"}`}
+      >
+        {(solOutput / LAMPORTS_PER_SOL).toFixed(2)}
+      </div>
+      <div className="stat-desc">
+        Balance: {(userSol / LAMPORTS_PER_SOL).toFixed(2)}
+      </div>
+    </>
+  );
+};
+
+export const VoucherDisplay = ({
+  vouchers,
+  userVoucher,
+  depositLiq,
+}: {
+  vouchers: number;
+  userVoucher: number;
+  depositLiq: boolean;
+}) => {
+  return (
+    <>
+      <div className="stat-title">Vouchers</div>
+      <div
+        className={`stat-value ${depositLiq ? "text-error" : "text-success"}`}
+      >
+        {vouchers}
+      </div>
+      <div className="stat-desc">Balance: {userVoucher}</div>
+    </>
+  );
+};
+
+export const LiqDisplay = ({
+  liqTokens,
+  userLiqTokens,
+  depositLiq,
+}: {
+  liqTokens: number;
+  userLiqTokens: number;
+  depositLiq: boolean;
+}) => {
+  return (
+    <>
+      <div className="stat-title">LP Tokens</div>
+      <div
+        className={`stat-value ${depositLiq ? "text-success" : "text-error"}`}
+      >
+        {liqTokens}
+      </div>
+      <div className="stat-desc">Balance: {userLiqTokens}</div>
+    </>
+  );
+};
+
+export const YesOrNoButtons = ({
+  yesText,
+  noText,
+  yesBool,
+  updateInputs,
+}: {
+  yesText: string;
+  noText: string;
+  yesBool: boolean;
+  updateInputs: (n, b) => void;
+}) => {
+  return (
+    <div className="flex flex-row w-full justify-evenly">
+      <button
+        className={`btn btn-success ${!yesBool && "opacity-50"}`}
+        onClick={() => {
+          updateInputs(0, true);
+        }}
+      >
+        {yesText}
+      </button>
+      <button
+        className={`btn btn-error ${yesBool && "opacity-50"}`}
+        onClick={() => {
+          updateInputs(0, false);
+        }}
+      >
+        {noText}
+      </button>
     </div>
   );
 };
 
-export const VoucherInput = ({ userVoucher }: { userVoucher: number }) => {
+export const VoucherSlider = ({
+  max,
+  value,
+  onChange,
+}: {
+  max: number;
+  value: number;
+  onChange: (e) => void;
+}) => {
   return (
-    <div className="">
-      <p>Voucher Balance: {userVoucher}</p>
-    </div>
+    <>
+      {" "}
+      <input
+        type="range"
+        min="0"
+        max={max}
+        value={value}
+        step={`${max < 10} && "1"`}
+        className="range range-sm"
+        onChange={onChange}
+      />
+      {max && (
+        <div className="w-full flex justify-between text-xs px-2">
+          {[...Array(max + 1)].map((i) => (
+            <span key={i}>|</span>
+          ))}
+        </div>
+      )}
+      <div className="stat-desc place-self-end">Max: {max}</div>
+    </>
   );
 };
 

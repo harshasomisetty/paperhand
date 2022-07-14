@@ -29,7 +29,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
   const [marketData, setMarketData] = useState<MarketData | null>(null);
-  const [menuDefault, setMenuDefault] = useState(true);
+  const [menuDefault, setMenuDefault] = useState(false);
   const [swapActive, setSwapActive] = useState(false);
   const [userTokenVoucher, setUserTokenVoucher] = useState<number>(0);
   const [userTokenSol, setUserTokenSol] = useState<number>();
@@ -106,10 +106,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
           )}
         </>
       ) : (
-        <InitSwapCard
-          userSolBal={userTokenSol}
-          userVoucherBal={userTokenVoucher}
-        />
+        <InitSwapCard userSol={userTokenSol} userVoucher={userTokenVoucher} />
       )}
     </div>
   );

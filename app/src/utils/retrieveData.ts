@@ -128,6 +128,7 @@ export async function getMarketData(
 ): Promise<MarketData> {
   let marketTokens = new Array(2);
   let marketAuth;
+  let liqMint;
   let temp;
 
   [marketAuth, temp] = await PublicKey.findProgramAddress(
@@ -145,6 +146,11 @@ export async function getMarketData(
     BAZAAR_PROGRAM_ID
   );
 
+  [liqMint, temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
   let marketVoucherBal = await getAccount(connection, marketTokens[0]);
   let marketSol = await connection.getBalance(marketTokens[1]);
 
@@ -155,13 +161,17 @@ export async function getMarketData(
   );
   let userSol = await connection.getBalance(userKey);
 
+  let userLiq = await getAssociatedTokenAddress(liqMint, userKey);
+
+  let userLiqBal = await getAccount(connection, userLiq);
+
   return {
     marketVoucherBal: Number(marketVoucherBal.amount),
 
     marketSolBal: Number(marketSol),
     userVoucherBal: Number(userTokenVoucherBal),
-
     userSolBal: Number(userSol),
+    userLiqBal: Number(userLiqBal.amount),
   };
 }
 
