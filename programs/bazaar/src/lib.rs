@@ -18,8 +18,8 @@ pub mod bazaar {
 
     pub fn initialize_market(
         ctx: Context<InitializeMarket>,
-        starting_token_voucher: u64,
-        starting_token_sol: u64,
+        starting_voucher: u64,
+        starting_sol: u64,
         auth_bump: u8,
     ) -> Result<()> {
         msg!("first transfer");
@@ -32,7 +32,7 @@ pub mod bazaar {
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            starting_token_voucher,
+            starting_voucher,
         )?;
 
         msg!("second transfer");
@@ -40,7 +40,7 @@ pub mod bazaar {
             &system_instruction::transfer(
                 ctx.accounts.user.to_account_info().key,
                 ctx.accounts.market_sol.to_account_info().key,
-                starting_token_sol,
+                starting_sol,
             ),
             &[
                 ctx.accounts.user.to_account_info(),
@@ -64,42 +64,36 @@ pub mod bazaar {
                     &[auth_bump],
                 ]],
             ),
-            starting_token_voucher,
+            starting_voucher,
         )?;
+
+        ctx.accounts.market_auth.initial_sol = starting_sol;
 
         Ok(())
     }
 
     pub fn deposit_liquidity(
         ctx: Context<DepositLiquidity>,
-        pool_token_amount: u64,
+        input_voucher_amt: u64,
         auth_bump: u8,
     ) -> Result<()> {
-        let pool_token_supply = ctx.accounts.market_mint.supply;
-        let pool_tokens = &pool_token_amount;
-
-        // amount of tokens currently in market wallets
-        let market_voucher_amount = ctx.accounts.market_voucher.amount;
-        let market_b_amount = ctx
+        let input_sol_amt = ctx
             .accounts
             .market_sol
             .to_account_info()
-            .lamports
-            .borrow()
-            .checked_div(LAMPORTS_PER_SOL)
+            .lamports()
+            .checked_mul(input_voucher_amt)
+            .unwrap()
+            .checked_div(ctx.accounts.market_voucher.amount)
             .unwrap();
 
-        // proportion of tokens needed to deposit to get desired pool tokens back
-        let token_voucher_amount = pool_tokens
-            .checked_mul(market_voucher_amount)
-            .unwrap()
-            .checked_div(pool_token_supply)
-            .unwrap();
-        let token_b_amount = pool_tokens
-            .checked_mul(market_b_amount)
-            .unwrap()
-            .checked_div(pool_token_supply)
-            .unwrap();
+        msg!(
+            "transfer vals: input voucher {}, marketVoucher {}, input sol {}, marketSol {}",
+            &input_voucher_amt,
+            ctx.accounts.market_voucher.amount,
+            &input_sol_amt,
+            ctx.accounts.market_sol.to_account_info().lamports()
+        );
 
         msg!("voucher transfer");
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
@@ -112,7 +106,7 @@ pub mod bazaar {
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            token_voucher_amount,
+            input_voucher_amt,
         )?;
 
         msg!("lamports transfer");
@@ -120,7 +114,7 @@ pub mod bazaar {
             &system_instruction::transfer(
                 ctx.accounts.user.to_account_info().key,
                 ctx.accounts.market_sol.to_account_info().key,
-                token_b_amount,
+                input_sol_amt,
             ),
             &[
                 ctx.accounts.user.to_account_info(),
@@ -130,7 +124,7 @@ pub mod bazaar {
         )?;
 
         msg!("minting liq toknes");
-        // mint tokens to depositor after depositor provides liquidity
+        // mint equal number of LP tokens as deposited vouchers
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -145,7 +139,7 @@ pub mod bazaar {
                     &[auth_bump],
                 ]],
             ),
-            pool_token_amount,
+            input_voucher_amt,
         )?;
 
         Ok(())
@@ -153,35 +147,23 @@ pub mod bazaar {
 
     pub fn swap(
         ctx: Context<Swap>,
-        amount_in: u128,
-        minimum_amount_out: u128,
+        amount_in: u64,
+        minimum_amount_out: u64,
         trade_direction: bool,
         auth_bump: u8,
     ) -> Result<()> {
-        // TODO figure out how to make this code not repeat
-        // just add to account and from account
-        // trade direction
+        let market_voucher = ctx.accounts.market_voucher.amount;
+        let market_sol = ctx.accounts.market_sol.to_account_info().lamports();
+        let k = market_voucher * market_sol;
 
-        let market_a_amount = ctx.accounts.market_voucher.amount as u128;
-        let market_sol_amount = ctx.accounts.market_sol.to_account_info().lamports() as u128;
-        // .checked_div(LAMPORTS_PER_SOL)
-        // .unwrap() as u128;
-
-        // let user_a_amount = ctx.accounts.user_voucher.amount as u128;
-        // let user_sol_amount = ctx.accounts.user.lamports() as u128;
-        // .checked_div(LAMPORTS_PER_SOL)
-        // .unwrap() as u128;
-
-        msg!("market data: {}, {}", market_a_amount, market_sol_amount);
-
-        let k = market_a_amount * market_sol_amount;
+        msg!("market data: {}, {}", market_voucher, market_sol);
 
         if trade_direction == true {
-            // going from voucher to sol
+            //Trading vouchers to sol
             msg!("forward");
-            let market_diff = market_a_amount.checked_add(amount_in).unwrap();
+            let market_diff = market_voucher.checked_add(amount_in).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
-            let amount_out = market_sol_amount.checked_sub(k_diff).unwrap();
+            let amount_out = market_sol.checked_sub(k_diff).unwrap();
 
             msg!(
                 "k {}, marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
@@ -222,11 +204,11 @@ pub mod bazaar {
 
             **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
         } else {
-            //going from voucher to sol
+            //going from sol to voucher
             msg!("reverse");
-            let market_diff = market_sol_amount.checked_add(amount_in).unwrap();
+            let market_diff = market_sol.checked_add(amount_in).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
-            let amount_out = market_a_amount.checked_sub(k_diff).unwrap();
+            let amount_out = market_voucher.checked_sub(k_diff).unwrap();
 
             msg!(
                 "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
@@ -291,7 +273,7 @@ pub mod bazaar {
 
         // amount of tokens currently in market wallets
         let market_voucher_amount = ctx.accounts.market_voucher.amount;
-        let market_b_amount = ctx
+        let market_sol_amount = ctx
             .accounts
             .market_sol
             .to_account_info()
@@ -305,12 +287,13 @@ pub mod bazaar {
             .unwrap()
             .checked_div(pool_token_supply)
             .unwrap();
-        let token_b_amount = pool_tokens
-            .checked_mul(market_b_amount)
+        let token_sol_amount = pool_tokens
+            .checked_mul(market_sol_amount)
             .unwrap()
             .checked_div(pool_token_supply)
             .unwrap();
 
+        msg!("transferring vouchers to user");
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
@@ -329,14 +312,16 @@ pub mod bazaar {
             token_voucher_amount,
         )?;
 
+        msg!("transferring lamports to user");
         **ctx
             .accounts
             .market_sol
             .to_account_info()
-            .try_borrow_mut_lamports()? -= token_b_amount as u64;
+            .try_borrow_mut_lamports()? -= token_sol_amount as u64;
 
-        **ctx.accounts.user.try_borrow_mut_lamports()? += token_b_amount as u64;
+        **ctx.accounts.user.try_borrow_mut_lamports()? += token_sol_amount as u64;
 
+        msg!("burning liq tokens");
         anchor_spl::token::burn(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -354,15 +339,14 @@ pub mod bazaar {
 }
 
 #[derive(Accounts)]
-#[instruction(starting_token_voucher: u64, starting_sol: u64, auth_bump: u8)]
+#[instruction(starting_voucher: u64, starting_sol: u64, auth_bump: u8)]
 pub struct InitializeMarket<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
-    /// CHECK: Need market auth since can't pass in market state as a signer
-    #[account(init, payer = user, space = 8, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
-    pub market_auth: AccountInfo<'info>,
+    #[account(init, payer = user, space = 8+std::mem::size_of::<MarketInfo>(), seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
+    pub market_auth: Account<'info, MarketInfo>,
 
     #[account(init, payer = user, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
@@ -377,14 +361,13 @@ pub struct InitializeMarket<'info> {
     #[account(init, payer = user, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = voucher_mint, token::authority = market_auth, bump)]
     pub market_voucher: Box<Account<'info, TokenAccount>>,
     #[account(init, payer = user, space = 8, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_sol: Account<'info, MarketSol>,
+    pub market_sol: Account<'info, SolWallet>,
 
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]
     pub user_voucher: Box<Account<'info, TokenAccount>>,
 
     #[account(init, payer = user, associated_token::mint = market_mint, associated_token::authority = user)]
     pub user_liq: Box<Account<'info, TokenAccount>>,
-
     #[account(mut)]
     pub user: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
@@ -394,7 +377,7 @@ pub struct InitializeMarket<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(pool_token_amount: u64, auth_bump: u8)]
+#[instruction(input_voucher_amt: u64, auth_bump: u8)]
 pub struct DepositLiquidity<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
@@ -402,7 +385,7 @@ pub struct DepositLiquidity<'info> {
 
     /// CHECK: Need market auth since can't pass in market state as a signer
     #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
-    pub market_auth: AccountInfo<'info>,
+    pub market_auth: Account<'info, MarketInfo>,
 
     #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
@@ -416,7 +399,7 @@ pub struct DepositLiquidity<'info> {
     pub market_voucher: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_sol: Account<'info, MarketSol>,
+    pub market_sol: Account<'info, SolWallet>,
 
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]
     pub user_voucher: Box<Account<'info, TokenAccount>>,
@@ -431,7 +414,7 @@ pub struct DepositLiquidity<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[instruction(amount_in: u128, minimum_amount_out: u128, trade_direction: bool, auth_bump: u8)]
+#[instruction(amount_in: u64, minimum_amount_out: u64, trade_direction: bool, auth_bump: u8)]
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// CHECK: just reading pubkey
@@ -440,7 +423,7 @@ pub struct Swap<'info> {
 
     /// CHECK: Need market auth since can't pass in market state as a signer
     #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
-    pub market_auth: AccountInfo<'info>,
+    pub market_auth: Account<'info, MarketInfo>,
 
     #[account(mut)]
     pub voucher_mint: Box<Account<'info, Mint>>,
@@ -449,7 +432,7 @@ pub struct Swap<'info> {
     pub market_voucher: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_sol: Account<'info, MarketSol>,
+    pub market_sol: Account<'info, SolWallet>,
 
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]
     pub user_voucher: Box<Account<'info, TokenAccount>>,
@@ -471,7 +454,7 @@ pub struct WithdrawLiquidity<'info> {
 
     /// CHECK: Need market auth since can't pass in market state as a signer
     #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
-    pub market_auth: AccountInfo<'info>,
+    pub market_auth: Account<'info, MarketInfo>,
 
     #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
@@ -485,7 +468,7 @@ pub struct WithdrawLiquidity<'info> {
     pub market_voucher: Box<Account<'info, TokenAccount>>,
     /// CHECK: Only transferring lamports
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
-    pub market_sol: Account<'info, MarketSol>,
+    pub market_sol: Account<'info, SolWallet>,
 
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]
     pub user_voucher: Box<Account<'info, TokenAccount>>,
@@ -502,7 +485,13 @@ pub struct WithdrawLiquidity<'info> {
 
 #[account]
 #[derive(Default)]
-pub struct MarketSol {}
+pub struct MarketInfo {
+    pub initial_sol: u64,
+}
+
+#[account]
+#[derive(Default)]
+pub struct SolWallet {}
 
 #[error_code]
 pub enum MyError {

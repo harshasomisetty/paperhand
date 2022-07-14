@@ -29,7 +29,6 @@ pub mod exhibition {
             .to_string();
 
         ctx.accounts.exhibit.artifact_count = 0;
-        ctx.accounts.exhibit.decimals = 9;
         Ok(())
     }
 
@@ -291,7 +290,6 @@ pub struct Exhibit {
     pub exhibit_symbol: String,
     pub auth_bump: u8,
     pub artifact_count: u8,
-    pub decimals: u8,
 }
 
 #[error_code]

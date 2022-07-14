@@ -66,6 +66,8 @@ let Exhibition;
 let Bazaar;
 
 let nft;
+let nft2;
+let nft3;
 let exhibit, voucherMint;
 //voucher wallets for both users
 let userVoucherWallet;
@@ -80,7 +82,7 @@ let decimals = 9;
 let decimalsVal = Math.pow(10, decimals);
 
 // swap init amounts
-let initAmounts = [0.5 * decimalsVal, 10 * LAMPORTS_PER_SOL];
+let initAmounts = [1 * decimalsVal, 6 * LAMPORTS_PER_SOL];
 let swapAmount = [0.5 * decimalsVal, 3 * LAMPORTS_PER_SOL];
 // mint accounts, 0 is liquidity, array to be able to copy over code
 let tokenMints = new Array(1);
@@ -97,7 +99,7 @@ async function airdropAndMint() {
   let airdropees = [creator, ...otherCreators, ...user];
   for (const dropee of airdropees) {
     await connection.confirmTransaction(
-      await connection.requestAirdrop(dropee.publicKey, 20 * LAMPORTS_PER_SOL),
+      await connection.requestAirdrop(dropee.publicKey, 60 * LAMPORTS_PER_SOL),
       "confirmed"
     );
   }
@@ -114,6 +116,8 @@ async function airdropAndMint() {
 
 async function initializeExhibit() {
   nft = nftList[0][0];
+  nft2 = nftList[0][2];
+  nft3 = nftList[0][6];
   [exhibit, voucherMint] = await getExhibitAddress(nft);
 
   const tx = await Exhibition.methods
@@ -139,7 +143,7 @@ async function initializeExhibit() {
   console.log("initialized exhibit!", exhibitInfo.exhibitSymbol);
 }
 
-async function insertNft() {
+async function insertNft(nft) {
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
     EXHIBITION_PROGRAM_ID
@@ -351,12 +355,49 @@ async function quickSwap() {
     console.log("fuck swap", error);
   }
 }
+
+export async function instructionDepositLiquidity() {
+  console.log("in instruction dpeo");
+
+  const deposit_liq_tx = await Bazaar.methods
+    .depositLiquidity(new BN(2 * decimalsVal), authBump)
+    .accounts({
+      exhibit: exhibit,
+      marketAuth: marketAuth,
+      marketMint: tokenMints[0],
+      // marketTokenFee: marketTokenFee,
+      voucherMint: voucherMint,
+      marketVoucher: marketTokens[0],
+      marketSol: marketTokens[1],
+      userVoucher: userTokens[1],
+      userLiq: userTokens[0],
+      user: user[0].publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .signers([user[0]])
+    .rpc();
+
+  let transaction = new Transaction().add(deposit_liq_tx);
+  console.log("about to send tx");
+  let signature = await sendAndConfirmTransaction(connection, transaction, [
+    user[0],
+  ]);
+
+  await connection.confirmTransaction(signature, "confirmed");
+  console.log("made tx", transaction);
+}
+
 // getAllExhibitions();
 async function fullFlow() {
   await airdropAndMint();
   await initializeExhibit();
-  await insertNft();
+  await insertNft(nft);
+  await insertNft(nft2);
+  await insertNft(nft3);
   await initializeSwap();
+  await instructionDepositLiquidity();
   // await quickSwap();
   // await getAllNfts();
 }
