@@ -16,6 +16,7 @@ import {
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
 import {
+  checkIfAccountExists,
   checkIfExhibitExists,
   getExhibitAddress,
   getSwapAccounts,
@@ -45,12 +46,12 @@ async function manualSendTransaction(
   transaction = await signTransaction(transaction);
 
   const rawTransaction = transaction.serialize();
-  console.log("raw tx", rawTransaction);
   let signature = await connection.sendRawTransaction(rawTransaction);
   console.log("sent raw, waiting");
   await connection.confirmTransaction(signature, "confirmed");
   console.log("sent tx!!!");
 }
+
 export async function instructionDepositNft(
   wallet: Wallet,
   publicKey: PublicKey,
@@ -80,8 +81,7 @@ export async function instructionDepositNft(
 
   let transaction = new Transaction();
 
-  let exhibitExists = await checkIfExhibitExists(nft, connection);
-  if (!exhibitExists) {
+  if (!(await checkIfExhibitExists(nft, connection))) {
     const init_tx = await Exhibition.methods
       .initializeExhibit()
       .accounts({
@@ -99,8 +99,8 @@ export async function instructionDepositNft(
 
     console.log("initing exhibit");
   }
-  let bal = await connection.getBalance(userVoucherWallet);
-  if (bal == 0) {
+
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
     let voucher_tx = createAssociatedTokenAccountInstruction(
       publicKey,
       userVoucherWallet,
@@ -229,6 +229,8 @@ export async function instructionInitSwap(
 
   let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
 
+  let transaction = new Transaction();
+
   const init_tx = await Bazaar.methods
     .initializeMarket(
       new BN(voucherIn),
@@ -253,7 +255,7 @@ export async function instructionInitSwap(
     })
     .transaction();
 
-  let transaction = new Transaction().add(init_tx);
+  transaction = transaction.add(init_tx);
   try {
     await manualSendTransaction(
       transaction,
@@ -281,6 +283,21 @@ export async function instructionSwap(
     await getSwapAccounts(exhibit, publicKey);
 
   let transaction = new Transaction();
+
+  if (!(await checkIfAccountExists(userTokenVoucher, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userTokenVoucher,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
   console.log("swap amounts", vouchers, buyVouchers);
   const swap_tx = await Bazaar.methods
     .swap(new BN(vouchers), buyVouchers, authBump)
@@ -299,6 +316,7 @@ export async function instructionSwap(
     })
     .transaction();
   transaction = transaction.add(swap_tx);
+
   try {
     await manualSendTransaction(
       transaction,
@@ -335,6 +353,21 @@ export async function instructionDepositLiquidity(
   let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
 
   let transaction = new Transaction();
+
+  if (!(await checkIfAccountExists(userTokenLiq, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userTokenLiq,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
   const deposit_liq_tx = await Bazaar.methods
     .depositLiquidity(new BN(liqAmount), authBump)
     .accounts({
