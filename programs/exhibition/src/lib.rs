@@ -72,9 +72,7 @@ pub mod exhibition {
                 },
                 &[&seeds],
             ),
-            1000000000,
-            // 1u64.checked_mul(10u8.pow(ctx.accounts.exhibit.decimals as u32) as u64)
-            // .unwrap(),
+            1,
         )?;
 
         anchor_spl::token::transfer(
@@ -133,6 +131,10 @@ pub mod exhibition {
             1,
         )?;
 
+        msg!(
+            "voucher wallet bal {}",
+            ctx.accounts.user_voucher_wallet.amount
+        );
         // 2) burn voucher token from user
         anchor_spl::token::burn(
             CpiContext::new_with_signer(
@@ -144,9 +146,7 @@ pub mod exhibition {
                 },
                 &[&seeds],
             ),
-            1000000000,
-            // 1u64.checked_mul(10u8.pow(ctx.accounts.exhibit.decimals as u32) as u64)
-            // .unwrap(),
+            1,
         )?;
 
         // 3) close pda nft artifact

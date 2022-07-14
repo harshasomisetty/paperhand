@@ -65,11 +65,20 @@ describe("exhibition", () => {
   let mintNftCount = 2;
   let nftList: Nft[][] = Array(mintCollectionCount);
 
-  let decimals = 9;
-  let decimalsVal = Math.pow(10, decimals);
-
   before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, ...otherCreators, ...user];
+
+    // let airdropPromises = [];
+    // airdropees.forEach((dropee) =>
+    //   airdropPromises.push(
+    //     provider.connection.requestAirdrop(
+    //       dropee.publicKey,
+    //       50 * LAMPORTS_PER_SOL
+    //     )
+    //   )
+    // );
+    // await Promise.all(airdropPromises);
+
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
         await provider.connection.requestAirdrop(
@@ -161,28 +170,26 @@ describe("exhibition", () => {
       voucherMint,
       user[0]
     );
-    try {
-      let tx = await Exhibition.methods
-        .artifactInsert()
-        .accounts({
-          exhibit: exhibit,
-          voucherMint: voucherMint,
-          userVoucherWallet: userVoucherWallet[0],
-          nftMint: nft.mint,
-          nftMetadata: nft.metadataAccount.publicKey,
-          nftUserToken: nftUserTokenAccount.address,
-          nftArtifact: nftArtifact,
-          user: user[0].publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        })
-        .signers([user[0]])
-        .rpc();
-    } catch (error) {
-      console.log("fuck insert", error);
-    }
+
+    let tx = await Exhibition.methods
+      .artifactInsert()
+      .accounts({
+        exhibit: exhibit,
+        voucherMint: voucherMint,
+        userVoucherWallet: userVoucherWallet[0],
+        nftMint: nft.mint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        nftUserToken: nftUserTokenAccount.address,
+        nftArtifact: nftArtifact,
+        user: user[0].publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers([user[0]])
+      .rpc();
+
     let postUserVoucherTokenBal = await getAccount(
       provider.connection,
       userVoucherWallet[0]
@@ -197,7 +204,7 @@ describe("exhibition", () => {
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
-    assert.ok(Number(postUserVoucherTokenBal.amount) == 1 * decimalsVal);
+    assert.ok(Number(postUserVoucherTokenBal.amount) == 1);
     assert.ok(Number(postUserNftTokenBal.amount) == 0);
     assert.ok(Number(postNftArtifactBal.amount) == 1);
     assert.ok(exhibitInfo.artifactCount === 1);
@@ -266,22 +273,26 @@ describe("exhibition", () => {
       user[0].publicKey
     );
 
-    const tx = await Exhibition.methods
-      .artifactWithdraw()
-      .accounts({
-        exhibit: exhibit,
-        voucherMint: voucherMint,
-        userVoucherWallet: userVoucherWallet[0],
-        nftMint: nft.mint,
-        nftMetadata: nft.metadataAccount.publicKey,
-        nftUserToken: nftUserTokenAccount.address,
-        nftArtifact: nftArtifact,
-        user: user[0].publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([user[0]])
-      .rpc();
+    try {
+      const tx = await Exhibition.methods
+        .artifactWithdraw()
+        .accounts({
+          exhibit: exhibit,
+          voucherMint: voucherMint,
+          userVoucherWallet: userVoucherWallet[0],
+          nftMint: nft.mint,
+          nftMetadata: nft.metadataAccount.publicKey,
+          nftUserToken: nftUserTokenAccount.address,
+          nftArtifact: nftArtifact,
+          user: user[0].publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([user[0]])
+        .rpc();
+    } catch (error) {
+      console.log("withdraw error", error);
+    }
 
     let postUserVoucherTokenBal = await getAccount(
       provider.connection,
@@ -326,9 +337,7 @@ describe("exhibition", () => {
 
     let voucherMintInfo = await getMint(connection, voucherMint);
 
-    assert.ok(
-      artifactKeys.length == Number(voucherMintInfo.supply) / decimalsVal
-    );
+    assert.ok(artifactKeys.length == Number(voucherMintInfo.supply));
 
     let artifactMints = [];
     artifactKeys.forEach(async (key, i) => {
