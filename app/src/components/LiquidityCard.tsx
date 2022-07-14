@@ -9,7 +9,7 @@ import {
 } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import { decimalsVal, getExhibitProgramAndProvider } from "@/utils/constants";
+import { getExhibitProgramAndProvider } from "@/utils/constants";
 import { BazaarData, SolInput, VoucherInput } from "@/components/MarketInputs";
 
 const LiquidityCard = ({
@@ -53,9 +53,9 @@ const LiquidityCard = ({
       let amountOut = marketData.marketVoucherBal * marketPercent;
 
       setTopInput(value.replace(/[a-z]/gi, ""));
-      setBottomInput(amountOut / decimalsVal);
+      setBottomInput(amountOut);
     } else {
-      voucherInput = Number(value.replace(/[a-z]/gi, "")) * decimalsVal;
+      voucherInput = Number(value.replace(/[a-z]/gi, ""));
 
       let marketPercent = voucherInput / marketData.marketVoucherBal;
       let amountIn = marketData.marketSolBal * marketPercent;

@@ -77,13 +77,11 @@ let nftUserTokenAccount;
 // market pda
 let marketAuth;
 let authBump;
-// mint decimals for swap
-let decimals = 9;
-let decimalsVal = Math.pow(10, decimals);
 
 // swap init amounts
-let initAmounts = [1 * decimalsVal, 6 * LAMPORTS_PER_SOL];
-let swapAmount = [0.5 * decimalsVal, 3 * LAMPORTS_PER_SOL];
+let initAmounts = [2, 6];
+let liqAmounts = [1];
+let swapAmount = [1];
 // mint accounts, 0 is liquidity, array to be able to copy over code
 let tokenMints = new Array(1);
 // bazaar's token accounts, 0 is voucher account, 1 is sol account, 2 is
@@ -297,7 +295,7 @@ async function initializeSwap() {
     const tx = await Bazaar.methods
       .initializeMarket(
         new BN(initAmounts[0]),
-        new BN(initAmounts[1]),
+        new BN(initAmounts[1] * LAMPORTS_PER_SOL),
         authBump
       )
       .accounts({
@@ -360,7 +358,7 @@ export async function instructionDepositLiquidity() {
   console.log("in instruction dpeo");
 
   const deposit_liq_tx = await Bazaar.methods
-    .depositLiquidity(new BN(2 * decimalsVal), authBump)
+    .depositLiquidity(new BN(liqAmounts[0]), authBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,

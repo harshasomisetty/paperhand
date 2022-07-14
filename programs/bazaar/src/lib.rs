@@ -148,7 +148,7 @@ pub mod bazaar {
     pub fn swap(
         ctx: Context<Swap>,
         vouchers: u64,
-        trade_direction: bool,
+        buy_vouchers: bool,
         auth_bump: u8,
     ) -> Result<()> {
         let market_voucher = ctx.accounts.market_voucher.amount;
@@ -157,48 +157,9 @@ pub mod bazaar {
 
         msg!("market data: {}, {}", market_voucher, market_sol);
 
-        if trade_direction == true {
-            //Converted vouchers to sol
+        if buy_vouchers {
+            //Buy Vouchers for Sol
             msg!("forward");
-            let market_diff = market_voucher.checked_add(vouchers).unwrap();
-            let k_diff = k.checked_div(market_diff).unwrap();
-            let amount_out = market_sol.checked_sub(k_diff).unwrap();
-
-            msg!(
-                "k {}, marketDiff {}, vouchers in {}, amountOut {}",
-                k,
-                market_diff,
-                vouchers,
-                amount_out,
-            );
-
-            msg!("first transfer");
-
-            anchor_spl::token::transfer(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    anchor_spl::token::Transfer {
-                        from: ctx.accounts.user_voucher.to_account_info(),
-                        to: ctx.accounts.market_voucher.to_account_info(),
-                        authority: ctx.accounts.user.to_account_info(),
-                    },
-                ),
-                vouchers as u64,
-            )?;
-            msg!("second transfer");
-
-            // msg!("transferring lamports");
-            **ctx
-                .accounts
-                .market_sol
-                .to_account_info()
-                .try_borrow_mut_lamports()? -= amount_out as u64;
-
-            **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
-        } else {
-            //going from sol to voucher
-            // TODO consider the case when user is withdrawing more vouchers than there are in the pool?
-            msg!("reverse");
             let market_diff = market_voucher.checked_sub(vouchers).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
             let amount_out = k_diff.checked_sub(market_sol).unwrap();
@@ -244,8 +205,46 @@ pub mod bazaar {
                     ctx.accounts.system_program.to_account_info(),
                 ],
             )?;
-        }
+        } else {
+            // TODO consider the case when user is withdrawing more vouchers than there are in the pool?
 
+            msg!("reverse");
+            //Sell Vouchers for sol
+            let market_diff = market_voucher.checked_add(vouchers).unwrap();
+            let k_diff = k.checked_div(market_diff).unwrap();
+            let amount_out = market_sol.checked_sub(k_diff).unwrap();
+
+            msg!(
+                "k {}, marketDiff {}, vouchers in {}, amountOut {}",
+                k,
+                market_diff,
+                vouchers,
+                amount_out,
+            );
+
+            msg!("first transfer");
+
+            anchor_spl::token::transfer(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    anchor_spl::token::Transfer {
+                        from: ctx.accounts.user_voucher.to_account_info(),
+                        to: ctx.accounts.market_voucher.to_account_info(),
+                        authority: ctx.accounts.user.to_account_info(),
+                    },
+                ),
+                vouchers as u64,
+            )?;
+            msg!("second transfer");
+
+            **ctx
+                .accounts
+                .market_sol
+                .to_account_info()
+                .try_borrow_mut_lamports()? -= amount_out as u64;
+
+            **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
+        }
         // trade fee into pool
         Ok(())
     }
@@ -348,7 +347,7 @@ pub struct InitializeMarket<'info> {
     #[account(init, payer = user, space = 8+std::mem::size_of::<MarketInfo>(), seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
-    #[account(init, payer = user, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
+    #[account(init, payer = user, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
 
     #[account(init, payer = user, associated_token::mint = market_mint, associated_token::authority = market_auth)]
@@ -387,7 +386,7 @@ pub struct DepositLiquidity<'info> {
     #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
-    #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
+    #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
 
     // no idea
@@ -414,7 +413,7 @@ pub struct DepositLiquidity<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[instruction(vouchers: u64, trade_direction: bool, auth_bump: u8)]
+#[instruction(vouchers: u64, buy_vouchers: bool, auth_bump: u8)]
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// CHECK: just reading pubkey
@@ -456,7 +455,7 @@ pub struct WithdrawLiquidity<'info> {
     #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
-    #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 9, mint::authority = market_auth, mint::freeze_authority = market_auth)]
+    #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
 
     // no idea

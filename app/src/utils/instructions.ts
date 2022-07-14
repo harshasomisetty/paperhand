@@ -11,7 +11,6 @@ import {
 } from "@solana/web3.js";
 import {
   BAZAAR_PROGRAM_ID,
-  decimalsVal,
   EXHIBITION_PROGRAM_ID,
   getBazaarProgramAndProvider,
   getExhibitProgramAndProvider,
@@ -231,7 +230,11 @@ export async function instructionInitSwap(
   let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
 
   const init_tx = await Bazaar.methods
-    .initializeMarket(new BN(voucherIn), new BN(solIn), authBump)
+    .initializeMarket(
+      new BN(voucherIn),
+      new BN(solIn * LAMPORTS_PER_SOL),
+      authBump
+    )
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
@@ -267,9 +270,8 @@ export async function instructionSwap(
   wallet: Wallet,
   publicKey: PublicKey,
   exhibit: PublicKey,
-  amountIn: number,
-  minAmountOut: number,
-  forward: boolean,
+  vouchers: number,
+  buyVouchers: boolean,
   signTransaction: any,
   connection: Connection
 ) {
@@ -279,22 +281,9 @@ export async function instructionSwap(
     await getSwapAccounts(exhibit, publicKey);
 
   let transaction = new Transaction();
-  console.log(
-    "amounts in/out",
-    amountIn * decimalsVal,
-    minAmountOut * LAMPORTS_PER_SOL
-  );
-  let swapAmount;
-  if (forward) {
-    console.log("from voucher to sol");
-    swapAmount = [amountIn * decimalsVal, minAmountOut * LAMPORTS_PER_SOL];
-  } else {
-    console.log("from sol to voucher");
-    swapAmount = [amountIn * LAMPORTS_PER_SOL, minAmountOut * decimalsVal];
-  }
-  console.log("swap amounts", swapAmount);
+  console.log("swap amounts", vouchers, buyVouchers);
   const swap_tx = await Bazaar.methods
-    .swap(new BN(swapAmount[0]), new BN(swapAmount[1]), forward, authBump)
+    .swap(new BN(vouchers), buyVouchers, authBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
@@ -347,7 +336,7 @@ export async function instructionDepositLiquidity(
 
   let transaction = new Transaction();
   const deposit_liq_tx = await Bazaar.methods
-    .depositLiquidity(new BN(liqAmount * decimalsVal), authBump)
+    .depositLiquidity(new BN(liqAmount), authBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,

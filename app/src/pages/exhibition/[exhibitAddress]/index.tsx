@@ -59,21 +59,16 @@ const ExploreProjects = () => {
 
   return (
     <>
-      {publicKey ? (
-        <div className="grid grid-cols-2">
-          <NftProvider>
-            {/* <p>fuck this</p> */}
-            <SingleExhibitView
-              nftList={nftList}
-              exhibitSymbol={exhibitSymbol}
-              userTokenVoucherBal={userTokenVoucher}
-            />
-          </NftProvider>
-          <SwapView />
-        </div>
-      ) : (
-        <p> Please connect Wallet</p>
-      )}
+      <div className="grid grid-cols-2">
+        <NftProvider>
+          <SingleExhibitView
+            nftList={nftList}
+            exhibitSymbol={exhibitSymbol}
+            userTokenVoucherBal={userTokenVoucher}
+          />
+        </NftProvider>
+        <SwapView />
+      </div>
     </>
   );
 };

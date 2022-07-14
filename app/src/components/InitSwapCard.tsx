@@ -1,4 +1,4 @@
-import { decimalsVal, getExhibitProgramAndProvider } from "@/utils/constants";
+import { getExhibitProgramAndProvider } from "@/utils/constants";
 import { getUserVoucherTokenBal } from "@/utils/retrieveData";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
@@ -30,8 +30,8 @@ const InitSwapCard = ({
       wallet,
       publicKey,
       new PublicKey(exhibitAddress),
-      Number(topInput * LAMPORTS_PER_SOL),
-      Number(bottomInput * decimalsVal),
+      Number(topInput),
+      Number(bottomInput),
       signTransaction,
       connection
     );
@@ -58,7 +58,7 @@ const InitSwapCard = ({
             </div>
 
             <div className="form-control">
-              <p>Voucher Balance: {userVoucherBal / decimalsVal}</p>
+              <p>Voucher Balance: {userVoucherBal}</p>
               <input
                 type="text"
                 placeholder="Starting Voucher Amount"
@@ -77,7 +77,7 @@ const InitSwapCard = ({
           </div>
         </div>
       ) : (
-        <p>Loading Market Data</p>
+        <p>sldjfLoading Market Data</p>
       )}
     </>
   );

@@ -20,7 +20,7 @@ export async function getUserVoucherTokenBal(
   exhibit: PublicKey,
   publicKey: PublicKey | null,
   connection: Connection
-): Promise<bigint> {
+): Promise<number> {
   let [voucherMint] = await PublicKey.findProgramAddress(
     [Buffer.from("voucher_mint"), exhibit.toBuffer()],
     EXHIBITION_PROGRAM_ID
@@ -39,7 +39,7 @@ export async function getUserVoucherTokenBal(
   );
   if (userVoucherExists) {
     let userVoucherTokenBal = await getAccount(connection, userVoucherWallet);
-    return userVoucherTokenBal.amount;
+    return Number(userVoucherTokenBal.amount);
   } else {
     return 0;
   }

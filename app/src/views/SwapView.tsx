@@ -91,7 +91,9 @@ export default function SwapView({ bruh }: HomeViewProps) {
                 </li>
               </ul>
               {menuDefault ? (
-                <SwapCard marketData={marketData} />
+                <>
+                  <SwapCard marketData={marketData} />
+                </>
               ) : (
                 <LiquidityCard
                   marketData={marketData}

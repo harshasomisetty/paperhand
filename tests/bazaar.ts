@@ -56,20 +56,7 @@ async function swapFunc(
   let marketDiff, Kdiff, amountOut;
 
   if (forward) {
-    // vouchers to sol
-
-    marketDiff = marketVoucher + vouchers;
-    Kdiff = Math.floor(K / marketDiff);
-    amountOut = marketSol - Kdiff;
-
-    results = [
-      marketVoucher + vouchers,
-      marketSol - amountOut,
-      userVoucher - vouchers,
-      userSol + amountOut,
-    ];
-  } else {
-    //sol to vouchers
+    // Buy Vouchers for Sol
     marketDiff = marketVoucher - vouchers;
     Kdiff = Math.floor(K / marketDiff);
     amountOut = Kdiff - marketSol;
@@ -79,6 +66,18 @@ async function swapFunc(
       marketSol + amountOut,
       userVoucher + vouchers,
       userSol - amountOut,
+    ];
+  } else {
+    // Sell vouchers for Sol
+    marketDiff = marketVoucher + vouchers;
+    Kdiff = Math.floor(K / marketDiff);
+    amountOut = marketSol - Kdiff;
+
+    results = [
+      marketVoucher + vouchers,
+      marketSol - amountOut,
+      userVoucher - vouchers,
+      userSol + amountOut,
     ];
   }
 
@@ -118,8 +117,6 @@ describe("bazaar", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
   let authBump;
-  let solBump;
-  let stateBump;
   let marketAuth: PublicKey;
   let marketTokenFee: PublicKey;
   // tokenMint[0] is the pool liquidity token mint, [1] is the voucher mint
@@ -166,7 +163,7 @@ describe("bazaar", () => {
       BAZAAR_PROGRAM_ID
     );
 
-    [marketTokens[1], solBump] = await PublicKey.findProgramAddress(
+    [marketTokens[1], temp] = await PublicKey.findProgramAddress(
       [Buffer.from("token_sol"), marketAuth.toBuffer()],
       BAZAAR_PROGRAM_ID
     );
@@ -182,7 +179,7 @@ describe("bazaar", () => {
       creator,
       creator.publicKey,
       creator.publicKey,
-      1
+      0
     );
 
     for (let i = 0; i < 2; i++) {
@@ -354,7 +351,7 @@ describe("bazaar", () => {
     );
   });
 
-  it("Swapped from voucher to sol", async () => {
+  it("Swapped: Bought vouchers", async () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[1][1]);
@@ -419,7 +416,7 @@ describe("bazaar", () => {
     );
   });
 
-  it("Swapped from sol to voucher", async () => {
+  it("Swapped: Sold vouchers", async () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[1][1]);
@@ -540,13 +537,7 @@ describe("bazaar", () => {
 
     printAndTest(
       Number(marketVoucherBal.amount).toFixed(3),
-      (
-        initAmounts[0] +
-        liqAmounts[0] +
-        swapAmount[0] -
-        swapAmount[1] -
-        withdrawAmounts[1]
-      ).toFixed(3),
+      (Number(prevMarketVoucherBal.amount) - withdrawAmounts[1]).toFixed(3),
       "market voucher"
     );
     printAndTest(
@@ -556,13 +547,13 @@ describe("bazaar", () => {
     );
     printAndTest(
       Number(userVoucherBal.amount),
-      mintAmounts[0] - initAmounts[0] - liqAmounts[0] + withdrawAmounts[1],
+      Number(prevUserVoucherBal.amount) + withdrawAmounts[1],
       "user voucher"
     );
     printAndTest(Number(userSol), prevUserSol + userReceivesSol, "user sol");
     printAndTest(
       Number(userTokenLiqBal.amount),
-      initAmounts[0] + liqAmounts[0] - withdrawAmounts[0],
+      Number(prevUserTokenLiqBal.amount) - withdrawAmounts[0],
       "user liq"
     );
   });
