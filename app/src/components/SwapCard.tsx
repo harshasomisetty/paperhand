@@ -68,12 +68,14 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
     <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
       <div className="card-body">
         <h2 className="card-title">Swap Vouchers</h2>
+
         <YesOrNoButtons
           yesText={"Buy"}
           noText={"Sell"}
           yesBool={buyVouchers}
           updateInputs={updateInputs}
         />
+
         <VoucherSlider
           max={buyVouchers ? marketVoucher - 1 : userVoucher}
           value={vouchers}
@@ -85,22 +87,39 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
         <div className="flex flex-row shadow items-center">
           <div className="stat place-items-center">
             {buyVouchers ? (
-              <SolDisplay solOutput={solOutput} userSol={userSol} />
+              <SolDisplay
+                solOutput={solOutput}
+                userSol={userSol}
+                yesBool={buyVouchers}
+              />
             ) : (
-              <VoucherDisplay vouchers={vouchers} userVoucher={userVoucher} />
+              <VoucherDisplay
+                vouchers={vouchers}
+                userVoucher={userVoucher}
+                yesBool={!buyVouchers}
+              />
             )}
           </div>
 
           <HiChevronDoubleRight size={50} />
 
-          <div className="stat place-items-center text-success">
+          <div className="stat place-items-center">
             {!buyVouchers ? (
-              <SolDisplay solOutput={solOutput} userSol={userSol} />
+              <SolDisplay
+                solOutput={solOutput}
+                userSol={userSol}
+                yesBool={buyVouchers}
+              />
             ) : (
-              <VoucherDisplay vouchers={vouchers} userVoucher={userVoucher} />
+              <VoucherDisplay
+                vouchers={vouchers}
+                userVoucher={userVoucher}
+                yesBool={!buyVouchers}
+              />
             )}
           </div>
         </div>
+
         {wallet ? (
           <>
             {(buyVouchers ? marketVoucher : userVoucher) >= 1 ? (

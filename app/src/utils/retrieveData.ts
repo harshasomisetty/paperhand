@@ -2,6 +2,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAccount,
   getAssociatedTokenAddress,
+  getMint,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { PublicKey, Connection } from "@solana/web3.js";
@@ -153,6 +154,7 @@ export async function getMarketData(
 
   let marketVoucherBal = await getAccount(connection, marketTokens[0]);
   let marketSol = await connection.getBalance(marketTokens[1]);
+  let marketLiqBal = await getMint(connection, liqMint);
 
   let userTokenVoucherBal = await getUserVoucherTokenBal(
     exhibit,
@@ -167,8 +169,8 @@ export async function getMarketData(
 
   return {
     marketVoucherBal: Number(marketVoucherBal.amount),
-
     marketSolBal: Number(marketSol),
+    marketLiqBal: Number(marketLiqBal.supply),
     userVoucherBal: Number(userTokenVoucherBal),
     userSolBal: Number(userSol),
     userLiqBal: Number(userLiqBal.amount),

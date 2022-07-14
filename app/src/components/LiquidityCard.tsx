@@ -77,7 +77,7 @@ const LiquidityCard = ({
           <SolDisplay
             solOutput={solOutput}
             userSol={userSol}
-            depositLiq={depositLiq}
+            yesBool={depositLiq}
           />
         </div>
         <VscArrowBoth size={50} />
@@ -85,7 +85,7 @@ const LiquidityCard = ({
           <VoucherDisplay
             vouchers={vouchers}
             userVoucher={userVoucher}
-            depositLiq={depositLiq}
+            yesBool={depositLiq}
           />
         </div>
       </div>
@@ -120,7 +120,7 @@ const LiquidityCard = ({
               <LiqDisplay
                 liqTokens={vouchers}
                 userLiqTokens={userLiq}
-                depositLiq={depositLiq}
+                yesBool={!depositLiq}
               />
             </div>
           )}
@@ -135,7 +135,7 @@ const LiquidityCard = ({
               <LiqDisplay
                 liqTokens={vouchers}
                 userLiqTokens={userLiq}
-                depositLiq={depositLiq}
+                yesBool={!depositLiq}
               />
             </div>
           )}
@@ -169,11 +169,7 @@ const LiquidityCard = ({
             Connect wallet to Swap
           </button>
         )}
-        <BazaarData
-          marketSol={marketData.marketSolBal}
-          marketVoucher={marketData.marketVoucherBal}
-          exhibitSymbol={exhibitSymbol}
-        />
+        <BazaarData marketData={marketData} exhibitSymbol={exhibitSymbol} />
       </div>
     </div>
   );

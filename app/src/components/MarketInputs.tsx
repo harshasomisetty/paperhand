@@ -1,20 +1,19 @@
+import { MarketData } from "@/utils/interfaces";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 export const SolDisplay = ({
   solOutput,
   userSol,
-  depositLiq,
+  yesBool,
 }: {
   solOutput: number;
   userSol: number;
-  depositLiq: boolean;
+  yesBool: boolean;
 }) => {
   return (
     <>
       <div className="stat-title">Sol</div>
-      <div
-        className={`stat-value ${depositLiq ? "text-error" : "text-success"}`}
-      >
+      <div className={`stat-value ${yesBool ? "text-success" : "text-error"}`}>
         {(solOutput / LAMPORTS_PER_SOL).toFixed(2)}
       </div>
       <div className="stat-desc">
@@ -27,18 +26,16 @@ export const SolDisplay = ({
 export const VoucherDisplay = ({
   vouchers,
   userVoucher,
-  depositLiq,
+  yesBool,
 }: {
   vouchers: number;
   userVoucher: number;
-  depositLiq: boolean;
+  yesBool: boolean;
 }) => {
   return (
     <>
       <div className="stat-title">Vouchers</div>
-      <div
-        className={`stat-value ${depositLiq ? "text-error" : "text-success"}`}
-      >
+      <div className={`stat-value ${yesBool ? "text-success" : "text-error"}`}>
         {vouchers}
       </div>
       <div className="stat-desc">Balance: {userVoucher}</div>
@@ -49,18 +46,16 @@ export const VoucherDisplay = ({
 export const LiqDisplay = ({
   liqTokens,
   userLiqTokens,
-  depositLiq,
+  yesBool,
 }: {
   liqTokens: number;
   userLiqTokens: number;
-  depositLiq: boolean;
+  yesBool: boolean;
 }) => {
   return (
     <>
       <div className="stat-title">LP Tokens</div>
-      <div
-        className={`stat-value ${depositLiq ? "text-success" : "text-error"}`}
-      >
+      <div className={`stat-value ${yesBool ? "text-success" : "text-error"}`}>
         {liqTokens}
       </div>
       <div className="stat-desc">Balance: {userLiqTokens}</div>
@@ -135,17 +130,15 @@ export const VoucherSlider = ({
 };
 
 export const BazaarData = ({
-  marketSol,
-  marketVoucher,
+  marketData,
   exhibitSymbol,
 }: {
-  marketSol: number;
-  marketVoucher: number;
+  marketData: MarketData;
   exhibitSymbol: string;
 }) => {
   return (
     <>
-      {marketVoucher ? (
+      {marketData ? (
         <table className="table table-compact w-full border rounded-lg items-end">
           <tbody>
             <tr>
@@ -154,15 +147,15 @@ export const BazaarData = ({
             </tr>
             <tr>
               <th>Pool Liquidity (SOL)</th>
-              <td>{marketSol / LAMPORTS_PER_SOL}</td>
+              <td>{marketData.marketSolBal / LAMPORTS_PER_SOL}</td>
             </tr>
             <tr>
               <th>Pool Liquidity ({exhibitSymbol})</th>
-              <td>{marketVoucher}</td>
+              <td>{marketData.marketVoucherBal}</td>
             </tr>
             <tr>
               <th>LP supply</th>
-              <td>temp</td>
+              <td>{marketData.marketLiqBal}</td>
             </tr>
           </tbody>
         </table>
