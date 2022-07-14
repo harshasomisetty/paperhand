@@ -81,14 +81,16 @@ async function swapFunc(
       userSol - amountOut,
     ];
   }
-  console.log(
-    "in swap func",
-    marketVoucher,
-    marketSol,
-    userVoucher,
-    userSol,
-    vouchers
-  );
+
+  // console.log(
+  //   "in swap func",
+  //   marketVoucher,
+  //   marketSol,
+  //   userVoucher,
+  //   userSol,
+  //   vouchers
+  // );
+
   console.log("results", results);
   return results;
 }
@@ -130,8 +132,9 @@ describe("bazaar", () => {
   let userTokens: PublicKey[][] = new Array(2);
   let mintAmounts = [6, 50];
   let initAmounts = [2, 4];
-  let liqAmounts = [3, 10];
+  let liqAmounts = [3, 2];
   let swapAmount = [3, 5];
+  let withdrawAmounts = [4, 2];
   let temp;
 
   before("Init variables", async () => {
@@ -481,21 +484,32 @@ describe("bazaar", () => {
     );
   });
 
-  it.skip("withdrew liq", async () => {
-    let marketVoucherBal = await getAccount(connection, marketTokens[0]);
-    let marketSol = await connection.getBalance(marketTokens[1]);
-    let userVoucherBal = await getAccount(connection, userTokens[0][1]);
-    let userSol = await connection.getBalance(user[0].publicKey);
-    let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
+  it("withdrew liq", async () => {
+    let prevMarketVoucherBal = await getAccount(connection, marketTokens[0]);
+    let prevMarketSol = await connection.getBalance(marketTokens[1]);
+    let prevUserVoucherBal = await getAccount(connection, userTokens[0][1]);
+    let prevUserSol = await connection.getBalance(user[0].publicKey);
+    let prevUserTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
-    console.log(Number(marketVoucherBal.amount));
-    console.log(Number(marketSol));
-    console.log(Number(userVoucherBal.amount));
-    console.log(Number(userSol));
-    console.log(Number(userTokenLiqBal.amount));
+    console.log(Number(prevMarketVoucherBal.amount));
+    console.log(Number(prevMarketSol));
+    console.log(Number(prevUserVoucherBal.amount));
+    console.log(Number(prevUserSol));
+    console.log(Number(prevUserTokenLiqBal.amount));
+    const mintInfo = await getMint(connection, tokenMints[0]);
+
+    let liqTokenValue = Math.floor(prevMarketSol / Number(mintInfo.supply));
+
+    let userReceivesSol =
+      liqTokenValue * (withdrawAmounts[0] - withdrawAmounts[1]);
+
     try {
       const tx = await Bazaar.methods
-        .withdrawLiquidity(new anchor.BN(liqAmounts[0]), authBump)
+        .withdrawLiquidity(
+          new anchor.BN(withdrawAmounts[0]),
+          new anchor.BN(withdrawAmounts[1]),
+          authBump
+        )
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
@@ -504,40 +518,53 @@ describe("bazaar", () => {
           voucherMint: tokenMints[1],
           marketVoucher: marketTokens[0],
           marketSol: marketTokens[1],
-          userVoucher: userTokens[1][1],
-          userLiq: userTokens[1][0],
-          user: user[1].publicKey,
+          userVoucher: userTokens[0][1],
+          userLiq: userTokens[0][0],
+          user: user[0].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[1]])
+        .signers([user[0]])
         .rpc();
     } catch (error) {
       console.log("fuck withdraw", error);
     }
     console.log("finished withdraw liq tx");
 
-    marketVoucherBal = await getAccount(connection, marketTokens[0]);
-    marketSol = await connection.getBalance(marketTokens[1]);
-    userVoucherBal = await getAccount(connection, userTokens[0][1]);
-    userSol = await connection.getBalance(user[0].publicKey);
-    userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
+    let marketVoucherBal = await getAccount(connection, marketTokens[0]);
+    let marketSol = await connection.getBalance(marketTokens[1]);
+    let userVoucherBal = await getAccount(connection, userTokens[0][1]);
+    let userSol = await connection.getBalance(user[0].publicKey);
+    let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
     printAndTest(
       Number(marketVoucherBal.amount).toFixed(3),
-      (initAmounts[0] + liqAmounts[0]).toFixed(3)
+      (
+        initAmounts[0] +
+        liqAmounts[0] +
+        swapAmount[0] -
+        swapAmount[1] -
+        withdrawAmounts[1]
+      ).toFixed(3),
+      "market voucher"
     );
     printAndTest(
-      Math.round(Number(marketSol) / LAMPORTS_PER_SOL),
-      liqAmounts[1] / LAMPORTS_PER_SOL
+      Number(marketSol),
+      prevMarketSol - userReceivesSol,
+      "market sol"
     );
-    printAndTest(Number(userVoucherBal.amount), mintAmounts[0] - liqAmounts[0]);
     printAndTest(
-      Math.round(Number(userSol) / LAMPORTS_PER_SOL),
-      (mintAmounts[1] - liqAmounts[1]) / LAMPORTS_PER_SOL
+      Number(userVoucherBal.amount),
+      mintAmounts[0] - initAmounts[0] - liqAmounts[0] + withdrawAmounts[1],
+      "user voucher"
     );
-    printAndTest(Number(userTokenLiqBal.amount), liqAmounts[0]);
+    printAndTest(Number(userSol), prevUserSol + userReceivesSol, "user sol");
+    printAndTest(
+      Number(userTokenLiqBal.amount),
+      initAmounts[0] + liqAmounts[0] - withdrawAmounts[0],
+      "user liq"
+    );
   });
 
   Bazaar.provider.connection.onLogs("all", ({ logs }) => {

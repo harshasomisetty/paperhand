@@ -123,7 +123,7 @@ pub mod bazaar {
             ],
         )?;
 
-        msg!("minting liq toknes");
+        msg!("minting liq tokens");
         // mint equal number of LP tokens as deposited vouchers
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
@@ -197,6 +197,7 @@ pub mod bazaar {
             **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
         } else {
             //going from sol to voucher
+            // TODO consider the case when user is withdrawing more vouchers than there are in the pool?
             msg!("reverse");
             let market_diff = market_voucher.checked_sub(vouchers).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
@@ -251,42 +252,59 @@ pub mod bazaar {
 
     pub fn withdraw_liquidity(
         ctx: Context<WithdrawLiquidity>,
-        pool_token_amount: u64,
+        user_liq_tokens: u64,
+        user_vouchers: u64,
         auth_bump: u8,
     ) -> Result<()> {
         msg!(
             "withdrawing liq: {}, wants {}",
-            &ctx.accounts.user_liq.amount,
-            &pool_token_amount
+            &user_liq_tokens,
+            &user_vouchers
         );
 
-        let pool_token_supply = ctx.accounts.market_mint.supply;
-        let pool_tokens = &pool_token_amount;
+        require!(user_liq_tokens >= user_vouchers, MyError::WithdrawError);
 
-        // amount of tokens currently in market wallets
-        let market_voucher_amount = ctx.accounts.market_voucher.amount;
-        let market_sol_amount = ctx
+        let liq_token_value = ctx
             .accounts
             .market_sol
             .to_account_info()
-            .lamports
-            .borrow()
-            .checked_div(LAMPORTS_PER_SOL)
+            .lamports()
+            .checked_div(ctx.accounts.market_mint.supply)
             .unwrap();
 
-        let token_voucher_amount = pool_tokens
-            .checked_mul(market_voucher_amount)
-            .unwrap()
-            .checked_div(pool_token_supply)
-            .unwrap();
-        let token_sol_amount = pool_tokens
-            .checked_mul(market_sol_amount)
-            .unwrap()
-            .checked_div(pool_token_supply)
-            .unwrap();
+        let user_liq_value = user_liq_tokens.checked_mul(liq_token_value).unwrap();
+        let user_voucher_value = user_vouchers.checked_mul(liq_token_value).unwrap();
+
+        let user_receives_sol = user_liq_value.checked_sub(user_voucher_value).unwrap();
+
+        msg!(
+            "data: market sol {}, market mint supply {}, liq_value {}, user_liq_value {}, user_voucher_value {}, user sol {}, user liq tokens {}, prev user liq tokens {}",
+            ctx.accounts.market_sol.to_account_info().lamports(),
+            ctx.accounts.market_mint.supply,
+            liq_token_value,
+            user_liq_value,
+            user_voucher_value,
+            user_receives_sol,
+            user_liq_tokens,
+            ctx.accounts.user_liq.amount
+        );
+
+        msg!("burning liq tokens");
+
+        anchor_spl::token::burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::Burn {
+                    mint: ctx.accounts.market_mint.to_account_info().clone(),
+                    from: ctx.accounts.user_liq.to_account_info().clone(),
+                    authority: ctx.accounts.user.to_account_info().clone(),
+                },
+            ),
+            user_liq_tokens,
+        )?;
 
         msg!("transferring vouchers to user");
-        /* TODO didn't check for decimals when calculating token_*_amount to transfer */
+
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -301,30 +319,20 @@ pub mod bazaar {
                     &[auth_bump],
                 ]],
             ),
-            token_voucher_amount,
+            user_vouchers,
         )?;
 
         msg!("transferring lamports to user");
+
         **ctx
             .accounts
             .market_sol
             .to_account_info()
-            .try_borrow_mut_lamports()? -= token_sol_amount as u64;
+            .try_borrow_mut_lamports()? -= user_receives_sol;
 
-        **ctx.accounts.user.try_borrow_mut_lamports()? += token_sol_amount as u64;
+        **ctx.accounts.user.try_borrow_mut_lamports()? += user_receives_sol;
 
-        msg!("burning liq tokens");
-        anchor_spl::token::burn(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::Burn {
-                    mint: ctx.accounts.market_mint.to_account_info(),
-                    from: ctx.accounts.user_liq.to_account_info(),
-                    authority: ctx.accounts.user.to_account_info(),
-                },
-            ),
-            pool_token_amount,
-        )?;
+        msg!("finsihed withdrawing liq!");
 
         Ok(())
     }
@@ -438,7 +446,7 @@ pub struct Swap<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(pool_token_amount: u64, auth_bump: u8)]
+#[instruction(user_liq_tokens: u64, user_vouchers: u64, auth_bump: u8)]
 pub struct WithdrawLiquidity<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
@@ -487,6 +495,6 @@ pub struct SolWallet {}
 
 #[error_code]
 pub enum MyError {
-    #[msg("Market Slippage too high")]
-    SlippageError,
+    #[msg("Withdrawing too many vouchers tokens")]
+    WithdrawError,
 }
