@@ -35,7 +35,7 @@ export default function UserView({ nftList }: HomeViewProps) {
 
   const [selectedList, setSelectedList] = useState(true);
   const [nftColLists, setNftColLists] = useState();
-  const [nftColPics, setNftColPics] = useState<string[]>([]);
+  const [nftColPics, setNftColPics] = useState();
 
   useEffect(() => {
     async function fetchData() {
@@ -49,11 +49,23 @@ export default function UserView({ nftList }: HomeViewProps) {
       }
       setNftColLists(colLists);
 
-      // for (let nftSymbol of Object.keys(colLists)) {
-      //   let nfts = colLists[nftSymbol].slice(0, 3);
-      //   let images = nfts.forEach((nft) => nft.metadata.image);
-      //   console.log(nftSymbol, nfts);
-      // }
+      let colImages = {};
+      for (let nftSymbol of Object.keys(colLists)) {
+        let nfts = colLists[nftSymbol].slice(0, 3);
+        let imagePromises = [];
+        for (let nft of nfts) {
+          if (!nft.metadataTask.isRunning()) {
+            imagePromises.push(nft.metadataTask.run());
+          }
+        }
+        await Promise.all(imagePromises);
+        let images = [];
+        for (let nft of nfts) {
+          images.push(nft.metadata.image);
+        }
+        colImages[nftSymbol] = images;
+      }
+      setNftColPics(colImages);
     }
     if (nftList) {
       fetchData();
@@ -66,44 +78,41 @@ export default function UserView({ nftList }: HomeViewProps) {
         <div className="flex flex-row gap-4">
           {Object.keys(nftColLists).map((nftSymbol: string, ind) => (
             <>
-              <div
-                className="card card-compact w-56 bg-base-100 shadow-xl"
-                key={ind}
-              >
-                <figure>
-                  <img src="https://placeimg.com/400/225/arch" alt="Shoes" />
-                </figure>
+              <div className="card w-56 bg-base-100 shadow-xl h-fit" key={ind}>
+                {nftColPics && (
+                  <div className="stack px-5 pt-5">
+                    {nftColPics[nftSymbol].map((image: string, ind) => (
+                      <img src={image} alt={nftSymbol} key={ind} />
+                    ))}
+                  </div>
+                )}
                 <div className="card-body">
-                  <h2 className="card-title">{nftSymbol}</h2>
-                  <div className="card-actions justify-end">
-                    <a href={`#${nftSymbol}-modal`} className="btn">
-                      open modal
-                    </a>
-                    <div className="modal" id={`${nftSymbol}-modal`}>
-                      <div className="modal-box relative">
-                        <h3 className="font-bold text-lg">
-                          {nftSymbol} Exhibit!
-                        </h3>
-                        <NftList nftList={nftColLists[nftSymbol]} />
+                  <a href={`#${nftSymbol}-modal`}>
+                    <button className="btn btn-primary">
+                      Your {nftSymbol}s
+                    </button>
+                  </a>
+                  <div className="modal" id={`${nftSymbol}-modal`}>
+                    <div className="modal-box relative">
+                      <h3 className="font-bold text-lg">
+                        {nftSymbol} Exhibit!
+                      </h3>
+                      <NftList nftList={nftColLists[nftSymbol]} />
 
-                        <div className="btn-group gap-3 justify-end">
-                          {selectedNft && (
-                            <>
-                              <div
-                                className="modal-action"
-                                onClick={depositNft}
-                              >
-                                <a href="#" className="btn btn-success">
-                                  Deposit {selectedNft.name}
-                                </a>
-                              </div>
-                            </>
-                          )}
-                          <div className="modal-action">
-                            <a href="#" className="btn btn-error">
-                              Cancel
-                            </a>
-                          </div>
+                      <div className="btn-group gap-3 justify-end">
+                        {selectedNft && (
+                          <>
+                            <div className="modal-action" onClick={depositNft}>
+                              <a href="#" className="btn btn-success">
+                                Deposit {selectedNft.name}
+                              </a>
+                            </div>
+                          </>
+                        )}
+                        <div className="modal-action">
+                          <a href="#" className="btn btn-error">
+                            Cancel
+                          </a>
                         </div>
                       </div>
                     </div>

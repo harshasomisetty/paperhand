@@ -42,7 +42,6 @@ export default function Home() {
         <h2>Deposit your NFTs</h2>
         {publicKey ? (
           <>
-            <p>Select one of your NFTs to Deposit into an Exhibit</p>
             <NftProvider>
               <UserView nftList={nftList} />
             </NftProvider>

@@ -53,16 +53,17 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
       amountOut = marketSol - Kdiff;
     }
 
-    console.log(
-      "updated inputs",
-      vouchers,
-      marketVoucher,
-      newBuyVouchers,
-      K,
-      marketDiff,
-      Kdiff,
-      amountOut / LAMPORTS_PER_SOL
-    );
+    // console.log(
+    //   "updated inputs",
+    //   vouchers,
+    //   marketVoucher,
+    //   newBuyVouchers,
+    //   K,
+    //   marketDiff,
+    //   Kdiff,
+    //   amountOut / LAMPORTS_PER_SOL
+    // );
+
     setVouchers(vouchers);
     setSolOutput(amountOut / LAMPORTS_PER_SOL);
     setBuyVouchers(newBuyVouchers);

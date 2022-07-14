@@ -2,19 +2,37 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { PublicKey } from "@solana/web3.js";
-import { getExhibitAccountData } from "@/utils/retrieveData";
-import { useWallet } from "@solana/wallet-adapter-react";
-interface ExhibitCardProps {
-  exhibit: PublicKey;
-}
-export default function ExhibitCard({ exhibit }: ExhibitCardProps) {
-  const [exhibitData, setExhibitData] = useState();
+import {
+  getAllExhibitArtifacts,
+  getExhibitAccountData,
+} from "@/utils/retrieveData";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
+export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
+  const [exhibitData, setExhibitData] = useState();
+  const [nftList, setNftList] = useState<Nft[]>([]);
+  const [exhibitImages, setExhibitImages] = useState([]);
+  const { connection } = useConnection();
   const { wallet } = useWallet();
   useEffect(() => {
     async function fetchData() {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
       setExhibitData(fetchedData);
+      let allNfts = await getAllExhibitArtifacts(exhibit, connection);
+      setNftList(allNfts);
+
+      let imagePromises = [];
+      for (let nft of allNfts) {
+        if (!nft.metadataTask.isRunning()) {
+          imagePromises.push(nft.metadataTask.run());
+        }
+      }
+      await Promise.all(imagePromises);
+      let images = [];
+      for (let nft of allNfts) {
+        images.push(nft.metadata.image);
+      }
+      setExhibitImages(images);
     }
 
     fetchData();
@@ -22,16 +40,27 @@ export default function ExhibitCard({ exhibit }: ExhibitCardProps) {
 
   return (
     <Link href={"/exhibition/" + exhibit.toString()}>
-      <div className="card w-96 bg-base-100 shadow-xl hover:bg-opacity-100">
-        {/* <div className="flex flex-col items-center place-content-around border bg-gray-800 bg-opacity-50 hover:bg-opacity-100 rounded-xl m-2 p-2 truncate overflow-hidden w-40 h-48"> */}
+      <div className="card card-compact w-64 bg-base-100 shadow-xl hover:bg-opacity-100">
         {exhibitData && (
           <div className="card-body">
-            <h2 className="card-title">{exhibitData.exhibitSymbol} Exhibit</h2>
-            <p>pubkey: {exhibit.toString()}</p>
-            <p>{exhibitData.artifactCount} deposited NFTs</p>
-            <div className="card-actions justify-end">
-              <button className="btn btn-info">View</button>
+            {exhibitImages && (
+              <div className="stack">
+                {exhibitImages.map((image: string, ind) => (
+                  <img src={image} alt={"sdf"} key={ind} />
+                ))}
+              </div>
+            )}
+            <div className="stats ">
+              <div className="stat">
+                <div className="stat-title">
+                  {exhibitData.artifactCount} NFTs
+                </div>
+                <div className="card-title">
+                  {exhibitData.exhibitSymbol} Exhibit
+                </div>
+              </div>
             </div>
+            <button className="btn btn-info">View</button>
           </div>
         )}
       </div>
