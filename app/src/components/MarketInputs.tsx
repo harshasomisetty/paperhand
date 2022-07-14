@@ -124,7 +124,7 @@ export const VoucherSlider = ({
           ))}
         </div>
       )}
-      <div className="stat-desc place-self-end">Max: {max}</div>
+      {/* <div className="stat-desc place-self-end">Max: {max}</div> */}
     </>
   );
 };

@@ -90,13 +90,13 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
               <SolDisplay
                 solOutput={solOutput}
                 userSol={userSol}
-                yesBool={buyVouchers}
+                yesBool={true}
               />
             ) : (
               <VoucherDisplay
                 vouchers={vouchers}
                 userVoucher={userVoucher}
-                yesBool={!buyVouchers}
+                yesBool={true}
               />
             )}
           </div>
@@ -108,13 +108,13 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
               <SolDisplay
                 solOutput={solOutput}
                 userSol={userSol}
-                yesBool={buyVouchers}
+                yesBool={false}
               />
             ) : (
               <VoucherDisplay
                 vouchers={vouchers}
                 userVoucher={userVoucher}
-                yesBool={!buyVouchers}
+                yesBool={false}
               />
             )}
           </div>

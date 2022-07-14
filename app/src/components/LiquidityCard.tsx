@@ -45,7 +45,7 @@ const LiquidityCard = ({
   const { exhibitAddress } = router.query;
 
   async function executeDepositLiq() {
-    console.log("swapping");
+    console.log("deposit");
     await instructionDepositLiquidity(
       wallet,
       publicKey,
@@ -54,6 +54,19 @@ const LiquidityCard = ({
       signTransaction,
       connection
     );
+    // router.reload(window.location.pathname);
+  }
+
+  async function executeWithdrawLiq() {
+    console.log("withdraw");
+    // await instructionDepositLiquidity(
+    //   wallet,
+    //   publicKey,
+    //   new PublicKey(exhibitAddress),
+    //   Number(vouchers),
+    //   signTransaction,
+    //   connection
+    // );
     // router.reload(window.location.pathname);
   }
 
@@ -70,14 +83,14 @@ const LiquidityCard = ({
     }
   }
 
-  const VoucherSolDisplay = () => {
+  const VoucherSolDisplay = ({ yesBool }: { yesBool: boolean }) => {
     return (
       <div className={`flex flex-row items-center `}>
         <div className="stat place-items-center">
           <SolDisplay
             solOutput={solOutput}
             userSol={userSol}
-            yesBool={depositLiq}
+            yesBool={yesBool}
           />
         </div>
         <VscArrowBoth size={50} />
@@ -85,7 +98,7 @@ const LiquidityCard = ({
           <VoucherDisplay
             vouchers={vouchers}
             userVoucher={userVoucher}
-            yesBool={depositLiq}
+            yesBool={yesBool}
           />
         </div>
       </div>
@@ -114,19 +127,19 @@ const LiquidityCard = ({
 
         <div className="flex flex-col shadow items-center">
           {depositLiq ? (
-            <VoucherSolDisplay />
+            <VoucherSolDisplay yesBool={false} />
           ) : (
             <div className={`stat place-items-center `}>
               <LiqDisplay
                 liqTokens={vouchers}
                 userLiqTokens={userLiq}
-                yesBool={!depositLiq}
+                yesBool={false}
               />
             </div>
           )}
           <HiChevronDoubleDown />
           {!depositLiq ? (
-            <VoucherSolDisplay />
+            <VoucherSolDisplay yesBool={true} />
           ) : (
             <div
               className={`stat place-items-center
@@ -135,7 +148,7 @@ const LiquidityCard = ({
               <LiqDisplay
                 liqTokens={vouchers}
                 userLiqTokens={userLiq}
-                yesBool={!depositLiq}
+                yesBool={true}
               />
             </div>
           )}
@@ -143,12 +156,14 @@ const LiquidityCard = ({
 
         {wallet ? (
           <>
-            {(depositLiq ? marketVoucher : userVoucher) >= 1 ? (
+            {(depositLiq ? userVoucher : marketVoucher) > 0 ? (
               <>
                 {vouchers >= 1 ? (
                   <button
                     className="btn btn-primary"
-                    onClick={executeDepositLiq}
+                    onClick={
+                      depositLiq ? executeDepositLiq : executeWithdrawLiq
+                    }
                   >
                     {depositLiq ? "Add Liquidity" : "Remove Liquidity"}
                   </button>
@@ -160,7 +175,7 @@ const LiquidityCard = ({
               </>
             ) : (
               <button class="btn" disabled="disabled">
-                Not Enough tokens to Swap
+                Need more balance to {depositLiq ? "Add" : "Remove"} Liquidity
               </button>
             )}
           </>
