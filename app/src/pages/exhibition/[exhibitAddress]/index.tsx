@@ -25,6 +25,7 @@ import SwapView from "@/views/SwapView";
 const ExploreProjects = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState();
   const [nftList, setNftList] = useState<Nft[]>([]);
+  const [userTokenVoucher, setUserTokenVoucher] = useState<number>(0);
   const { wallet, publicKey } = useWallet();
   const { connection } = useConnection();
   const router = useRouter();
@@ -33,7 +34,7 @@ const ExploreProjects = () => {
   useEffect(() => {
     async function fetchData() {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-
+      console.log("fetching in exhibit/exhibtAddress");
       let exhibit = new PublicKey(exhibitAddress);
       let exhibitExists = await checkIfAccountExists(exhibit, connection);
 
@@ -42,6 +43,13 @@ const ExploreProjects = () => {
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
         let allNfts = await getAllExhibitArtifacts(exhibit, connection);
         setNftList(allNfts);
+
+        let userTokenVoucherBal = await getUserVoucherTokenBal(
+          exhibit,
+          publicKey,
+          connection
+        );
+        setUserTokenVoucher(userTokenVoucherBal);
       }
     }
     if (wallet && publicKey && exhibitAddress) {
@@ -54,9 +62,11 @@ const ExploreProjects = () => {
       {publicKey ? (
         <div className="grid grid-cols-2">
           <NftProvider>
+            {/* <p>fuck this</p> */}
             <SingleExhibitView
               nftList={nftList}
               exhibitSymbol={exhibitSymbol}
+              userTokenVoucherBal={userTokenVoucher}
             />
           </NftProvider>
           <SwapView />

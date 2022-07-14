@@ -31,7 +31,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
   const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [menuDefault, setMenuDefault] = useState(true);
   const [swapActive, setSwapActive] = useState(false);
-  const [userTokenVoucher, setUserTokenVoucher] = useState<number>();
+  const [userTokenVoucher, setUserTokenVoucher] = useState<number>(0);
   const [userTokenSol, setUserTokenSol] = useState<number>();
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
         publicKey,
         connection
       );
-      setUserTokenVoucher(Number(userTokenVoucherBal));
+      setUserTokenVoucher(userTokenVoucherBal);
       let userSol = await connection.getBalance(publicKey);
       setUserTokenSol(Number(userSol));
     }

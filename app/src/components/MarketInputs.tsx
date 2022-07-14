@@ -14,23 +14,26 @@ import { getAccount } from "@solana/spl-token";
 export const SolInput = ({ userSol }: { userSol: number }) => {
   return (
     <div className="">
-      {userSol ? (
-        <p>Sol Balance: {userSol / LAMPORTS_PER_SOL}</p>
-      ) : (
-        <p>Loading user sol bal</p>
-      )}
+      <p>Sol Balance: {userSol / LAMPORTS_PER_SOL}</p>
+      {/* {userSol ? ( */}
+      {/*   <p>Sol Balance: {userSol / LAMPORTS_PER_SOL}</p> */}
+      {/* ) : ( */}
+      {/*   <p>Loading user sol bal</p> */}
+      {/* )} */}
     </div>
   );
 };
 
 export const VoucherInput = ({ userVoucher }: { userVoucher: number }) => {
+  console.log("user voucher", userVoucher);
   return (
     <div className="">
-      {userVoucher ? (
-        <p>Voucher Balance: {userVoucher / decimalsVal}</p>
-      ) : (
-        <p>Loading user voucher bal</p>
-      )}
+      <p>Voucher Balance: {userVoucher / decimalsVal}</p>
+      {/* {userVoucher ? ( */}
+      {/*   <p>Voucher Balance: {userVoucher / decimalsVal}</p> */}
+      {/* ) : ( */}
+      {/*   <p>Loading user voucher bal</p> */}
+      {/* )} */}
     </div>
   );
 };

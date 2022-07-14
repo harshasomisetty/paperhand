@@ -11,14 +11,15 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
-interface SingleExhibitViewProps {
-  nftList: Nft[] | null;
-  exhibitSymbol: string;
-}
 export default function SingleExhibitView({
   nftList,
   exhibitSymbol,
-}: SingleExhibitViewProps) {
+  userTokenVoucherBal,
+}: {
+  nftList: Nft[] | null;
+  exhibitSymbol: string;
+  userTokenVoucherBal: number;
+}) {
   const { selectedNft, setSelectedNft } = useContext(NftContext);
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
@@ -48,9 +49,17 @@ export default function SingleExhibitView({
           </h2>
           <NftList nftList={nftList} exhibitKey={exhibitAddress} />
           {publicKey && selectedNft && (
-            <button className="btn btn-primary" onClick={withdrawNft}>
-              Withdraw nft
-            </button>
+            <>
+              {userTokenVoucherBal >= 1 ? (
+                <button className="btn btn-primary" onClick={withdrawNft}>
+                  Withdraw nft
+                </button>
+              ) : (
+                <button className="btn btn-disabled">
+                  Need Vouchers To Withdraw
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

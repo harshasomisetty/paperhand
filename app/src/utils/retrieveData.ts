@@ -33,9 +33,16 @@ export async function getUserVoucherTokenBal(
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
-
-  let userVoucherTokenBal = await getAccount(connection, userVoucherWallet);
-  return userVoucherTokenBal.amount;
+  let userVoucherExists = await checkIfAccountExists(
+    userVoucherWallet,
+    connection
+  );
+  if (userVoucherExists) {
+    let userVoucherTokenBal = await getAccount(connection, userVoucherWallet);
+    return userVoucherTokenBal.amount;
+  } else {
+    return 0;
+  }
 }
 
 export async function getAllExhibitArtifacts(
