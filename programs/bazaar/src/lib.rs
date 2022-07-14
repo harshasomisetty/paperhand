@@ -147,8 +147,7 @@ pub mod bazaar {
 
     pub fn swap(
         ctx: Context<Swap>,
-        amount_in: u64,
-        minimum_amount_out: u64,
+        vouchers: u64,
         trade_direction: bool,
         auth_bump: u8,
     ) -> Result<()> {
@@ -159,27 +158,20 @@ pub mod bazaar {
         msg!("market data: {}, {}", market_voucher, market_sol);
 
         if trade_direction == true {
-            //Trading vouchers to sol
+            //Converted vouchers to sol
             msg!("forward");
-            let market_diff = market_voucher.checked_add(amount_in).unwrap();
+            let market_diff = market_voucher.checked_add(vouchers).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
             let amount_out = market_sol.checked_sub(k_diff).unwrap();
 
             msg!(
-                "k {}, marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
+                "k {}, marketDiff {}, vouchers in {}, amountOut {}",
                 k,
                 market_diff,
-                amount_in,
+                vouchers,
                 amount_out,
-                minimum_amount_out
             );
-            require!(amount_out > minimum_amount_out, MyError::SlippageError);
 
-            msg!(
-                "user bal: {}, {}",
-                ctx.accounts.user.to_account_info().lamports(),
-                ctx.accounts.user_voucher.amount
-            );
             msg!("first transfer");
 
             anchor_spl::token::transfer(
@@ -191,7 +183,7 @@ pub mod bazaar {
                         authority: ctx.accounts.user.to_account_info(),
                     },
                 ),
-                amount_in as u64,
+                vouchers as u64,
             )?;
             msg!("second transfer");
 
@@ -206,34 +198,20 @@ pub mod bazaar {
         } else {
             //going from sol to voucher
             msg!("reverse");
-            let market_diff = market_sol.checked_add(amount_in).unwrap();
+            let market_diff = market_voucher.checked_sub(vouchers).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
-            let amount_out = market_voucher.checked_sub(k_diff).unwrap();
+            let amount_out = k_diff.checked_sub(market_sol).unwrap();
 
             msg!(
-                "marketDiff {}, amountIn {}, amountOut {}, minimum out {}",
+                "k {}, marketDiff {}, vouchers in {}, amountOut {}",
+                k,
                 market_diff,
-                amount_in,
+                vouchers,
                 amount_out,
-                minimum_amount_out
             );
+
             msg!("first transfer");
 
-            require!(amount_out > minimum_amount_out, MyError::SlippageError);
-            invoke(
-                &system_instruction::transfer(
-                    ctx.accounts.user.to_account_info().key,
-                    ctx.accounts.market_sol.to_account_info().key,
-                    amount_in as u64,
-                ),
-                &[
-                    ctx.accounts.user.to_account_info(),
-                    ctx.accounts.market_sol.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                ],
-            )?;
-
-            msg!("2nd transfer");
             // transfer amount in tokens
             anchor_spl::token::transfer(
                 CpiContext::new_with_signer(
@@ -249,7 +227,21 @@ pub mod bazaar {
                         &[auth_bump],
                     ]],
                 ),
-                amount_out as u64,
+                vouchers as u64,
+            )?;
+
+            msg!("2nd transfer");
+            invoke(
+                &system_instruction::transfer(
+                    ctx.accounts.user.to_account_info().key,
+                    ctx.accounts.market_sol.to_account_info().key,
+                    amount_out as u64,
+                ),
+                &[
+                    ctx.accounts.user.to_account_info(),
+                    ctx.accounts.market_sol.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                ],
             )?;
         }
 
@@ -414,7 +406,7 @@ pub struct DepositLiquidity<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[instruction(amount_in: u64, minimum_amount_out: u64, trade_direction: bool, auth_bump: u8)]
+#[instruction(vouchers: u64, trade_direction: bool, auth_bump: u8)]
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// CHECK: just reading pubkey
