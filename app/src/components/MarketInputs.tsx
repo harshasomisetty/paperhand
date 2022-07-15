@@ -1,5 +1,6 @@
-import { MarketData } from "@/utils/interfaces";
+import { VscArrowBoth } from "react-icons/vsc";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { MarketData } from "@/utils/interfaces";
 
 export const SolDisplay = ({
   solOutput,
@@ -63,35 +64,32 @@ export const LiqDisplay = ({
   );
 };
 
-export const YesOrNoButtons = ({
-  yesText,
-  noText,
+export const VoucherSolDisplay = ({
+  solOutput,
+  userSol,
+  vouchers,
+  userVoucher,
   yesBool,
-  updateInputs,
 }: {
-  yesText: string;
-  noText: string;
+  solOutput: number;
+  userSol: number;
+  vouchers: number;
+  userVoucher: number;
   yesBool: boolean;
-  updateInputs: (n, b) => void;
 }) => {
   return (
-    <div className="flex flex-row w-full justify-evenly">
-      <button
-        className={`btn btn-success ${!yesBool && "opacity-50"}`}
-        onClick={() => {
-          updateInputs(0, true);
-        }}
-      >
-        {yesText}
-      </button>
-      <button
-        className={`btn btn-error ${yesBool && "opacity-50"}`}
-        onClick={() => {
-          updateInputs(0, false);
-        }}
-      >
-        {noText}
-      </button>
+    <div className={`flex flex-row items-center `}>
+      <div className="stat place-items-center">
+        <SolDisplay solOutput={solOutput} userSol={userSol} yesBool={yesBool} />
+      </div>
+      <VscArrowBoth size={50} />
+      <div className="stat place-items-center">
+        <VoucherDisplay
+          vouchers={vouchers}
+          userVoucher={userVoucher}
+          yesBool={yesBool}
+        />
+      </div>
     </div>
   );
 };

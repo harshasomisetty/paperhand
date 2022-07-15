@@ -10,10 +10,9 @@ import {
   SolDisplay,
   VoucherDisplay,
   VoucherSlider,
-  YesOrNoButtons,
-} from "./MarketInputs";
+} from "@/components/MarketInputs";
 
-const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
+const SwapCard = ({ marketData }: { marketData: MarketData }) => {
   const marketSol = marketData.marketSolBal;
   const marketVoucher = marketData.marketVoucherBal;
   const userSol = marketData.userSolBal;
@@ -69,12 +68,24 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
       <div className="card-body">
         <h2 className="card-title">Swap Vouchers</h2>
 
-        <YesOrNoButtons
-          yesText={"Buy"}
-          noText={"Sell"}
-          yesBool={buyVouchers}
-          updateInputs={updateInputs}
-        />
+        <div className="flex flex-row w-full justify-evenly">
+          <button
+            className={`btn btn-success ${!buyVouchers && "opacity-50"}`}
+            onClick={() => {
+              updateInputs(0, true);
+            }}
+          >
+            Buy
+          </button>
+          <button
+            className={`btn btn-error ${buyVouchers && "opacity-50"}`}
+            onClick={() => {
+              updateInputs(0, false);
+            }}
+          >
+            Sell
+          </button>
+        </div>
 
         <VoucherSlider
           max={buyVouchers ? marketVoucher - 1 : userVoucher}
@@ -90,13 +101,13 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
               <SolDisplay
                 solOutput={solOutput}
                 userSol={userSol}
-                yesBool={true}
+                yesBool={false}
               />
             ) : (
               <VoucherDisplay
                 vouchers={vouchers}
                 userVoucher={userVoucher}
-                yesBool={true}
+                yesBool={false}
               />
             )}
           </div>
@@ -108,13 +119,13 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
               <SolDisplay
                 solOutput={solOutput}
                 userSol={userSol}
-                yesBool={false}
+                yesBool={true}
               />
             ) : (
               <VoucherDisplay
                 vouchers={vouchers}
                 userVoucher={userVoucher}
-                yesBool={false}
+                yesBool={true}
               />
             )}
           </div>
@@ -149,4 +160,4 @@ const NewSwapCard = ({ marketData }: { marketData: MarketData }) => {
     </div>
   );
 };
-export default NewSwapCard;
+export default SwapCard;
