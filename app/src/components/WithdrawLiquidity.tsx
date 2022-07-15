@@ -26,8 +26,8 @@ const WithdrawLiquidity = ({
   const userVoucher = marketData.userVoucherBal;
   const userLiq = marketData.userLiqBal;
 
+  const [liqTokens, setLiqTokens] = useState<number>(0);
   const [vouchers, setVouchers] = useState<number>(0);
-  const [desiredVouchers, setDesiredVouchers] = useState<number>(0);
   const [solOutput, setSolOutput] = useState<number>(0);
 
   const { connection } = useConnection();
@@ -41,7 +41,7 @@ const WithdrawLiquidity = ({
       wallet,
       publicKey,
       new PublicKey(exhibitAddress),
-      // Number(liqTokens),
+      Number(liqTokens),
       Number(vouchers),
       signTransaction,
       connection
@@ -50,34 +50,40 @@ const WithdrawLiquidity = ({
   }
 
   // TODO AVOID NEGATIVE VALUES
-  function updateInputs(value: number) {
-    setVouchers(value);
-    setSolOutput((marketSol * value) / marketVoucher);
+  function updateInputs(liqCount: number, voucherCount: number) {
+    setLiqTokens(liqCount);
+    setVouchers(voucherCount);
+
+    let liqTokenValue = marketSol / marketData.marketLiqBal;
+    setSolOutput(liqTokenValue * (liqCount - voucherCount));
   }
   return (
     <>
       <VoucherSlider
         max={userLiq}
-        value={vouchers}
+        value={liqTokens}
         onChange={(e) => {
-          updateInputs(Number(e.target.value));
+          updateInputs(Number(e.target.value), 0);
         }}
       />
 
       <div className="flex flex-col shadow items-center">
         <div className="stat place-items-center">
           <LiqDisplay
-            liqTokens={vouchers}
+            liqTokens={liqTokens}
             userLiqTokens={userLiq}
             yesBool={false}
           />
         </div>
         <HiChevronDoubleDown />
+        <p>
+          {liqTokens}, {marketVoucher}
+        </p>
         <VoucherSlider
-          max={vouchers}
-          value={0}
+          max={Math.min(liqTokens, marketVoucher)}
+          value={vouchers}
           onChange={(e) => {
-            updateInputs(Number(e.target.value));
+            updateInputs(liqTokens, Number(e.target.value));
           }}
         />
         <VoucherSolDisplay
@@ -98,17 +104,17 @@ const WithdrawLiquidity = ({
                   className="btn btn-primary"
                   onClick={executeWithdrawLiq}
                 >
-                  "Remove Liquidity"
+                  Remove Liquidity
                 </button>
               ) : (
                 <button class="btn" disabled="disabled">
-                  Choose an amount to Remove
+                  Choose number of Vouchers
                 </button>
               )}
             </>
           ) : (
             <button class="btn" disabled="disabled">
-              Need more balance to "Remove" Liquidity
+              Not enough market vouchers
             </button>
           )}
         </>

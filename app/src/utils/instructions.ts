@@ -399,3 +399,75 @@ export async function instructionDepositLiquidity(
     console.log("phantom send tx", error);
   }
 }
+
+export async function instructionWithdrawLiquidity(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  liqTokens: number,
+  vouchers: number,
+  signTransaction: any,
+  connection: Connection
+) {
+  console.log("in instruction dpeo");
+  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+
+  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
+    await getSwapAccounts(exhibit, publicKey);
+
+  let tokenMints = new Array(1);
+  let temp;
+  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
+
+  let transaction = new Transaction();
+
+  if (!(await checkIfAccountExists(userTokenLiq, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userTokenLiq,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
+  const withdraw_liq_tx = await Bazaar.methods
+    .withdrawLiquidity(new BN(liqTokens), new BN(vouchers), authBump)
+    .accounts({
+      exhibit: exhibit,
+      marketAuth: marketAuth,
+      marketMint: tokenMints[0],
+      // marketTokenFee: marketTokenFee,
+      voucherMint: voucherMint,
+      marketVoucher: marketTokens[0],
+      marketSol: marketTokens[1],
+      userVoucher: userTokenVoucher,
+      userLiq: userTokenLiq,
+      user: publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+  transaction = transaction.add(withdraw_liq_tx);
+  console.log("made tx", transaction);
+  try {
+    await manualSendTransaction(
+      transaction,
+      publicKey,
+      connection,
+      signTransaction
+    );
+  } catch (error) {
+    console.log("phantom send tx", error);
+  }
+}
