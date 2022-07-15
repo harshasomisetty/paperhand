@@ -29,6 +29,8 @@ const NftPage = () => {
       let mintKey = new PublicKey(mintAddress);
       const nft = await metaplex.nfts().findByMint(mintKey);
       setNftData(nft);
+      console.log(typeof nft.metadata, nft.metadata);
+      console.log(JSON.stringify(nft.metadata, null, 2));
     }
     if (!nftData && mintAddress) {
       fetchData();
@@ -45,17 +47,16 @@ const NftPage = () => {
               className="max-w-sm rounded-lg shadow-2xl"
             />
             <div>
+              {" "}
+              <h1 className="text-5xl font-extrabold">{nftData.name}</h1>
+              <h2 className="text-xl font-bold">{nftData.symbol} Collection</h2>
+              <div>
+                <pre>
+                  <code>{JSON.stringify(nftData.metadata, null, 2)}</code>
+                </pre>
+              </div>
+              <div></div>
               {/* <button class="btn btn-primary">Get Started</button> */}
-              <h1 className="text-5xl font-bold">{nftData.name}</h1>
-              <h2>{nftData.symbol} Collection</h2>
-              <p>mint: {nftData.mint.toString()}</p>
-              <p>uri: {nftData.uri}</p>
-              <p>creators</p>
-              <ul>
-                {nftData.creators.map((creator, ind) => (
-                  <li key={ind}> {creator.address.toString()} </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>

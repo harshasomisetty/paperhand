@@ -73,23 +73,32 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
         <div className="flex flex-row gap-4">
           {Object.keys(nftColLists).map((nftSymbol: string, ind) => (
             <>
-              <div className="card w-56 bg-base-100 shadow-xl h-fit" key={ind}>
+              <div
+                className="card card-compact w-52 shadow-xl h-fit bg-base-300"
+                key={ind}
+              >
                 {nftColPics && (
-                  <div className="stack px-5 pt-5">
+                  <div className="stack ">
                     {nftColPics[nftSymbol].map((image: string) => (
                       <img src={image} alt={nftSymbol} key={image} />
                     ))}
                   </div>
                 )}
                 <div className="card-body">
-                  <a href={`#${nftSymbol}-modal`}>
-                    <button className="btn btn-primary">
-                      Your {nftSymbol}s
-                    </button>
-                  </a>
+                  <button
+                    className="btn btn-primary"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.location.href = "#" + nftSymbol + "-modal";
+                    }}
+                  >
+                    Your {nftSymbol}s
+                  </button>
                   <div className="modal" id={`${nftSymbol}-modal`}>
                     <div className="modal-box relative">
-                      <h3 className="font-bold text-lg">{nftSymbol} Exhibit</h3>
+                      <h3 className="font-bold text-lg p-2 pb-4">
+                        {nftSymbol} Exhibit
+                      </h3>
                       <NftList nftList={nftColLists[nftSymbol]} />
 
                       <div className="btn-group gap-3 justify-end">

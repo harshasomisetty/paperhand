@@ -37,24 +37,9 @@ export default function Home() {
     }
   }, [publicKey]);
   return (
-    <div className="flex w-full">
-      <div className="grid w-1/2 bg-base-300">
-        <h2>Deposit your NFTs</h2>
-        {publicKey ? (
-          <>
-            <NftProvider>
-              <UserView nftList={nftList} />
-            </NftProvider>
-          </>
-        ) : (
-          <p>Connect your Wallet to view your NFTs</p>
-        )}
-      </div>
-
-      <div className="divider divider-horizontal" />
-
-      <div className="grid w-1/2 bg-base-300">
-        <h2>Explore all Exhibits</h2>
+    <div className="flex flex-col w-full space-y-4 ">
+      <div className="grid m-4">
+        <h2 className="text-2xl font-extrabold m-2 mb-4">Explore Exhibits</h2>
         {publicKey ? (
           <div>
             {exhibits.length > 0 ? (
@@ -65,6 +50,21 @@ export default function Home() {
           </div>
         ) : (
           <p className="text-center">Please connect wallet</p>
+        )}
+      </div>
+
+      <div className="divider divide-neutral"></div>
+
+      <div className="grid m-4">
+        <h2 className="text-2xl font-extrabold m-2 mb-4">Deposit NFTs</h2>
+        {publicKey ? (
+          <>
+            <NftProvider>
+              <UserView nftList={nftList} />
+            </NftProvider>
+          </>
+        ) : (
+          <p>Connect your Wallet to view your NFTs</p>
         )}
       </div>
     </div>

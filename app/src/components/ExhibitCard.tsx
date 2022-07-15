@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   checkIfSwapExists,
   getAllExhibitArtifacts,
@@ -9,6 +9,7 @@ import {
   getMarketData,
 } from "@/utils/retrieveData";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { MarketData } from "@/utils/interfaces";
 
 export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitData, setExhibitData] = useState();
@@ -48,31 +49,42 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   }, [wallet]);
 
   return (
-    <Link href={"/exhibition/" + exhibit.toString()}>
-      <div className="card card-compact w-64 bg-base-100 shadow-xl hover:bg-opacity-100">
-        {exhibitData && (
-          <div className="card-body">
-            {exhibitImages && (
-              <div className="stack">
-                {exhibitImages.map((image: string, ind) => (
-                  <img src={image} alt={"sdf"} key={ind} />
-                ))}
-              </div>
-            )}
-            <div className="stats ">
-              <div className="stat">
-                <div className="stat-title">
-                  {exhibitData.artifactCount} NFTs
-                </div>
-                <div className="card-title">
-                  {exhibitData.exhibitSymbol} Exhibit
-                </div>
-              </div>
+    <div className="card card-compact w-56 bg-base-300 shadow-xl">
+      {exhibitData && (
+        <div className="card-body">
+          {exhibitImages && (
+            <div className="stack">
+              {exhibitImages.map((image: string, ind) => (
+                <img src={image} key={ind} />
+              ))}
             </div>
-            <button className="btn btn-info">View</button>
+          )}
+          <div className="stats bg-base-300">
+            <div className="stat">
+              {marketData ? (
+                <div className="stat-title">
+                  Floor price:{" "}
+                  {(
+                    marketData.sol /
+                    marketData.voucher /
+                    LAMPORTS_PER_SOL
+                  ).toFixed(2)}{" "}
+                  SOL
+                </div>
+              ) : (
+                <div className="stat-title">Market not Initialized</div>
+              )}
+              <div className="card-title">
+                {exhibitData.exhibitSymbol} Exhibit
+              </div>
+              <div className="stat-desc">{exhibitData.artifactCount} NFTs</div>
+            </div>
           </div>
-        )}
-      </div>
-    </Link>
+          <Link href={"/exhibition/" + exhibit.toString()}>
+            <button className="btn btn-primary">View Exhibit</button>
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

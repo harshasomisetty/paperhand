@@ -7,7 +7,7 @@ interface ExhibitListProps {
 }
 export default function ExhibitList({ exhibits }: ExhibitListProps) {
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-row space-x-4">
       {exhibits.map((exhibit, ind) => (
         <ExhibitCard exhibit={exhibit} key={ind} />
       ))}
