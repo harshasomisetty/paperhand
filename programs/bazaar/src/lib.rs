@@ -328,20 +328,16 @@ pub mod bazaar {
             .checked_div(ctx.accounts.market_mint.supply)
             .unwrap();
 
-        let user_liq_value = user_liq_tokens.checked_mul(liq_token_value).unwrap();
-        let user_voucher_value = user_vouchers.checked_mul(liq_token_value).unwrap();
-
-        let user_receives_sol = user_liq_value.checked_sub(user_voucher_value).unwrap();
+        let user_receives_sol = liq_token_value
+            .checked_mul((2 * user_liq_tokens).checked_sub(user_vouchers).unwrap())
+            .unwrap();
 
         msg!(
-            "data: market sol {}, market mint supply {}, liq_value {}, user_liq_value {}, user_voucher_value {}, user sol {}, user liq tokens {}, prev user liq tokens {}",
+            "data: market sol {}, market mint supply {}, liq_value {}, user sol {}, user liq tokens {}",
             ctx.accounts.market_sol.to_account_info().lamports(),
             ctx.accounts.market_mint.supply,
             liq_token_value,
-            user_liq_value,
-            user_voucher_value,
             user_receives_sol,
-            user_liq_tokens,
             ctx.accounts.user_liq.amount
         );
 
@@ -492,6 +488,7 @@ pub struct Swap<'info> {
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]
     pub user_voucher: Box<Account<'info, TokenAccount>>,
 
+    // TODO check if this creator is the same as the creator specified in exhibit
     /// CHECK: sending lamports
     #[account(mut)]
     pub creator: AccountInfo<'info>,

@@ -65,8 +65,11 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
                 <div className="stat-title">
                   Floor price:{" "}
                   {(
-                    marketData.sol /
-                    marketData.voucher /
+                    (Math.floor(
+                      (marketData.voucher * marketData.sol) /
+                        (marketData.voucher - 1)
+                    ) -
+                      marketData.sol) /
                     LAMPORTS_PER_SOL
                   ).toFixed(2)}{" "}
                   SOL

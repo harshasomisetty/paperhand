@@ -18,6 +18,8 @@ export default function NftList({
       for (let nft of nftList) {
         if (!nft.metadataTask.isRunning()) {
           imagePromises.push(nft.metadataTask.run());
+        } else {
+          imagePromises.push(nft.metadataTask.reset().run());
         }
       }
       await Promise.all(imagePromises);

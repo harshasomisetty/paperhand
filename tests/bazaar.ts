@@ -474,7 +474,7 @@ describe("bazaar", () => {
     console.log(Number(prevUserTokenLiqBal.amount));
     const mintInfo = await getMint(connection, tokenMints[0]);
 
-    let liqTokenValue = Math.floor(prevMarketSol / Number(mintInfo.supply));
+    let liqTokenValue = (2 * prevMarketSol) / Number(mintInfo.supply);
 
     let userReceivesSol =
       liqTokenValue * (withdrawAmounts[0] - withdrawAmounts[1]);
@@ -520,8 +520,8 @@ describe("bazaar", () => {
       "market voucher"
     );
     printAndTest(
-      Number(marketSol),
-      prevMarketSol - userReceivesSol,
+      (Number(marketSol) / LAMPORTS_PER_SOL).toFixed(3),
+      ((prevMarketSol - userReceivesSol) / LAMPORTS_PER_SOL).toFixed(3),
       "market sol"
     );
     printAndTest(
@@ -529,7 +529,11 @@ describe("bazaar", () => {
       Number(prevUserVoucherBal.amount) + withdrawAmounts[1],
       "user voucher"
     );
-    printAndTest(Number(userSol), prevUserSol + userReceivesSol, "user sol");
+    printAndTest(
+      Number(userSol / LAMPORTS_PER_SOL).toFixed(3),
+      ((prevUserSol + userReceivesSol) / LAMPORTS_PER_SOL).toFixed(3),
+      "user sol"
+    );
     printAndTest(
       Number(userTokenLiqBal.amount),
       Number(prevUserTokenLiqBal.amount) - withdrawAmounts[0],

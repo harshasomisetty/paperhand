@@ -40,7 +40,7 @@ export default function SingleExhibitView({
       {exhibitSymbol && (
         <div>
           <h2 className="text-2xl font-light m-2 mb-4">
-            Explore the{" "}
+            Explore{" "}
             <span className="text-2xl font-extrabold">{exhibitSymbol}</span>{" "}
             Exhibit NFTs
           </h2>

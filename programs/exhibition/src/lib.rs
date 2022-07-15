@@ -194,7 +194,7 @@ pub struct InitializeExhibit<'info> {
         init,
         payer = creator,
         seeds = [b"voucher_mint".as_ref(), exhibit.key().as_ref()], bump,
-        mint::decimals = 1,
+        mint::decimals = 0,
         mint::authority = exhibit,
         mint::freeze_authority = exhibit
     )]

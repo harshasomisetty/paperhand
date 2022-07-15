@@ -49,7 +49,8 @@ const WithdrawLiquidity = ({
     setVouchers(voucherCount);
 
     let liqTokenValue = marketData.sol / marketData.liq;
-    setSolOutput(liqTokenValue * (liqCount - voucherCount));
+    setSolOutput(liqTokenValue * (2 * liqCount - voucherCount));
+    // console.log("output stuff", liqCount, voucherCount, 2*liq)
   }
   return (
     <>
@@ -90,18 +91,9 @@ const WithdrawLiquidity = ({
         <>
           {marketData.voucher > 0 ? (
             <>
-              {vouchers >= 1 ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={executeWithdrawLiq}
-                >
-                  Withdraw Liquidity
-                </button>
-              ) : (
-                <button class="btn" disabled="disabled">
-                  Choose number of Vouchers
-                </button>
-              )}
+              <button className="btn btn-primary" onClick={executeWithdrawLiq}>
+                Withdraw Liquidity
+              </button>
             </>
           ) : (
             <button class="btn" disabled="disabled">

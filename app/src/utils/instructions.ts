@@ -167,6 +167,18 @@ export async function instructionWithdrawNft(
 
   let transaction = new Transaction();
 
+  if (!(await checkIfAccountExists(nftUserTokenAccount, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      nftUserTokenAccount,
+      publicKey,
+      nft.mint
+    );
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
   let withdraw_tx = await Exhibition.methods
     .artifactWithdraw()
     .accounts({
