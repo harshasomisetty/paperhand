@@ -17,6 +17,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitImages, setExhibitImages] = useState([]);
   const { connection } = useConnection();
   const { wallet } = useWallet();
+
   useEffect(() => {
     async function fetchData() {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
@@ -40,6 +41,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
         images.push(nft.metadata.image);
       }
       setExhibitImages(images);
+      // console.log("ehxibt images", images);
     }
 
     fetchData();

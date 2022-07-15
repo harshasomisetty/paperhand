@@ -42,16 +42,20 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
 
       let colImages = {};
       for (let nftSymbol of Object.keys(colLists)) {
+        console.log("in symbol", nftSymbol);
         let nfts = colLists[nftSymbol].slice(0, 3);
         let imagePromises = [];
         for (let nft of nfts) {
           if (!nft.metadataTask.isRunning()) {
             imagePromises.push(nft.metadataTask.run());
+          } else {
+            imagePromises.push(nft.metadataTask.reset().run());
           }
         }
         await Promise.all(imagePromises);
         let images = [];
         for (let nft of nfts) {
+          console.log("still running?", nft.metadataTask.isRunning());
           images.push(nft.metadata.image);
         }
         colImages[nftSymbol] = images;
@@ -85,9 +89,7 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
                   </a>
                   <div className="modal" id={`${nftSymbol}-modal`}>
                     <div className="modal-box relative">
-                      <h3 className="font-bold text-lg">
-                        {nftSymbol} Exhibit!
-                      </h3>
+                      <h3 className="font-bold text-lg">{nftSymbol} Exhibit</h3>
                       <NftList nftList={nftColLists[nftSymbol]} />
 
                       <div className="btn-group gap-3 justify-end">

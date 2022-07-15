@@ -5,23 +5,17 @@ import { NftContext } from "@/context/NftContext";
 
 interface NftCardProps {
   nft: Nft;
+  nftImage: string;
   exhibitKey?: String;
   index: number;
 }
-export default function NftCard({ nft, exhibitKey, index }: NftCardProps) {
-  const [nftImage, setNftImage] = useState();
+export default function NftCard({
+  nft,
+  nftImage,
+  exhibitKey,
+  index,
+}: NftCardProps) {
   const { selectedNft, setSelectedNft } = useContext(NftContext);
-
-  useEffect(() => {
-    // fetch data is run twice, so need to see if metadata task is currently running
-    async function fetchData() {
-      if (!nft.metadataTask.isRunning()) {
-        await nft.metadataTask.run();
-      }
-      setNftImage(nft.metadata.image);
-    }
-    fetchData();
-  }, []);
 
   return (
     <div
@@ -35,9 +29,14 @@ export default function NftCard({ nft, exhibitKey, index }: NftCardProps) {
         setSelectedNft(nft);
       }}
     >
-      <figure>
-        <img src={nftImage} alt={nft.name} />
-      </figure>
+      {nftImage ? (
+        <figure>
+          <img src={nftImage} alt={nft.name} />
+        </figure>
+      ) : (
+        <p>loading image</p>
+      )}
+
       <div className="card-body flex flex-row justify-between">
         <div>
           <h2 className="card-title">{nft.name}</h2>
