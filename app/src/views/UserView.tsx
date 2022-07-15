@@ -74,7 +74,7 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
           {Object.keys(nftColLists).map((nftSymbol: string, ind) => (
             <>
               <div
-                className="card card-compact w-52 shadow-xl h-fit bg-base-content"
+                className="card card-compact w-52 shadow-xl h-fit bg-base-300"
                 key={ind}
               >
                 {nftColPics && (

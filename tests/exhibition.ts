@@ -142,6 +142,7 @@ describe("exhibition", () => {
 
     assert.ok(exhibitInfo.exhibitSymbol === nft.symbol.replace(/\0.*$/g, ""));
     assert.ok(exhibitInfo.artifactCount === 0);
+    throw new Error();
   });
 
   it("Inserted correct nft into corresponding artifact!", async () => {

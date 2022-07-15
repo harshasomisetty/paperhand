@@ -281,6 +281,11 @@ export async function instructionSwap(
 ) {
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+
+  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+  console.log(exhibitInfo.creator.toString());
+
   let [
     voucherMint,
     marketAuth,
@@ -317,6 +322,7 @@ export async function instructionSwap(
       marketVoucher: marketTokens[0],
       marketSol: marketTokens[1],
       userVoucher: userTokenVoucher,
+      creator: exhibitInfo.creator,
       user: publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,

@@ -29,6 +29,14 @@ pub mod exhibition {
             .to_string();
 
         ctx.accounts.exhibit.artifact_count = 0;
+        // TODO add verified creator
+        ctx.accounts.exhibit.creator =
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap()[0].address;
+
+        msg!(
+            "creator: {}",
+            ctx.accounts.nft_metadata.data.creators.as_ref().unwrap()[0].address
+        );
         Ok(())
     }
 
@@ -285,9 +293,8 @@ pub struct ArtifactWithdraw<'info> {
 #[account]
 #[derive(Default)]
 pub struct Exhibit {
-    pub token_a_mint: Pubkey,
-    // pub token_b_mint: Pubkey,
     pub exhibit_symbol: String,
+    pub creator: Pubkey,
     pub auth_bump: u8,
     pub artifact_count: u8,
 }

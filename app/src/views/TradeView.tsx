@@ -6,9 +6,13 @@ import {
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { MarketData, UserData } from "@/utils/interfaces";
-import { getExhibitProgramAndProvider } from "@/utils/constants";
+import {
+  BAZAAR_PROGRAM_ID,
+  getBazaarProgramAndProvider,
+  getExhibitProgramAndProvider,
+} from "@/utils/constants";
 import SwapCard from "@/components/SwapCard";
 import LiquidityCard from "@/components/LiquidityCard";
 import InitSwapCard from "@/components/InitSwapCard";
@@ -17,6 +21,7 @@ export default function TradeView({}) {
   const { connection } = useConnection();
   const { wallet, publicKey } = useWallet();
   const [marketData, setMarketData] = useState<MarketData>();
+  const [feesPaid, setFeesPaid] = useState<number>();
   const [menuDefault, setMenuDefault] = useState(true);
   const [swapActive, setSwapActive] = useState<boolean>(false);
   const [userData, setUserData] = useState<UserData>();
@@ -37,6 +42,15 @@ export default function TradeView({}) {
       setSwapActive(swapExists);
 
       if (swapExists) {
+        let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+
+        let [marketAuth, temp] = await PublicKey.findProgramAddress(
+          [Buffer.from("market_auth"), exhibit.toBuffer()],
+          BAZAAR_PROGRAM_ID
+        );
+
+        let marketInfo = await Bazaar.account.marketInfo.fetch(marketAuth);
+        setFeesPaid(Number(marketInfo.feesPaid) / LAMPORTS_PER_SOL);
         let mdata = await getMarketData(exhibit, connection);
         setMarketData(mdata);
       }
@@ -78,6 +92,12 @@ export default function TradeView({}) {
                   exhibitSymbol={exhibitSymbol}
                 />
               )}
+              <div className="stats shadow border border-neutral-focus">
+                <div className="stat">
+                  <div className="stat-title">Creator Fees Paid</div>
+                  <div className="stat-value">{feesPaid.toFixed(4)} SOL</div>
+                </div>
+              </div>
             </>
           ) : (
             <p>Loading market data</p>

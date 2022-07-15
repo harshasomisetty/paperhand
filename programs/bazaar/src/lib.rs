@@ -67,7 +67,7 @@ pub mod bazaar {
             starting_voucher,
         )?;
 
-        ctx.accounts.market_auth.initial_sol = starting_sol;
+        ctx.accounts.market_auth.fees_paid = 0;
 
         Ok(())
     }
@@ -205,6 +205,31 @@ pub mod bazaar {
                     ctx.accounts.system_program.to_account_info(),
                 ],
             )?;
+
+            msg!("fees");
+            invoke(
+                &system_instruction::transfer(
+                    ctx.accounts.user.to_account_info().key,
+                    ctx.accounts.market_sol.to_account_info().key,
+                    amount_out
+                        .checked_mul(500)
+                        .unwrap()
+                        .checked_div(10000)
+                        .unwrap() as u64,
+                ),
+                &[
+                    ctx.accounts.user.to_account_info(),
+                    ctx.accounts.market_sol.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                ],
+            )?;
+
+            ctx.accounts.market_auth.fees_paid = ctx.accounts.market_auth.fees_paid
+                + amount_out
+                    .checked_mul(500)
+                    .unwrap()
+                    .checked_div(10000)
+                    .unwrap() as u64;
         } else {
             // TODO consider the case when user is withdrawing more vouchers than there are in the pool?
 
@@ -241,9 +266,41 @@ pub mod bazaar {
                 .accounts
                 .market_sol
                 .to_account_info()
-                .try_borrow_mut_lamports()? -= amount_out as u64;
+                .try_borrow_mut_lamports()? -= (amount_out
+                .checked_mul(9500)
+                .unwrap()
+                .checked_div(10000)
+                .unwrap()) as u64;
 
-            **ctx.accounts.user.try_borrow_mut_lamports()? += amount_out as u64;
+            **ctx.accounts.user.try_borrow_mut_lamports()? += (amount_out
+                .checked_mul(9500)
+                .unwrap()
+                .checked_div(10000)
+                .unwrap()) as u64;
+
+            msg!("fees");
+            **ctx
+                .accounts
+                .market_sol
+                .to_account_info()
+                .try_borrow_mut_lamports()? -= (amount_out
+                .checked_mul(500)
+                .unwrap()
+                .checked_div(10000)
+                .unwrap()) as u64;
+
+            **ctx.accounts.creator.try_borrow_mut_lamports()? += (amount_out
+                .checked_mul(500)
+                .unwrap()
+                .checked_div(10000)
+                .unwrap()) as u64;
+
+            ctx.accounts.market_auth.fees_paid = ctx.accounts.market_auth.fees_paid
+                + amount_out
+                    .checked_mul(500)
+                    .unwrap()
+                    .checked_div(10000)
+                    .unwrap() as u64;
         }
         // trade fee into pool
         Ok(())
@@ -420,7 +477,6 @@ pub struct Swap<'info> {
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
-    /// CHECK: Need market auth since can't pass in market state as a signer
     #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
@@ -429,13 +485,16 @@ pub struct Swap<'info> {
 
     #[account(mut, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = voucher_mint, token::authority = market_auth, bump)]
     pub market_voucher: Box<Account<'info, TokenAccount>>,
-    /// CHECK: Only transferring lamports
+
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
     pub market_sol: Account<'info, SolWallet>,
 
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]
     pub user_voucher: Box<Account<'info, TokenAccount>>,
 
+    /// CHECK: sending lamports
+    #[account(mut)]
+    pub creator: AccountInfo<'info>,
     #[account(mut)]
     pub user: Signer<'info>,
 
@@ -485,7 +544,7 @@ pub struct WithdrawLiquidity<'info> {
 #[account]
 #[derive(Default)]
 pub struct MarketInfo {
-    pub initial_sol: u64,
+    pub fees_paid: u64,
 }
 
 #[account]
