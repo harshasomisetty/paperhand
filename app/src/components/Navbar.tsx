@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { useRouter } from "next/router";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
@@ -10,9 +9,9 @@ const Navbar = () => {
   return (
     <div className="navbar flex flex-row justify-between">
       <div className="navbar-start">
-        <a className="btn btn-ghost normal-case text-xl" href="/home">
-          NFTAMM
-        </a>
+        <Link href="/home">
+          <div className="btn btn-ghost normal-case text-xl">NFTAMM</div>
+        </Link>
       </div>
       <div className="navbar-center">
         <ul className="menu menu-horizontal p-0">

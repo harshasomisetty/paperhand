@@ -1,8 +1,8 @@
-import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { useState } from "react";
 import { HiChevronDoubleDown } from "react-icons/hi";
 
-import { MarketData } from "@/utils/interfaces";
+import { MarketData, UserData } from "@/utils/interfaces";
 import { instructionWithdrawLiquidity } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
@@ -14,18 +14,14 @@ import {
 } from "@/components/MarketInputs";
 
 const WithdrawLiquidity = ({
+  userData,
   marketData,
   exhibitSymbol,
 }: {
+  userData: UserData;
   marketData: MarketData;
   exhibitSymbol: string;
 }) => {
-  const marketSol = marketData.marketSolBal;
-  const marketVoucher = marketData.marketVoucherBal;
-  const userSol = marketData.userSolBal;
-  const userVoucher = marketData.userVoucherBal;
-  const userLiq = marketData.userLiqBal;
-
   const [liqTokens, setLiqTokens] = useState<number>(0);
   const [vouchers, setVouchers] = useState<number>(0);
   const [solOutput, setSolOutput] = useState<number>(0);
@@ -49,18 +45,17 @@ const WithdrawLiquidity = ({
     router.reload(window.location.pathname);
   }
 
-  // TODO AVOID NEGATIVE VALUES
   function updateInputs(liqCount: number, voucherCount: number) {
     setLiqTokens(liqCount);
     setVouchers(voucherCount);
 
-    let liqTokenValue = marketSol / marketData.marketLiqBal;
+    let liqTokenValue = marketData.sol / marketData.liq;
     setSolOutput(liqTokenValue * (liqCount - voucherCount));
   }
   return (
     <>
       <VoucherSlider
-        max={userLiq}
+        max={userData.liq}
         value={liqTokens}
         onChange={(e) => {
           updateInputs(Number(e.target.value), 0);
@@ -71,16 +66,13 @@ const WithdrawLiquidity = ({
         <div className="stat place-items-center">
           <LiqDisplay
             liqTokens={liqTokens}
-            userLiqTokens={userLiq}
+            userLiqTokens={userData.liq}
             yesBool={false}
           />
         </div>
         <HiChevronDoubleDown />
-        <p>
-          {liqTokens}, {marketVoucher}
-        </p>
         <VoucherSlider
-          max={Math.min(liqTokens, marketVoucher)}
+          max={Math.min(liqTokens, marketData.voucher)}
           value={vouchers}
           onChange={(e) => {
             updateInputs(liqTokens, Number(e.target.value));
@@ -89,15 +81,15 @@ const WithdrawLiquidity = ({
         <VoucherSolDisplay
           yesBool={true}
           solOutput={solOutput}
-          userSol={userSol}
+          userSol={userData.sol}
           vouchers={vouchers}
-          userVoucher={userVoucher}
+          userVoucher={userData.voucher}
         />
       </div>
 
       {wallet ? (
         <>
-          {marketVoucher > 0 ? (
+          {marketData.voucher > 0 ? (
             <>
               {vouchers >= 1 ? (
                 <button

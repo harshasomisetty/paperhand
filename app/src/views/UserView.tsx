@@ -1,27 +1,19 @@
 import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
 import { instructionDepositNft } from "@/utils/instructions";
-import {
-  checkIfAccountExists,
-  checkIfExhibitExists,
-  getExhibitAddress,
-} from "@/utils/retrieveData";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 
-interface HomeViewProps {
-  nftList: Nft[] | null;
-}
-export default function UserView({ nftList }: HomeViewProps) {
-  const { selectedNft, setSelectedNft } = useContext(NftContext);
+export default function UserView({ nftList }: { nftList: Nft[] | null }) {
+  const { selectedNft } = useContext(NftContext);
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
 
   const router = useRouter();
   async function depositNft() {
-    console.log("depsoiting", selectedNft.name);
+    console.log("depositing", selectedNft.name);
 
     await instructionDepositNft(
       wallet,
@@ -33,7 +25,6 @@ export default function UserView({ nftList }: HomeViewProps) {
     router.reload(window.location.pathname);
   }
 
-  const [selectedList, setSelectedList] = useState(true);
   const [nftColLists, setNftColLists] = useState();
   const [nftColPics, setNftColPics] = useState();
 
@@ -81,8 +72,8 @@ export default function UserView({ nftList }: HomeViewProps) {
               <div className="card w-56 bg-base-100 shadow-xl h-fit" key={ind}>
                 {nftColPics && (
                   <div className="stack px-5 pt-5">
-                    {nftColPics[nftSymbol].map((image: string, ind) => (
-                      <img src={image} alt={nftSymbol} key={ind} />
+                    {nftColPics[nftSymbol].map((image: string) => (
+                      <img src={image} alt={nftSymbol} key={image} />
                     ))}
                   </div>
                 )}

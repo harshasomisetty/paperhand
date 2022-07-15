@@ -1,23 +1,24 @@
-import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { useState } from "react";
 import { HiChevronDoubleRight } from "react-icons/hi";
 
-import { MarketData } from "@/utils/interfaces";
-import { instructionSwap } from "@/utils/instructions";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useRouter } from "next/router";
 import {
   SolDisplay,
   VoucherDisplay,
   VoucherSlider,
 } from "@/components/MarketInputs";
+import { instructionSwap } from "@/utils/instructions";
+import { MarketData, UserData } from "@/utils/interfaces";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/router";
 
-const SwapCard = ({ marketData }: { marketData: MarketData }) => {
-  const marketSol = marketData.marketSolBal;
-  const marketVoucher = marketData.marketVoucherBal;
-  const userSol = marketData.userSolBal;
-  const userVoucher = marketData.userVoucherBal;
-
+const SwapCard = ({
+  marketData,
+  userData,
+}: {
+  marketData: MarketData;
+  userData: UserData;
+}) => {
   const [vouchers, setVouchers] = useState<number>(0);
   const [solOutput, setSolOutput] = useState<number>(0);
   const [buyVouchers, setBuyVouchers] = useState<boolean>(true);
@@ -42,24 +43,24 @@ const SwapCard = ({ marketData }: { marketData: MarketData }) => {
   }
 
   function updateInputs(vouchers: number, newBuyVouchers: boolean) {
-    let K = marketVoucher * marketSol;
+    let K = marketData.voucher * marketData.sol;
     let marketDiff, Kdiff, amountOut;
 
     if (newBuyVouchers) {
       // vouchers to sol
 
-      marketDiff = marketVoucher - vouchers;
+      marketDiff = marketData.voucher - vouchers;
       Kdiff = Math.floor(K / marketDiff);
-      amountOut = Kdiff - marketSol;
+      amountOut = Kdiff - marketData.sol;
     } else {
       //sol to vouchers
-      marketDiff = marketVoucher + vouchers;
+      marketDiff = marketData.voucher + vouchers;
       Kdiff = Math.floor(K / marketDiff);
-      amountOut = marketSol - Kdiff;
+      amountOut = marketData.sol - Kdiff;
     }
 
     setVouchers(vouchers);
-    setSolOutput(amountOut / LAMPORTS_PER_SOL);
+    setSolOutput(amountOut);
     setBuyVouchers(newBuyVouchers);
   }
 
@@ -88,7 +89,7 @@ const SwapCard = ({ marketData }: { marketData: MarketData }) => {
         </div>
 
         <VoucherSlider
-          max={buyVouchers ? marketVoucher - 1 : userVoucher}
+          max={buyVouchers ? marketData.voucher - 1 : userData.voucher}
           value={vouchers}
           onChange={(e) => {
             updateInputs(Number(e.target.value), buyVouchers);
@@ -100,13 +101,13 @@ const SwapCard = ({ marketData }: { marketData: MarketData }) => {
             {buyVouchers ? (
               <SolDisplay
                 solOutput={solOutput}
-                userSol={userSol}
+                userSol={userData.sol}
                 yesBool={false}
               />
             ) : (
               <VoucherDisplay
                 vouchers={vouchers}
-                userVoucher={userVoucher}
+                userVoucher={userData.voucher}
                 yesBool={false}
               />
             )}
@@ -118,13 +119,13 @@ const SwapCard = ({ marketData }: { marketData: MarketData }) => {
             {!buyVouchers ? (
               <SolDisplay
                 solOutput={solOutput}
-                userSol={userSol}
+                userSol={marketData.sol}
                 yesBool={true}
               />
             ) : (
               <VoucherDisplay
                 vouchers={vouchers}
-                userVoucher={userVoucher}
+                userVoucher={userData.voucher}
                 yesBool={true}
               />
             )}
@@ -133,26 +134,26 @@ const SwapCard = ({ marketData }: { marketData: MarketData }) => {
 
         {wallet ? (
           <>
-            {(buyVouchers ? marketVoucher : userVoucher) >= 1 ? (
+            {(buyVouchers ? marketData.voucher : userData.voucher) >= 1 ? (
               <>
                 {vouchers >= 1 ? (
                   <button className="btn btn-primary" onClick={executeSwap}>
                     Swap
                   </button>
                 ) : (
-                  <button class="btn" disabled="disabled">
+                  <button className="btn" disabled="disabled">
                     Choose an amount to Swap
                   </button>
                 )}
               </>
             ) : (
-              <button class="btn" disabled="disabled">
+              <button className="btn" disabled="disabled">
                 Not Enough tokens to Swap
               </button>
             )}
           </>
         ) : (
-          <button class="btn" disabled="disabled">
+          <button className="btn" disabled="disabled">
             Connect wallet to Swap
           </button>
         )}

@@ -1,38 +1,25 @@
-import NftList from "@/components/NftList";
-import { NftContext } from "@/context/NftContext";
-import { instructionDepositNft } from "@/utils/instructions";
 import {
-  checkIfAccountExists,
-  checkIfExhibitExists,
-  getExhibitAddress,
+  checkIfSwapExists,
   getMarketData,
-  getUserVoucherTokenBal,
+  getUserData,
 } from "@/utils/retrieveData";
-import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-import { MarketData } from "@/utils/interfaces";
-import {
-  BAZAAR_PROGRAM_ID,
-  getExhibitProgramAndProvider,
-} from "@/utils/constants";
+import { MarketData, UserData } from "@/utils/interfaces";
+import { getExhibitProgramAndProvider } from "@/utils/constants";
 import SwapCard from "@/components/SwapCard";
 import LiquidityCard from "@/components/LiquidityCard";
 import InitSwapCard from "@/components/InitSwapCard";
-interface SwapViewProps {
-  bruh: string | null;
-}
 
-export default function SwapView({ bruh }: HomeViewProps) {
+export default function SwapView({}) {
   const { connection } = useConnection();
-  const { wallet, publicKey, signTransaction } = useWallet();
-  const [marketData, setMarketData] = useState<MarketData | null>(null);
-  const [menuDefault, setMenuDefault] = useState(false);
-  const [swapActive, setSwapActive] = useState(false);
-  const [userTokenVoucher, setUserTokenVoucher] = useState<number>(0);
-  const [userTokenSol, setUserTokenSol] = useState<number>();
+  const { wallet, publicKey } = useWallet();
+  const [marketData, setMarketData] = useState<MarketData>();
+  const [menuDefault, setMenuDefault] = useState(true);
+  const [swapActive, setSwapActive] = useState<boolean>(false);
+  const [userData, setUserData] = useState<UserData>();
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
   const router = useRouter();
 
@@ -42,28 +29,20 @@ export default function SwapView({ bruh }: HomeViewProps) {
     async function fetchData() {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
       let exhibit = new PublicKey(exhibitAddress);
-      let [marketAuth, authBump] = await PublicKey.findProgramAddress(
-        [Buffer.from("market_auth"), exhibit.toBuffer()],
-        BAZAAR_PROGRAM_ID
-      );
 
-      let swapExists = await checkIfAccountExists(marketAuth, connection);
       let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
       setExhibitSymbol(exhibitInfo.exhibitSymbol);
+
+      let swapExists = await checkIfSwapExists(exhibit, connection);
       setSwapActive(swapExists);
+
       if (swapExists) {
-        let mdata = await getMarketData(exhibit, publicKey, connection);
+        let mdata = await getMarketData(exhibit, connection);
         setMarketData(mdata);
       }
 
-      let userTokenVoucherBal = await getUserVoucherTokenBal(
-        exhibit,
-        publicKey,
-        connection
-      );
-      setUserTokenVoucher(userTokenVoucherBal);
-      let userSol = await connection.getBalance(publicKey);
-      setUserTokenSol(Number(userSol));
+      let uData = await getUserData(exhibit, publicKey, connection);
+      setUserData(uData);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
@@ -77,7 +56,7 @@ export default function SwapView({ bruh }: HomeViewProps) {
     <div className="flex flex-col items-center place-content-start">
       {swapActive ? (
         <>
-          {marketData ? (
+          {marketData && userData ? (
             <>
               <ul
                 className="menu menu-horizontal bg-base-100 rounded-box border-2"
@@ -92,11 +71,12 @@ export default function SwapView({ bruh }: HomeViewProps) {
               </ul>
               {menuDefault ? (
                 <>
-                  <SwapCard marketData={marketData} />
+                  <SwapCard marketData={marketData} userData={userData} />
                 </>
               ) : (
                 <LiquidityCard
                   marketData={marketData}
+                  userData={userData}
                   exhibitSymbol={exhibitSymbol}
                 />
               )}
@@ -106,7 +86,13 @@ export default function SwapView({ bruh }: HomeViewProps) {
           )}
         </>
       ) : (
-        <InitSwapCard userSol={userTokenSol} userVoucher={userTokenVoucher} />
+        <>
+          {userData ? (
+            <InitSwapCard userData={userData} />
+          ) : (
+            <p>Loading User Data</p>
+          )}
+        </>
       )}
     </div>
   );

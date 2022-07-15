@@ -1,11 +1,13 @@
 import NftCard from "@/components/NftCard";
 import { Nft } from "@metaplex-foundation/js";
 
-interface NftListProps {
+export default function NftList({
+  nftList,
+  exhibitKey,
+}: {
   nftList: Nft[] | null;
-  exhibitKey?: String;
-}
-export default function NftList({ nftList, exhibitKey }: NftListProps) {
+  exhibitKey?: string;
+}) {
   return (
     <div className="flex flex-row flex-wrap gap-4 justify-items-center auto-cols-max">
       {nftList &&

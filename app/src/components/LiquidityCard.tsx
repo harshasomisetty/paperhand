@@ -1,20 +1,20 @@
 import { useState } from "react";
 
-import { MarketData } from "@/utils/interfaces";
-
+import { MarketData, UserData } from "@/utils/interfaces";
 import DepositLiquidity from "@/components/DepositLiquidity";
 import WithdrawLiquidity from "@/components/WithdrawLiquidity";
 
 const LiquidityCard = ({
+  userData,
   marketData,
   exhibitSymbol,
 }: {
+  userData: UserData;
   marketData: MarketData;
   exhibitSymbol: string;
 }) => {
   const [depositLiq, setDepositLiq] = useState<boolean>(false);
 
-  // TODO AVOID NEGATIVE VALUES
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
       <div className="card-body">
@@ -40,11 +40,13 @@ const LiquidityCard = ({
         </div>
         {depositLiq ? (
           <DepositLiquidity
+            userData={userData}
             marketData={marketData}
             exhibitSymbol={exhibitSymbol}
           />
         ) : (
           <WithdrawLiquidity
+            userData={userData}
             marketData={marketData}
             exhibitSymbol={exhibitSymbol}
           />

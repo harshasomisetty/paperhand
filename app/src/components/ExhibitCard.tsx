@@ -3,14 +3,17 @@ import Link from "next/link";
 
 import { PublicKey } from "@solana/web3.js";
 import {
+  checkIfSwapExists,
   getAllExhibitArtifacts,
   getExhibitAccountData,
+  getMarketData,
 } from "@/utils/retrieveData";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitData, setExhibitData] = useState();
   const [nftList, setNftList] = useState<Nft[]>([]);
+  const [marketData, setMarketData] = useState<MarketData>();
   const [exhibitImages, setExhibitImages] = useState([]);
   const { connection } = useConnection();
   const { wallet } = useWallet();
@@ -19,7 +22,11 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
       setExhibitData(fetchedData);
       let allNfts = await getAllExhibitArtifacts(exhibit, connection);
-      setNftList(allNfts);
+
+      if (await checkIfSwapExists(exhibit, connection)) {
+        let mdata = await getMarketData(exhibit, connection);
+        setMarketData(mdata);
+      }
 
       let imagePromises = [];
       for (let nft of allNfts) {

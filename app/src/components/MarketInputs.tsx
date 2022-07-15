@@ -105,7 +105,6 @@ export const VoucherSlider = ({
 }) => {
   return (
     <>
-      {" "}
       <input
         type="range"
         min="0"
@@ -145,15 +144,15 @@ export const BazaarData = ({
             </tr>
             <tr>
               <th>Pool Liquidity (SOL)</th>
-              <td>{marketData.marketSolBal / LAMPORTS_PER_SOL}</td>
+              <td>{marketData.sol / LAMPORTS_PER_SOL}</td>
             </tr>
             <tr>
               <th>Pool Liquidity ({exhibitSymbol})</th>
-              <td>{marketData.marketVoucherBal}</td>
+              <td>{marketData.voucher}</td>
             </tr>
             <tr>
               <th>LP supply</th>
-              <td>{marketData.marketLiqBal}</td>
+              <td>{marketData.liq}</td>
             </tr>
           </tbody>
         </table>

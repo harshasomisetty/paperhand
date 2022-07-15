@@ -1,31 +1,27 @@
-import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { useState } from "react";
 import { HiChevronDoubleDown } from "react-icons/hi";
 
-import { MarketData } from "@/utils/interfaces";
-import { instructionDepositLiquidity } from "@/utils/instructions";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useRouter } from "next/router";
 import {
   BazaarData,
   LiqDisplay,
   VoucherSlider,
   VoucherSolDisplay,
 } from "@/components/MarketInputs";
+import { instructionDepositLiquidity } from "@/utils/instructions";
+import { MarketData, UserData } from "@/utils/interfaces";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/router";
 
 const DepositLiquidity = ({
+  userData,
   marketData,
   exhibitSymbol,
 }: {
+  userData: UserData;
   marketData: MarketData;
   exhibitSymbol: string;
 }) => {
-  const marketSol = marketData.marketSolBal;
-  const marketVoucher = marketData.marketVoucherBal;
-  const userSol = marketData.userSolBal;
-  const userVoucher = marketData.userVoucherBal;
-  const userLiq = marketData.userLiqBal;
-
   const [vouchers, setVouchers] = useState<number>(0);
   const [solOutput, setSolOutput] = useState<number>(0);
 
@@ -47,15 +43,15 @@ const DepositLiquidity = ({
     router.reload(window.location.pathname);
   }
 
-  // TODO AVOID NEGATIVE VALUES
   function updateInputs(value: number) {
     setVouchers(value);
-    setSolOutput((marketSol * value) / marketVoucher);
+    setSolOutput((marketData.sol * value) / marketData.voucher);
   }
+
   return (
     <>
       <VoucherSlider
-        max={userVoucher}
+        max={userData.voucher}
         value={vouchers}
         onChange={(e) => {
           updateInputs(Number(e.target.value));
@@ -66,15 +62,15 @@ const DepositLiquidity = ({
         <VoucherSolDisplay
           yesBool={false}
           solOutput={solOutput}
-          userSol={userSol}
+          userSol={userData.sol}
           vouchers={vouchers}
-          userVoucher={userVoucher}
+          userVoucher={userData.voucher}
         />
         <HiChevronDoubleDown />
         <div className="stat place-items-center">
           <LiqDisplay
             liqTokens={vouchers}
-            userLiqTokens={userLiq}
+            userLiqTokens={userData.liq}
             yesBool={true}
           />
         </div>
@@ -82,7 +78,7 @@ const DepositLiquidity = ({
 
       {wallet ? (
         <>
-          {userVoucher > 0 ? (
+          {userData.voucher > 0 ? (
             <>
               {vouchers >= 1 ? (
                 <button className="btn btn-primary" onClick={executeDepositLiq}>

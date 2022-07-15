@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 
 import ExhibitList from "@/components/ExhibitList";
-// import { Project } from "@/utils/interfaces";
 import * as ExhibitionJson from "@/target/idl/exhibition.json";
 const EXHIBITION_PROGRAM_ID = new PublicKey(
   ExhibitionJson["metadata"]["address"]

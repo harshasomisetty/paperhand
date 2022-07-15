@@ -1,50 +1,19 @@
 import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
   getAccount,
   getAssociatedTokenAddress,
   getMint,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { PublicKey, Connection } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 import {
-  EXHIBITION_PROGRAM_ID,
   BAZAAR_PROGRAM_ID,
+  EXHIBITION_PROGRAM_ID,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
+import { MarketData, UserData } from "@/utils/interfaces";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
 import { Wallet } from "@project-serum/anchor";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { MarketData } from "./interfaces";
-
-export async function getUserVoucherTokenBal(
-  exhibit: PublicKey,
-  publicKey: PublicKey | null,
-  connection: Connection
-): Promise<number> {
-  let [voucherMint] = await PublicKey.findProgramAddress(
-    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
-
-  let userVoucherWallet = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
-  let userVoucherExists = await checkIfAccountExists(
-    userVoucherWallet,
-    connection
-  );
-  if (userVoucherExists) {
-    let userVoucherTokenBal = await getAccount(connection, userVoucherWallet);
-    return Number(userVoucherTokenBal.amount);
-  } else {
-    return 0;
-  }
-}
 
 export async function getAllExhibitArtifacts(
   exhibit: PublicKey,
@@ -74,7 +43,6 @@ export async function getExhibitAddress(nft: Nft): Promise<PublicKey[]> {
   let seeds: Buffer[] = [];
   nft.creators?.forEach((creatorKey) => {
     if (creatorKey.verified) {
-      // console.log("verified", creatorKey.address.toString());
       seeds.push(creatorKey.address.toBuffer());
     }
   });
@@ -107,10 +75,23 @@ export async function checkIfAccountExists(
 export async function checkIfExhibitExists(
   nft: Nft,
   connection: Connection
-): Promise<Boolean> {
+): Promise<boolean> {
   let [exhibit] = await getExhibitAddress(nft);
   let exhibitExists = await checkIfAccountExists(exhibit, connection);
   return exhibitExists;
+}
+
+export async function checkIfSwapExists(
+  exhibit: PublicKey,
+  connection: Connection
+): Promise<boolean> {
+  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_auth"), exhibit.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let swapExists = await checkIfAccountExists(marketAuth, connection);
+  return swapExists;
 }
 
 export async function getExhibitAccountData(
@@ -122,9 +103,94 @@ export async function getExhibitAccountData(
   return exhibitInfo;
 }
 
+export async function getSwapAccounts(
+  exhibit: PublicKey,
+  publicKey: PublicKey
+): Promise<[PublicKey, PublicKey, number, PublicKey[], PublicKey, PublicKey]> {
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_auth"), exhibit.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let marketTokens = new Array(2);
+
+  let temp;
+
+  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("token_sol"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+
+  let liqMint;
+  [liqMint, temp] = await PublicKey.findProgramAddress(
+    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
+    BAZAAR_PROGRAM_ID
+  );
+  let userTokenVoucher = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+  return [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ];
+}
+export async function getUserData(
+  exhibit: PublicKey,
+  publicKey: PublicKey,
+  connection: Connection
+): Promise<UserData> {
+  let [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ] = await getSwapAccounts(exhibit, publicKey);
+
+  let userVoucherBal = 0;
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  if (await checkIfAccountExists(userVoucherWallet, connection)) {
+    userVoucherBal = Number(
+      (await getAccount(connection, userVoucherWallet)).amount
+    );
+  }
+
+  let userLiq = await getAssociatedTokenAddress(liqMint, publicKey);
+  let userLiqBal = 0;
+  if (await checkIfAccountExists(userLiq, connection)) {
+    userLiqBal = Number((await getAccount(connection, userLiq)).amount);
+  }
+
+  let userSol = Number(await connection.getBalance(publicKey));
+
+  return {
+    voucher: userVoucherBal,
+    sol: userSol,
+    liq: userLiqBal,
+  };
+}
+
 export async function getMarketData(
   exhibit: PublicKey,
-  userKey: PublicKey,
   connection: Connection
 ): Promise<MarketData> {
   let marketTokens = new Array(2);
@@ -152,61 +218,15 @@ export async function getMarketData(
     BAZAAR_PROGRAM_ID
   );
 
-  let marketVoucherBal = await getAccount(connection, marketTokens[0]);
-  let marketSol = await connection.getBalance(marketTokens[1]);
-  let marketLiqBal = await getMint(connection, liqMint);
-
-  let userTokenVoucherBal = await getUserVoucherTokenBal(
-    exhibit,
-    userKey,
-    connection
+  let marketVoucherBal = Number(
+    (await getAccount(connection, marketTokens[0])).amount
   );
-  let userSol = await connection.getBalance(userKey);
-
-  let userLiq = await getAssociatedTokenAddress(liqMint, userKey);
-
-  let userLiqBal = await getAccount(connection, userLiq);
+  let marketSol = Number(await connection.getBalance(marketTokens[1]));
+  let marketLiqBal = Number((await getMint(connection, liqMint)).supply);
 
   return {
-    marketVoucherBal: Number(marketVoucherBal.amount),
-    marketSolBal: Number(marketSol),
-    marketLiqBal: Number(marketLiqBal.supply),
-    userVoucherBal: Number(userTokenVoucherBal),
-    userSolBal: Number(userSol),
-    userLiqBal: Number(userLiqBal.amount),
+    voucher: marketVoucherBal,
+    sol: marketSol,
+    liq: marketLiqBal,
   };
-}
-
-export async function getSwapAccounts(
-  exhibit: PublicKey,
-  publicKey: PublicKey
-): Promise<[PublicKey, PublicKey, number, PublicKey[], PublicKey]> {
-  let [voucherMint] = await PublicKey.findProgramAddress(
-    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
-  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_auth"), exhibit.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  let marketTokens = new Array(2);
-
-  let temp;
-
-  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_sol"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  let userTokenVoucher = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
-  return [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher];
 }

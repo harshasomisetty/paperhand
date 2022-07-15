@@ -1,26 +1,22 @@
 import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
 import { instructionWithdrawNft } from "@/utils/instructions";
-import {
-  checkIfAccountExists,
-  checkIfExhibitExists,
-  getExhibitAddress,
-} from "@/utils/retrieveData";
+import { UserData } from "@/utils/interfaces";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import { useContext, useState } from "react";
+import { useContext } from "react";
 
 export default function SingleExhibitView({
   nftList,
   exhibitSymbol,
-  userTokenVoucherBal,
+  userData,
 }: {
   nftList: Nft[] | null;
   exhibitSymbol: string;
-  userTokenVoucherBal: number;
+  userData: UserData;
 }) {
-  const { selectedNft, setSelectedNft } = useContext(NftContext);
+  const { selectedNft } = useContext(NftContext);
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
 
@@ -50,7 +46,7 @@ export default function SingleExhibitView({
           <NftList nftList={nftList} exhibitKey={exhibitAddress} />
           {publicKey && selectedNft && (
             <>
-              {userTokenVoucherBal >= 1 ? (
+              {userData.voucher >= 1 ? (
                 <button className="btn btn-primary" onClick={withdrawNft}>
                   Withdraw nft
                 </button>

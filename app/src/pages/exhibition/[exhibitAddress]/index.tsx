@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { Nft } from "@metaplex-foundation/js";
@@ -15,17 +15,18 @@ import { getExhibitProgramAndProvider } from "@/utils/constants";
 import {
   checkIfAccountExists,
   getAllExhibitArtifacts,
-  getUserVoucherTokenBal,
+  getUserData,
 } from "@/utils/retrieveData";
-import { NftContext, NftProvider } from "@/context/NftContext";
+import { NftProvider } from "@/context/NftContext";
 import SingleExhibitView from "@/views/SingleExhibitView";
 import SwapView from "@/views/SwapView";
+import { UserData } from "@/utils/interfaces";
 
-// TODO check if exhibit even exists
 const ExploreProjects = () => {
-  const [exhibitSymbol, setExhibitSymbol] = useState();
+  const [exhibitSymbol, setExhibitSymbol] = useState<string>();
   const [nftList, setNftList] = useState<Nft[]>([]);
-  const [userTokenVoucher, setUserTokenVoucher] = useState<number>(0);
+  const [userData, setUserData] = useState<UserData>();
+
   const { wallet, publicKey } = useWallet();
   const { connection } = useConnection();
   const router = useRouter();
@@ -34,7 +35,6 @@ const ExploreProjects = () => {
   useEffect(() => {
     async function fetchData() {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-      console.log("fetching in exhibit/exhibtAddress");
       let exhibit = new PublicKey(exhibitAddress);
       let exhibitExists = await checkIfAccountExists(exhibit, connection);
 
@@ -43,13 +43,8 @@ const ExploreProjects = () => {
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
         let allNfts = await getAllExhibitArtifacts(exhibit, connection);
         setNftList(allNfts);
-
-        let userTokenVoucherBal = await getUserVoucherTokenBal(
-          exhibit,
-          publicKey,
-          connection
-        );
-        setUserTokenVoucher(userTokenVoucherBal);
+        let uData = await getUserData(exhibit, publicKey, connection);
+        setUserData(uData);
       }
     }
     if (wallet && publicKey && exhibitAddress) {
@@ -59,16 +54,22 @@ const ExploreProjects = () => {
 
   return (
     <>
-      <div className="grid grid-cols-2">
-        <NftProvider>
-          <SingleExhibitView
-            nftList={nftList}
-            exhibitSymbol={exhibitSymbol}
-            userTokenVoucherBal={userTokenVoucher}
-          />
-        </NftProvider>
-        <SwapView />
-      </div>
+      {userData ? (
+        <>
+          <div className="grid grid-cols-2">
+            <NftProvider>
+              <SingleExhibitView
+                nftList={nftList}
+                exhibitSymbol={exhibitSymbol}
+                userData={userData}
+              />
+            </NftProvider>
+            <SwapView />
+          </div>
+        </>
+      ) : (
+        <p>Loading data</p>
+      )}
     </>
   );
 };

@@ -14,7 +14,6 @@ import {
 } from "@solana/spl-token";
 import {
   Keypair,
-  LAMPORTS_PER_SOL,
   PublicKey,
   Transaction,
   sendAndConfirmTransaction,
@@ -24,8 +23,6 @@ import {
 import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 
 import { EXHIBITION_PROGRAM_ID } from "./constants";
-
-import { creator, otherCreators } from "./constants";
 
 export async function initAssociatedAddressIfNeeded(
   connection: Connection,

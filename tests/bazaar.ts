@@ -16,25 +16,11 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   LAMPORTS_PER_SOL,
-  Connection,
 } from "@solana/web3.js";
 import { Bazaar } from "../target/types/bazaar";
 import { Exhibition } from "../target/types/exhibition";
-import {
-  APE_URIS,
-  EXHIBITION_PROGRAM_ID,
-  BAZAAR_PROGRAM_ID,
-} from "../utils/constants";
-import {
-  APE_SYMBOL,
-  BEAR_SYMBOL,
-  APE_URLS,
-  BEAR_URLS,
-  creator,
-  otherCreators,
-  user,
-} from "../utils/constants";
-const fs = require("fs");
+import { BAZAAR_PROGRAM_ID } from "../utils/constants";
+import { creator, user } from "../utils/constants";
 const assert = require("assert");
 
 const provider = anchor.AnchorProvider.env();
@@ -80,15 +66,6 @@ async function swapFunc(
       userSol + amountOut,
     ];
   }
-
-  // console.log(
-  //   "in swap func",
-  //   marketVoucher,
-  //   marketSol,
-  //   userVoucher,
-  //   userSol,
-  //   vouchers
-  // );
 
   console.log("results", results);
   return results;
@@ -277,9 +254,6 @@ describe("bazaar", () => {
   it("Deposited liq", async () => {
     // User1 will first acquire token1 and 2
     // Then user1 will deposit into the pool using the add_liquidity
-
-    // TODO Checking if liq calculations are correct
-    // init the user liq token if needed (if market is inited, and if liq)
 
     for (let i = 0; i < 2; i++) {
       userTokens[i][0] = (

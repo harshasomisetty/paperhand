@@ -5,10 +5,14 @@ export interface Exhibit {
   account: AccountInfo<Buffer>;
 }
 
+export interface UserData {
+  voucher: number;
+  sol: number;
+  liq: number;
+}
+
 export interface MarketData {
-  marketVoucherBal: number;
-  marketSolBal: number;
-  userVoucherBal: number;
-  userSolBal: number;
-  userLiqBal: number;
+  voucher: number;
+  sol: number;
+  liq: number;
 }

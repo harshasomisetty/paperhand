@@ -1,14 +1,3 @@
-import { Nft } from "@metaplex-foundation/js";
-import { BN, Wallet } from "@project-serum/anchor";
-import {
-  PublicKey,
-  Connection,
-  LAMPORTS_PER_SOL,
-  sendAndConfirmTransaction,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-  Transaction,
-} from "@solana/web3.js";
 import {
   BAZAAR_PROGRAM_ID,
   EXHIBITION_PROGRAM_ID,
@@ -21,14 +10,21 @@ import {
   getExhibitAddress,
   getSwapAccounts,
 } from "@/utils/retrieveData";
+import { Nft } from "@metaplex-foundation/js";
+import { BN, Wallet } from "@project-serum/anchor";
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+  Transaction,
+} from "@solana/web3.js";
 
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
-  getAccount,
   getAssociatedTokenAddress,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
