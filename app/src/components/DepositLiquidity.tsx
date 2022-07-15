@@ -1,9 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { useState } from "react";
 import { HiChevronDoubleDown } from "react-icons/hi";
-
 import {
-  BazaarData,
   LiqDisplay,
   VoucherSlider,
   VoucherSolDisplay,
@@ -82,7 +80,7 @@ const DepositLiquidity = ({
             <>
               {vouchers >= 1 ? (
                 <button className="btn btn-primary" onClick={executeDepositLiq}>
-                  Add Liquidity
+                  Deposit Liquidity
                 </button>
               ) : (
                 <button class="btn" disabled="disabled">
@@ -101,7 +99,6 @@ const DepositLiquidity = ({
           Connect wallet to Swap
         </button>
       )}
-      <BazaarData marketData={marketData} exhibitSymbol={exhibitSymbol} />
     </>
   );
 };

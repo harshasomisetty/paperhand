@@ -7,7 +7,6 @@ import { instructionWithdrawLiquidity } from "@/utils/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import {
-  BazaarData,
   LiqDisplay,
   VoucherSlider,
   VoucherSolDisplay,
@@ -96,7 +95,7 @@ const WithdrawLiquidity = ({
                   className="btn btn-primary"
                   onClick={executeWithdrawLiq}
                 >
-                  Remove Liquidity
+                  Withdraw Liquidity
                 </button>
               ) : (
                 <button class="btn" disabled="disabled">
@@ -115,7 +114,6 @@ const WithdrawLiquidity = ({
           Connect wallet to Swap
         </button>
       )}
-      <BazaarData marketData={marketData} exhibitSymbol={exhibitSymbol} />
     </>
   );
 };

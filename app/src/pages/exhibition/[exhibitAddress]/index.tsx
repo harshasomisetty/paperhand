@@ -19,7 +19,7 @@ import {
 } from "@/utils/retrieveData";
 import { NftProvider } from "@/context/NftContext";
 import SingleExhibitView from "@/views/SingleExhibitView";
-import SwapView from "@/views/SwapView";
+import TradeView from "@/views/TradeView";
 import { UserData } from "@/utils/interfaces";
 
 const ExploreProjects = () => {
@@ -64,7 +64,7 @@ const ExploreProjects = () => {
                 userData={userData}
               />
             </NftProvider>
-            <SwapView />
+            <TradeView />
           </div>
         </>
       ) : (

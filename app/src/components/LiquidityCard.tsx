@@ -3,6 +3,7 @@ import { useState } from "react";
 import { MarketData, UserData } from "@/utils/interfaces";
 import DepositLiquidity from "@/components/DepositLiquidity";
 import WithdrawLiquidity from "@/components/WithdrawLiquidity";
+import { BazaarData } from "./MarketInputs";
 
 const LiquidityCard = ({
   userData,
@@ -13,12 +14,12 @@ const LiquidityCard = ({
   marketData: MarketData;
   exhibitSymbol: string;
 }) => {
-  const [depositLiq, setDepositLiq] = useState<boolean>(false);
+  const [depositLiq, setDepositLiq] = useState<boolean>(true);
 
   return (
-    <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
+    <div className="card flex flex-col space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <div className="card-body">
-        <h2 className="card-title">Liquidity</h2>
+        <h2 className="card-title mb-4">Liquidity</h2>
 
         <div className="flex flex-row w-full justify-evenly">
           <button
@@ -38,6 +39,7 @@ const LiquidityCard = ({
             Withdraw
           </button>
         </div>
+        <div className="p-2"></div>
         {depositLiq ? (
           <DepositLiquidity
             userData={userData}
@@ -51,6 +53,8 @@ const LiquidityCard = ({
             exhibitSymbol={exhibitSymbol}
           />
         )}
+        <div className="p-2"></div>
+        <BazaarData marketData={marketData} exhibitSymbol={exhibitSymbol} />
       </div>
     </div>
   );

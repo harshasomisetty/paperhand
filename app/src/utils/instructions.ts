@@ -206,8 +206,14 @@ export async function instructionInitSwap(
   console.log("in instruction", solIn, voucherIn);
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
-  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
-    await getSwapAccounts(exhibit, publicKey);
+  let [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ] = await getSwapAccounts(exhibit, publicKey);
 
   let temp;
   let tokenMints = new Array(1);
@@ -275,8 +281,14 @@ export async function instructionSwap(
 ) {
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
-  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
-    await getSwapAccounts(exhibit, publicKey);
+  let [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ] = await getSwapAccounts(exhibit, publicKey);
 
   let transaction = new Transaction();
 
@@ -336,8 +348,14 @@ export async function instructionDepositLiquidity(
   console.log("in instruction dpeo");
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
-  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
-    await getSwapAccounts(exhibit, publicKey);
+  let [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ] = await getSwapAccounts(exhibit, publicKey);
 
   let tokenMints = new Array(1);
   let temp;
@@ -408,8 +426,14 @@ export async function instructionWithdrawLiquidity(
   console.log("in instruction dpeo");
   let { Bazaar } = await getBazaarProgramAndProvider(wallet);
 
-  let [voucherMint, marketAuth, authBump, marketTokens, userTokenVoucher] =
-    await getSwapAccounts(exhibit, publicKey);
+  let [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ] = await getSwapAccounts(exhibit, publicKey);
 
   let tokenMints = new Array(1);
   let temp;

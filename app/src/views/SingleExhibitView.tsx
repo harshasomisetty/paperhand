@@ -39,9 +39,10 @@ export default function SingleExhibitView({
     <>
       {exhibitSymbol && (
         <div>
-          <h2>
-            Explore the NFTs in the{" "}
-            <span style={{ fontWeight: "bold" }}>{exhibitSymbol}</span> Exhibit
+          <h2 className="text-2xl font-light m-2 mb-4">
+            Explore the{" "}
+            <span className="text-2xl font-extrabold">{exhibitSymbol}</span>{" "}
+            Exhibit NFTs
           </h2>
           <NftList nftList={nftList} exhibitKey={exhibitAddress} />
           {publicKey && selectedNft && (

@@ -13,7 +13,7 @@ import SwapCard from "@/components/SwapCard";
 import LiquidityCard from "@/components/LiquidityCard";
 import InitSwapCard from "@/components/InitSwapCard";
 
-export default function SwapView({}) {
+export default function TradeView({}) {
   const { connection } = useConnection();
   const { wallet, publicKey } = useWallet();
   const [marketData, setMarketData] = useState<MarketData>();
@@ -53,13 +53,13 @@ export default function SwapView({}) {
     setMenuDefault(!menuDefault);
   }
   return (
-    <div className="flex flex-col items-center place-content-start">
+    <div className="flex flex-col items-center place-content-start space-y-4 m-4">
       {swapActive ? (
         <>
           {marketData && userData ? (
             <>
               <ul
-                className="menu menu-horizontal bg-base-100 rounded-box border-2"
+                className="menu menu-horizontal bg-base-300 rounded-box border border-neutral-focus"
                 onClick={switchMenu}
               >
                 <li>
@@ -70,9 +70,7 @@ export default function SwapView({}) {
                 </li>
               </ul>
               {menuDefault ? (
-                <>
-                  <SwapCard marketData={marketData} userData={userData} />
-                </>
+                <SwapCard marketData={marketData} userData={userData} />
               ) : (
                 <LiquidityCard
                   marketData={marketData}

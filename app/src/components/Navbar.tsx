@@ -7,10 +7,12 @@ const tabs: string[] = ["home", "exhibition"];
 const Navbar = () => {
   const router = useRouter();
   return (
-    <div className="navbar flex flex-row justify-between border-b border-neutral font-bold">
+    <div className="navbar flex flex-row justify-between border-b border-neutral ">
       <div className="navbar-start">
         <Link href="/home">
-          <div className="btn btn-ghost normal-case text-xl">NFTAMM</div>
+          <div className="btn btn-ghost normal-case font-bold text-3xl">
+            NFTAMM
+          </div>
         </Link>
       </div>
       <div className="navbar-center">

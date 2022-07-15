@@ -32,7 +32,7 @@ const InitSwapCard = ({ userData }: { userData: UserData }) => {
   return (
     <>
       {userData ? (
-        <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
+        <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-300">
           <div className="card-body">
             <h2 className="card-title">Init Bazaar for this Exhibit!</h2>
 

@@ -107,7 +107,7 @@ export const VoucherSlider = ({
     <>
       <input
         type="range"
-        min="0"
+        min={0}
         max={max}
         value={value}
         step={`${max < 10} && "1"`}
@@ -136,7 +136,7 @@ export const BazaarData = ({
   return (
     <>
       {marketData ? (
-        <table className="table table-compact w-full border rounded-lg items-end">
+        <table className="table table-compact table-zebra w-full border rounded-2xl items-end">
           <tbody>
             <tr>
               <th>Base</th>

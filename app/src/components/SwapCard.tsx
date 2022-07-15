@@ -65,7 +65,7 @@ const SwapCard = ({
   }
 
   return (
-    <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-100">
+    <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <div className="card-body">
         <h2 className="card-title">Swap Vouchers</h2>
 
