@@ -6,18 +6,37 @@ NFTAMM is a system that allows people to fungitize their NFTs with voucherable t
 This allows for an easily determinable floor for people to use.
 
 * Architecture
+** Core
 NFTAMM contains two contracts, the *Exhibition* and *Bazaar* contracts.
-** Exhibition
+*** Exhibition
 Exhibition is vault system that allows NFT owners to deposit their NFTs into an exhibit (an account that relates to a single collection).
 
 Every time a user deposits their NFT, they get a voucher token they can then trade for SOL in the Bazaar
-
-** Bazaar
+*** Bazaar
 Bazaar is a market factory that instantiates a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 
 The Bazaar has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
 
+** Floor bid
+The next stage of the project was to implement a floor bid system, where bidders can place limit buy orders, and sellers can instant sell into these bids.
 
+This will consist of the *Cantina* and *Checkout*
+*** Cantina
+this contract allows bidders to place orders, where they deposit sol into the contract, as well as cancel orders and receive their sol back
+
+also allows sellers to accept a bid, receive sol,
+
+the transaction will consist of the following instructions
+- voucherize their nft
+
+- transfer voucher to checkout contract
+- transfer bider's sol to seller
+- cpi to checkout and add node
+
+*** checkout
+this contract is associated with an exhibit, and is a queue of all satisfied trades
+each trade consists of
+- pubkey to send a voucher tokens
 * Deploy script
 the test folder has a full workflow of interacting with the exhibition and bazaar contracts
 

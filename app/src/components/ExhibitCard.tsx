@@ -49,7 +49,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   }, [wallet]);
 
   return (
-    <div className="card card-compact w-56 bg-base-300 shadow-xl">
+    <div className="card card-compact w-60 bg-base-300 shadow-xl">
       {exhibitData && (
         <div className="card-body">
           {exhibitImages && (
