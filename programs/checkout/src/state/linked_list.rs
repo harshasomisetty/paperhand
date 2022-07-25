@@ -5,6 +5,8 @@ use std::fmt::{self, Debug, Display, Formatter};
 
 #[constant]
 pub const MAX_OPEN_ORDERS: usize = 1024;
+#[constant]
+pub const SENTINEL: usize = 0;
 
 #[zero_copy]
 #[derive(Default, Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
@@ -27,7 +29,8 @@ pub struct Node<T> {
 #[zero_copy]
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
 pub struct LinkedList<T> {
-    pub free_list_head: usize,
+    pub free_head: usize,
+    pub order_head: usize,
     pub orders: [Node<T>; MAX_OPEN_ORDERS],
 }
 
@@ -42,16 +45,43 @@ where
     Node<T>: std::marker::Copy,
 {
     pub fn initialize() -> Self {
-        println!("\n\n\ntesting initialize in linked list\n\n\n");
-        // self.free_list_head = 1;
         Self {
-            free_list_head: 1,
+            free_head: 1,
+            order_head: 0,
             orders: [Node::default(); MAX_OPEN_ORDERS],
         }
     }
 
-    pub fn insert_node(&mut self, index: usize, obj: T) {
-        self.orders[index].val = obj;
+    pub fn insert_node(&mut self, obj: T) {
+        let free_node = &mut self.orders[self.free_head];
+        let next_free_node = free_node.next;
+
+        free_node.val = obj;
+        free_node.next = self.order_head;
+        free_node.prev = SENTINEL;
+
+        if self.order_head != SENTINEL {
+            self.orders[self.order_head].prev = self.free_head;
+        }
+        self.order_head = self.free_head;
+
+        if next_free_node == SENTINEL {
+            // Current portion of array is densely packed
+            // Next free node is just next index
+
+            assert!(self.free_head + 1 < MAX_OPEN_ORDERS, "Too many open orders");
+            self.free_head = self.free_head + 1;
+        } else {
+            // There are free nodes remaining
+
+            self.free_head = next_free_node;
+        }
+
+        println!(
+            "List status: free head {}, order head {}",
+            self.free_head, self.order_head
+        );
+        // self.orders[index].val = obj;
     }
 
     pub fn remove_node(&mut self) {}
@@ -64,13 +94,29 @@ where
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut output = Vec::new();
 
-        for order in &self.orders {
-            if order.val == Default::default() {
-                break;
-            }
-            output.push(&order.val);
+        let mut cur_node_index = self.order_head;
+
+        while cur_node_index != SENTINEL {
+            output.push(&self.orders[cur_node_index].val);
+            // println!("cur node {}", self.orders[cur_node_index]);
+            cur_node_index = self.orders[cur_node_index].next;
+            // println!("next? {}", cur_node_index);
         }
+
         write!(f, "{:?}", output)
+    }
+}
+
+impl<T> Display for Node<T>
+where
+    T: Display + PartialEq + Default + Debug,
+{
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Node: val {:?} prev {} next {}",
+            self.val, self.prev, self.next
+        )
     }
 }
 
@@ -82,12 +128,12 @@ mod tests {
     #[test]
     fn insert_node_works() {
         let mut list = LinkedList::<u8>::initialize();
-        list.insert_node(0, 1);
-        list.insert_node(1, 2);
-        list.insert_node(2, 3);
-        list.insert_node(3, 4);
+        list.insert_node(1);
+        list.insert_node(2);
+        list.insert_node(3);
+        list.insert_node(4);
 
-        println!("Linked list is {}", list);
+        println!("Linked list is \n{}", list);
 
         // list.insert_node();
     }
