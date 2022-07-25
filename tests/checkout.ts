@@ -140,19 +140,6 @@ describe("checkout", () => {
     }
   });
 
-  // // send max allowed length string
-  // it("Send 920 long character", async () => {
-  //   const string_length = 920;
-  //   const tx = await Checkout.methods
-  //     .setData("A".repeat(string_length))
-  //     .accounts({
-  //       writer: author.publicKey,
-  //       dataHolder: pda,
-  //     })
-  //     .signers([author])
-  //     .rpc();
-  //   console.log(string_length, "Your transaction signature", tx);
-  // });
   Checkout.provider.connection.onLogs("all", ({ logs }) => {
     console.log(logs);
   });

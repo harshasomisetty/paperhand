@@ -2,18 +2,13 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 
 pub mod state;
-use state::linked_list::{LinkedList, Node, TestNode};
+use state::linked_list::LinkedList;
 
 declare_id!("8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX");
 
 #[program]
 pub mod checkout {
     use super::*;
-    use std::ops::Deref;
-
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        Ok(())
-    }
 
     pub fn set_data(ctx: Context<SetData>, string_to_set: String) -> Result<()> {
         msg!("in set data");
@@ -23,36 +18,38 @@ pub mod checkout {
         Ok(())
     }
 
-    pub fn set_data2(ctx: Context<SetData2>, pubkey_to_set: Pubkey) -> Result<()> {
-        msg!("in set data");
+    pub fn set_data2(_ctx: Context<SetData2>, pubkey_to_set: Pubkey) -> Result<()> {
+        msg!("in set data2");
         msg!("Pubkey: {}", pubkey_to_set.to_string());
 
-        let mut node = TestNode::new(pubkey_to_set);
+        // let mut list = LinkedList::<Pubkey>::new();
+        // list.insert_at_tail(pubkey_to_set);
+        // ctx.accounts.linked_holder.load_mut()?.trades = list;
+        // let mut node = TestNode::new(pubkey_to_set);
 
-        msg!("node dat?: {}", node.val);
+        // msg!("node dat?: {}", node.val);
 
-        ctx.accounts.linked_holder.load_mut()?.trades[..1].clone_from_slice(&[node]);
+        // ctx.accounts.linked_holder.load_mut()?.trades[..1].clone_from_slice(&[node]);
 
-        msg!(
-            "linked holder data {:?}",
-            ctx.accounts.linked_holder.load()?.trades
-        );
-        // let
-        // ctx.accounts.data_holder.load_mut()?.greet_string[..string_to_set.chars().count()]
-        //     .clone_from_slice(string_to_set.as_bytes());
+        // msg!(
+        //     "linked holder data {:?}",
+        //     ctx.accounts.linked_holder.load()?.trades
+        // );
+
         msg!("greet string set successfully");
         Ok(())
     }
 
-    pub fn read_data(ctx: Context<ReadData>) -> Result<()> {
-        msg!("in set data");
+    // pub fn read_data(ctx: Context<ReadData>) -> Result<()> {
+    //     msg!("in set data");
 
-        msg!(
-            "linked holder data {:?}",
-            ctx.accounts.linked_holder.load()?.trades
-        );
-        Ok(())
-    }
+    //     msg!(
+    //         "linked holder data {:?}",
+    //         ctx.accounts.linked_holder.load()?.trades
+    //     );
+
+    //     Ok(())
+    // }
 }
 
 #[derive(Accounts)]
@@ -103,5 +100,5 @@ pub struct DataHolder {
 #[account(zero_copy)]
 #[repr(packed)]
 pub struct LinkedHolder {
-    pub trades: [TestNode; 32],
+    pub trades: LinkedList<Pubkey>,
 }
