@@ -16,16 +16,6 @@ pub struct Node<T> {
     pub next: usize,
 }
 
-// impl<T> Node<T> {
-//     fn new(t: T) -> Node<T> {
-//         Node {
-//             val: t,
-//             prev: 0,
-//             next: 0,
-//         }
-//     }
-// }
-
 #[zero_copy]
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
 pub struct LinkedList<T> {
@@ -33,12 +23,6 @@ pub struct LinkedList<T> {
     pub order_head: usize,
     pub orders: [Node<T>; MAX_OPEN_ORDERS],
 }
-
-// impl<T> Default for LinkedList<T> {
-//     fn default() -> Self {
-//         // Self::<T>::initialize()
-//     }
-// }
 
 impl<T: std::default::Default> LinkedList<T>
 where
@@ -84,7 +68,43 @@ where
         // self.orders[index].val = obj;
     }
 
-    pub fn remove_node(&mut self) {}
+    pub fn remove_node(&mut self, i: usize) {
+        let node = &mut self.orders[i];
+
+        let next = node.next;
+        let prev = node.prev;
+
+        println!("next {} prev {}", next, prev);
+        if prev == SENTINEL {
+            println!("removing head");
+            // If we enter this block, we are removing the head, so need to stop tracking this
+            self.order_head = next;
+        }
+
+        node.val = Default::default();
+        node.next = self.free_head;
+        node.prev = SENTINEL;
+        println!("next: {}, prev: {}", &node.next, &node.prev);
+        // println!("after node clearing {}", node);
+
+        self.free_head = i;
+        self.orders[self.free_head].prev = i;
+
+        // TODO the prev after removing is wrong
+        if next != SENTINEL {
+            println!("is not tail");
+            self.orders[next].prev = prev;
+        }
+        if prev != SENTINEL {
+            println!("is not head");
+            self.orders[prev].next = next;
+        }
+
+        println!(
+            "List status: free head {}, order head {}",
+            self.free_head, self.order_head
+        );
+    }
 }
 
 impl<T> Display for LinkedList<T>
@@ -96,6 +116,9 @@ where
 
         let mut cur_node_index = self.order_head;
 
+        for i in 0..10 {
+            println!("Node: {}", self.orders[i]);
+        }
         while cur_node_index != SENTINEL {
             output.push(&self.orders[cur_node_index].val);
             // println!("cur node {}", self.orders[cur_node_index]);
@@ -133,6 +156,24 @@ mod tests {
         list.insert_node(3);
         list.insert_node(4);
 
+        println!("Linked list is \n{}", list);
+    }
+
+    #[test]
+    fn remove_node_works() {
+        let mut list = LinkedList::<u8>::initialize();
+        list.insert_node(1);
+        list.insert_node(2);
+        list.insert_node(3);
+        list.insert_node(4);
+        // println!("Linked list is \n{}\n\n", list);
+
+        list.remove_node(1);
+        list.remove_node(4);
+
+        // println!("Linked list is \n{}", list);
+
+        list.insert_node(5);
         println!("Linked list is \n{}", list);
 
         // list.insert_node();
