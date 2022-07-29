@@ -16,6 +16,7 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   LAMPORTS_PER_SOL,
+  Transaction,
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
 import { otherCreators } from "../utils/constants";
@@ -27,14 +28,25 @@ anchor.setProvider(provider);
 const connection = provider.connection;
 const Checkout = anchor.workspace.Checkout as Program<Checkout>;
 
-let pda, pda2, bump;
+let pda_list, bump;
 const author = Keypair.generate();
 
+const checkoutTradeAccounts = [];
+for (let i = 0; i < 5; i++) {
+  checkoutTradeAccounts.push(Keypair.generate());
+}
+
+let normal_list = new Keypair();
+
 describe("checkout", () => {
-  //
   // mocha before script
   before(async () => {
     console.log(new Date(), "requesting airdrop");
+
+    for (let i = 0; i < checkoutTradeAccounts.length; i++) {
+      console.log("add", i, checkoutTradeAccounts[i].publicKey.toString());
+    }
+
     // let airdropees = [author];
 
     // let airdropPromises = [];
@@ -59,14 +71,7 @@ describe("checkout", () => {
 
     console.log(new Date(), "User pubkey is", author.publicKey.toBase58());
 
-    [pda, bump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode("data_holder_v0"),
-        author.publicKey.toBuffer(),
-      ],
-      Checkout.programId
-    );
-    [pda2, bump] = await PublicKey.findProgramAddress(
+    [pda_list, bump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode("data_holder_v1"),
         author.publicKey.toBuffer(),
@@ -76,68 +81,52 @@ describe("checkout", () => {
   });
 
   it("Is initialized!", async () => {
-    const tx = await Checkout.methods
+    const init_tx = await Checkout.account.linkedHolder.createInstruction(
+      normal_list
+    );
+
+    let acc = await connection.getAccountInfo(normal_list.publicKey);
+
+    console.log("acc info", acc);
+
+    const actual_tx = await Checkout.methods
       .initialize()
       .accounts({
-        author: author.publicKey,
-        dataHolder: pda,
-        linkedHolder: pda2,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        linkedHolder: normal_list.publicKey,
+      })
+      .preInstructions([init_tx])
+      .signers([normal_list])
+      .rpc();
+
+    // console.log("Your transaction signature", tx);
+  });
+
+  it("Able to add to DLL!", async () => {
+    for (let i = 0; i < checkoutTradeAccounts.length; i++) {
+      let tx = await Checkout.methods
+        .setData(checkoutTradeAccounts[i].publicKey)
+        .accounts({
+          writer: author.publicKey,
+          linkedHolder: normal_list.publicKey,
+        })
+        .signers([author])
+        .rpc();
+    }
+    // console.log("Your transaction signature", tx);
+  });
+
+  it("Able to remove pubkey order from DLL!", async () => {
+    let orderPubkey = checkoutTradeAccounts[2];
+    console.log("removing order from list: ", orderPubkey.publicKey);
+    let tx = await Checkout.methods
+      .removeOrder(orderPubkey.publicKey)
+      .accounts({
+        writer: author.publicKey,
+        linkedHolder: normal_list.publicKey,
       })
       .signers([author])
       .rpc();
-    console.log("Your transaction signature", tx);
-  });
-
-  // it("Able to set text!", async () => {
-  //   try {
-  //     const tx = await Checkout.methods
-  //       .setData("nice")
-  //       .accounts({
-  //         writer: author.publicKey,
-  //         dataHolder: pda,
-  //       })
-  //       .signers([author])
-  //       .rpc();
-  //     console.log("Your transaction signature", tx);
-  //   } catch (error) {
-  //     console.log("cant set text", error);
-  //     throw new Error();
-  //   }
-  // });
-
-  it("Able to set linked!", async () => {
-    try {
-      const tx = await Checkout.methods
-        .setData2(author.publicKey)
-        .accounts({
-          writer: author.publicKey,
-          linkedHolder: pda2,
-        })
-        .signers([author])
-        .rpc();
-      console.log("Your transaction signature", tx);
-    } catch (error) {
-      console.log("cant set text", error);
-      throw new Error();
-    }
-  });
-
-  it("Able to read linked!", async () => {
-    try {
-      const tx = await Checkout.methods
-        .readData()
-        .accounts({
-          writer: author.publicKey,
-          linkedHolder: pda2,
-        })
-        .signers([author])
-        .rpc();
-      console.log("Your transaction signature", tx);
-    } catch (error) {
-      console.log("cant set text", error);
-      throw new Error();
-    }
+    // console.log("Your transaction signature", tx);
   });
 
   Checkout.provider.connection.onLogs("all", ({ logs }) => {

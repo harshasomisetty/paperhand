@@ -4,6 +4,7 @@ seeds = false
 exhibition = "AqzBa4Xaiorxbu49AV6Ja9RsspZXSCWcJCZp3imeLLhg"
 bazaar = "7cysYXNdgFsJJ8mGRszhkNDej9rzKWNMKiAAthYcx8U3"
 checkout = "8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX"
+chat = "6G6f58pj3JmFnv8p2x2Z2Vzw38NLnz1aPj2qwQpNn9ob"
 
 [registry]
 url = "https://anchor.projectserum.com"

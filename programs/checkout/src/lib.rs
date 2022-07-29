@@ -10,35 +10,47 @@ declare_id!("8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX");
 pub mod checkout {
     use super::*;
 
-    pub fn set_data(ctx: Context<SetData>, string_to_set: String) -> Result<()> {
-        msg!("in set data");
-        ctx.accounts.data_holder.load_mut()?.greet_string[..string_to_set.chars().count()]
-            .clone_from_slice(string_to_set.as_bytes());
-        msg!("greet string set successfully");
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        msg!("In initializer");
+        let list = LinkedList::initialize();
+
+        let mut linked_holder = ctx.accounts.linked_holder.load_init()?;
+
+        linked_holder.trades = list;
+
+        // linked_holder.trades.order_head = 2;
+
+        msg!("linked holder data {:?}", &linked_holder.trades.order_head);
         Ok(())
     }
 
-    pub fn set_data2(_ctx: Context<SetData2>, pubkey_to_set: Pubkey) -> Result<()> {
-        msg!("in set data2");
-        msg!("Pubkey: {}", pubkey_to_set.to_string());
+    pub fn set_data(ctx: Context<SetData>, pubkey_to_set: Pubkey) -> Result<()> {
+        msg!("in set_data pubkey: {}", &pubkey_to_set.to_string());
 
-        // let mut list = LinkedList::<Pubkey>::new();
-        // list.insert_at_tail(pubkey_to_set);
-        // ctx.accounts.linked_holder.load_mut()?.trades = list;
-        // let mut node = TestNode::new(pubkey_to_set);
+        let mut linked_holder = ctx.accounts.linked_holder.load_mut()?;
 
-        // msg!("node dat?: {}", node.val);
+        linked_holder.trades.insert_node(pubkey_to_set);
 
-        // ctx.accounts.linked_holder.load_mut()?.trades[..1].clone_from_slice(&[node]);
+        msg!(
+            "linked holder data {:?}, {:?}",
+            linked_holder.trades.free_head,
+            linked_holder.trades.order_head
+        );
 
-        // msg!(
-        //     "linked holder data {:?}",
-        //     ctx.accounts.linked_holder.load()?.trades
-        // );
-
-        msg!("greet string set successfully");
         Ok(())
     }
+
+    pub fn remove_order(ctx: Context<RemoveOrder>, pubkey_to_remove: Pubkey) -> Result<()> {
+        msg!("in remove_order pubkey: {}", &pubkey_to_remove.to_string());
+
+        let mut linked_holder = ctx.accounts.linked_holder.load_mut()?;
+        linked_holder.trades.remove_node_by_pubkey(pubkey_to_remove);
+
+        Ok(())
+    }
+    // TODO remove node based on pubkey
+    // TODO which node indexes (10, 10) to search for pubkey
+    //
 
     // pub fn read_data(ctx: Context<ReadData>) -> Result<()> {
     //     msg!("in set data");
@@ -54,51 +66,34 @@ pub mod checkout {
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init,    seeds = [b"data_holder_v0", author.key().as_ref()], bump, payer=author, space= 10 * 1024 as usize)]
-    pub data_holder: AccountLoader<'info, DataHolder>,
-
-    #[account(init,
-              seeds = [b"data_holder_v1",      author.key().as_ref()], bump, payer=author,    space = 8 + std::mem::size_of::<LinkedHolder>())]
+    #[account(zero)]
     pub linked_holder: AccountLoader<'info, LinkedHolder>,
-
-    #[account(mut)]
-    pub author: Signer<'info>,
-    #[account(address = system_program::ID)]
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct SetData<'info> {
     #[account(mut)]
-    pub data_holder: AccountLoader<'info, DataHolder>,
-    #[account(mut)]
+    pub linked_holder: AccountLoader<'info, LinkedHolder>,
     pub writer: Signer<'info>,
 }
 
 #[derive(Accounts)]
-pub struct SetData2<'info> {
+pub struct RemoveOrder<'info> {
     #[account(mut)]
     pub linked_holder: AccountLoader<'info, LinkedHolder>,
-    #[account(mut)]
     pub writer: Signer<'info>,
 }
 
-#[derive(Accounts)]
-pub struct ReadData<'info> {
-    #[account(mut)]
-    pub linked_holder: AccountLoader<'info, LinkedHolder>,
-    #[account(mut)]
-    pub writer: Signer<'info>,
-}
+// TODO read token program code
+// TODO consider case when ATA owner is not the pubkey, if you don't check owner its "fine" but wrong person gets the voucher, but if the ownership doens't match, just make a new token account.
+// conrract side check token acocunt owner
+
+// target token account
+
+// if token account
 
 #[account(zero_copy)]
-#[repr(packed)]
-pub struct DataHolder {
-    pub greet_string: [u8; 920],
-}
-
-#[account(zero_copy)]
-#[repr(packed)]
+#[repr(C)]
 pub struct LinkedHolder {
-    pub trades: LinkedList<Pubkey>,
+    pub trades: LinkedList,
 }

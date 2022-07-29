@@ -27,6 +27,8 @@ export default function NftCard({
       onClick={() => {
         console.log("nft index: ", index);
         setSelectedNft(nft);
+        /* setSelectedNft({ [nft]}); */
+        // delete selectedNft[nft.tokenAddress.toString()]
       }}
     >
       {nftImage ? (
