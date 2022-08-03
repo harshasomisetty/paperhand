@@ -44,9 +44,6 @@ pub struct LinkedList {
     pub orders: [Node; MAX_OPEN_ORDERS as usize],
 }
 
-// impl<T: std::default::Default> LinkedList<T>
-// where
-//     Node: std::marker::Copy,
 impl LinkedList {
     pub fn initialize() -> Self {
         let mut orders = [Node::default(); MAX_OPEN_ORDERS as usize];
@@ -119,7 +116,6 @@ impl LinkedList {
         node.next = self.free_head;
         node.prev = SENTINEL;
         println!("next: {}, prev: {}", &node.next, &node.prev);
-        // println!("after node clearing {}", node);
 
         self.free_head = i;
         self.orders[self.free_head as usize].prev = i;
@@ -154,7 +150,9 @@ impl LinkedList {
             let cur_node = &self.orders[cur_node_index as usize];
 
             if cur_node.val == key {
-                self.remove_node_by_array_index(cur_node.array_index);
+                self.remove_node_by_array_index(
+                    (&self.orders[cur_node_index as usize]).array_index,
+                );
                 break;
             }
             cur_node_index = self.orders[cur_node_index as usize].next;

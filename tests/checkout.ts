@@ -19,17 +19,15 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
+import { checkIfAccountExists } from "../utils/actions";
 import { otherCreators } from "../utils/constants";
-import { creator, user } from "../utils/constants";
+import { creator, user, EXHIBITION_PROGRAM_ID } from "../utils/constants";
 const assert = require("assert");
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
 const Checkout = anchor.workspace.Checkout as Program<Checkout>;
-
-let pda_list, bump;
-const author = Keypair.generate();
 
 const checkoutTradeAccounts = [];
 for (let i = 0; i < 5; i++) {
@@ -39,7 +37,15 @@ for (let i = 0; i < 5; i++) {
 let normal_list = new Keypair();
 
 describe("checkout", () => {
-  // mocha before script
+  let exhibitKeypair: Keypair = Keypair.generate();
+  let exhibit: PublicKey = exhibitKeypair.publicKey;
+
+  let pda_list, bump;
+  const user = Keypair.generate();
+  let voucherMint, checkoutVoucher, userVoucher: PublicKey;
+  let checkoutAuth: PublicKey;
+  let authBump: number;
+
   before(async () => {
     console.log(new Date(), "requesting airdrop");
 
@@ -47,7 +53,7 @@ describe("checkout", () => {
       console.log("add", i, checkoutTradeAccounts[i].publicKey.toString());
     }
 
-    // let airdropees = [author];
+    // let airdropees = [user];
 
     // let airdropPromises = [];
     // airdropees.forEach((dropee) =>
@@ -61,72 +67,194 @@ describe("checkout", () => {
     // await Promise.all(airdropPromises);
 
     const airdropTx = await connection.requestAirdrop(
-      author.publicKey,
+      user.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
     await connection.confirmTransaction(airdropTx);
     // console.log(airdropPromises);
-    let authorBal = await connection.getBalance(author.publicKey);
-    console.log("author bal ", Number(authorBal));
+    let userBal = await connection.getBalance(user.publicKey);
+    console.log("user bal ", Number(userBal));
 
-    console.log(new Date(), "User pubkey is", author.publicKey.toBase58());
+    console.log(new Date(), "User pubkey is", user.publicKey.toBase58());
 
     [pda_list, bump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode("data_holder_v1"),
-        author.publicKey.toBuffer(),
-      ],
+      [Buffer.from("data_holder_v1"), user.publicKey.toBuffer()],
       Checkout.programId
     );
+
+    [checkoutAuth, authBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("checkout_auth"), exhibit.toBuffer()],
+      Checkout.programId
+    );
+    // [voucherMint] = await PublicKey.findProgramAddress(
+    //   [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    //   EXHIBITION_PROGRAM_ID
+    // );
+
+    voucherMint = await createMint(
+      connection,
+      creator,
+      creator.publicKey,
+      creator.publicKey,
+      0
+    );
+
+    try {
+      // checkoutVoucher = await getAssociatedTokenAddress(
+      //   voucherMint,
+      //   checkoutAuth
+      // );
+
+      [checkoutVoucher, bump] = await PublicKey.findProgramAddress(
+        [Buffer.from("checkout_voucher"), checkoutAuth.toBuffer()],
+        Checkout.programId
+      );
+
+      userVoucher = await getAssociatedTokenAddress(
+        voucherMint,
+        user.publicKey
+      );
+      // checkoutVoucher = (
+      //   await getOrCreateAssociatedTokenAccount(
+      //     connection,
+      //     user,
+      //     voucherMint,
+      //     normal_list.publicKey
+      //   )
+      // ).address;
+    } catch (error) {
+      console.log("before err", error);
+    }
   });
 
   it("Is initialized!", async () => {
+    // TODO make normal_list a pda
     const init_tx = await Checkout.account.linkedHolder.createInstruction(
       normal_list
     );
 
     let acc = await connection.getAccountInfo(normal_list.publicKey);
 
-    console.log("acc info", acc);
+    console.log("chekoutOut auth", checkoutAuth.toString());
+    console.log(
+      "ref accs",
+      normal_list.publicKey.toString(),
+      exhibit.toString(),
+      checkoutAuth.toString(),
+      voucherMint.toString(),
+      checkoutVoucher.toString(),
+      user.publicKey.toString()
+    );
+    try {
+      const actual_tx = await Checkout.methods
+        .initialize(authBump)
+        .accounts({
+          linkedHolder: normal_list.publicKey,
+          exhibit: exhibit,
+          checkoutAuth: checkoutAuth,
+          voucherMint: voucherMint,
+          checkoutVoucher: checkoutVoucher,
+          user: user.publicKey,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .preInstructions([init_tx])
+        .signers([normal_list, user])
+        .rpc();
+    } catch (error) {
+      console.log("adding erroe", error);
+    }
 
-    const actual_tx = await Checkout.methods
-      .initialize()
-      .accounts({
-        linkedHolder: normal_list.publicKey,
-      })
-      .preInstructions([init_tx])
-      .signers([normal_list])
-      .rpc();
+    assert.ok(
+      (await checkIfAccountExists(checkoutVoucher, connection)) == true
+    );
 
+    assert.ok((await checkIfAccountExists(checkoutAuth, connection)) == true);
     // console.log("Your transaction signature", tx);
   });
 
   it("Able to add to DLL!", async () => {
-    for (let i = 0; i < checkoutTradeAccounts.length; i++) {
-      let tx = await Checkout.methods
-        .setData(checkoutTradeAccounts[i].publicKey)
-        .accounts({
-          writer: author.publicKey,
-          linkedHolder: normal_list.publicKey,
-        })
-        .signers([author])
-        .rpc();
+    try {
+      if (!(await checkIfAccountExists(userVoucher, connection))) {
+        await getOrCreateAssociatedTokenAccount(
+          connection,
+          user,
+          voucherMint,
+          user.publicKey
+        );
+
+        await mintTo(
+          connection,
+          user,
+          voucherMint,
+          userVoucher,
+          creator,
+          checkoutTradeAccounts.length
+        );
+      } else {
+        console.log("user voucher already created");
+      }
+
+      for (let i = 0; i < checkoutTradeAccounts.length; i++) {
+        let tx = await Checkout.methods
+          .addOrder(checkoutTradeAccounts[i].publicKey, authBump)
+          .accounts({
+            linkedHolder: normal_list.publicKey,
+            exhibit: exhibit,
+            checkoutAuth: checkoutAuth,
+            voucherMint: voucherMint,
+            checkoutVoucher: checkoutVoucher,
+            userVoucher: userVoucher,
+            user: user.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .signers([user])
+          .rpc();
+      }
+    } catch (error) {
+      console.log("adding erroe", error);
+      throw new Error("Throw makes it go boom!");
     }
     // console.log("Your transaction signature", tx);
+
+    assert.ok(
+      Number((await getAccount(connection, checkoutVoucher)).amount) ==
+        checkoutTradeAccounts.length
+    );
+
+    // let linkedHolderInfo = await Checkout.account.linkedHolder.fetch(
+    //   normal_list.publicKey
+    // );
+    // console.log(linkedHolderInfo.trades.orders[1]);
   });
 
   it("Able to remove pubkey order from DLL!", async () => {
     let orderPubkey = checkoutTradeAccounts[2];
     console.log("removing order from list: ", orderPubkey.publicKey);
-    let tx = await Checkout.methods
-      .removeOrder(orderPubkey.publicKey)
-      .accounts({
-        writer: author.publicKey,
-        linkedHolder: normal_list.publicKey,
-      })
-      .signers([author])
-      .rpc();
-    // console.log("Your transaction signature", tx);
+    try {
+      let tx = await Checkout.methods
+        .removeOrder(orderPubkey.publicKey, authBump)
+        .accounts({
+          linkedHolder: normal_list.publicKey,
+          exhibit: exhibit,
+          checkoutAuth: checkoutAuth,
+          voucherMint: voucherMint,
+          checkoutVoucher: checkoutVoucher,
+          userVoucher: userVoucher,
+          user: user.publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([user])
+        .rpc();
+    } catch (error) {
+      console.log("remove erro", error);
+    }
+    assert.ok(
+      Number((await getAccount(connection, checkoutVoucher)).amount) ==
+        checkoutTradeAccounts.length - 1
+    );
   });
 
   Checkout.provider.connection.onLogs("all", ({ logs }) => {

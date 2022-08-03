@@ -400,7 +400,7 @@ pub struct InitializeMarket<'info> {
     #[account(init, payer = user, space = 8+std::mem::size_of::<MarketInfo>(), seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
-    #[account(init, payer = user, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]
+    #[account(init, payer = user, seeds = [b"market_token_mint", market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]
     pub market_mint: Box<Account<'info, Mint>>,
 
     #[account(init, payer = user, associated_token::mint = market_mint, associated_token::authority = market_auth)]
@@ -410,9 +410,9 @@ pub struct InitializeMarket<'info> {
     pub voucher_mint: Box<Account<'info, Mint>>,
     // no idea
     // pub market_token_destination: Account<'info, TokenAccount>,
-    #[account(init, payer = user, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = voucher_mint, token::authority = market_auth, bump)]
+    #[account(init, payer = user, seeds = [b"token_voucher", market_auth.key().as_ref()], token::mint = voucher_mint, token::authority = market_auth, bump)]
     pub market_voucher: Box<Account<'info, TokenAccount>>,
-    #[account(init, payer = user, space = 8, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
+    #[account(init, payer = user, space = 8, seeds = [b"token_sol", market_auth.key().as_ref()], bump)]
     pub market_sol: Account<'info, SolWallet>,
 
     #[account(mut, associated_token::mint = voucher_mint, associated_token::authority = user)]

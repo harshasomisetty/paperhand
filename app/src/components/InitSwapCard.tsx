@@ -29,9 +29,13 @@ const InitSwapCard = ({ userData }: { userData: UserData }) => {
     router.reload(window.location.pathname);
   }
   console.log(userData);
+
+  if (!userData) return  (
+    <p>sldjfLoading Market Data:</p>
+  )
   return (
     <>
-      {userData ? (
+       (
         <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-300">
           <div className="card-body">
             <h2 className="card-title">Init Bazaar for this Exhibit!</h2>
@@ -90,11 +94,8 @@ const InitSwapCard = ({ userData }: { userData: UserData }) => {
             </button>
           </div>
         </div>
-      ) : (
-        <p>sldjfLoading Market Data:</p>
-      )}
+       )
     </>
-  );
-};
+  )}
 
 export default InitSwapCard;
