@@ -19,6 +19,7 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
+import { Exhibition } from "../target/types/exhibition";
 import { checkIfAccountExists } from "../utils/actions";
 import { otherCreators } from "../utils/constants";
 import { creator, user, EXHIBITION_PROGRAM_ID } from "../utils/constants";
@@ -28,6 +29,7 @@ const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
 const Checkout = anchor.workspace.Checkout as Program<Checkout>;
+const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
 const checkoutTradeAccounts = [];
 for (let i = 0; i < 5; i++) {
@@ -100,11 +102,6 @@ describe("checkout", () => {
     );
 
     try {
-      // checkoutVoucher = await getAssociatedTokenAddress(
-      //   voucherMint,
-      //   checkoutAuth
-      // );
-
       [checkoutVoucher, bump] = await PublicKey.findProgramAddress(
         [Buffer.from("checkout_voucher"), checkoutAuth.toBuffer()],
         Checkout.programId
@@ -114,14 +111,6 @@ describe("checkout", () => {
         voucherMint,
         user.publicKey
       );
-      // checkoutVoucher = (
-      //   await getOrCreateAssociatedTokenAccount(
-      //     connection,
-      //     user,
-      //     voucherMint,
-      //     normal_list.publicKey
-      //   )
-      // ).address;
     } catch (error) {
       console.log("before err", error);
     }
@@ -159,6 +148,7 @@ describe("checkout", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
+          exhibitionProgram: Exhibition.programId,
         })
         .preInstructions([init_tx])
         .signers([normal_list, user])
@@ -172,7 +162,6 @@ describe("checkout", () => {
     );
 
     assert.ok((await checkIfAccountExists(checkoutAuth, connection)) == true);
-    // console.log("Your transaction signature", tx);
   });
 
   it("Able to add to DLL!", async () => {

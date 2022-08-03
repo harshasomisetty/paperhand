@@ -7,6 +7,9 @@ use anchor_spl::{
 use solana_program;
 use solana_program::{account_info::AccountInfo, program_option::COption};
 
+use exhibition::program::Exhibition;
+use exhibition::{self, Exhibit};
+
 pub mod state;
 use state::linked_list::LinkedList;
 
@@ -20,13 +23,14 @@ pub mod checkout {
         msg!("In initializer");
 
         msg!(
-            "checkout voucher add: {}",
+            "ehxibiotn prof id {}",
             ctx.accounts
-                .checkout_auth
+                .exhibition_program
                 .to_account_info()
                 .key()
                 .to_string()
         );
+
         let list = LinkedList::initialize();
 
         let mut linked_holder = ctx.accounts.linked_holder.load_init()?;
@@ -132,6 +136,7 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+    pub exhibition_program: Program<'info, Exhibition>,
 }
 
 #[derive(Accounts)]
