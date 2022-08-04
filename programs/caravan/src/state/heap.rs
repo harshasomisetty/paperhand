@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug, Display, Formatter};
+
 /*
 Non-general implementation of the nft_heap.rs.
 
@@ -269,6 +271,37 @@ impl Heap {
         self.heapifydown(0);
 
         bid_price
+    }
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Node: seq number {} bid price {} bidder pub {}",
+            self.sequence_number, self.bid_price, self.bidder_pubkey
+        )
+    }
+}
+
+impl Display for Heap {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut output = Vec::new();
+
+        // let mut cur_node_index = self.order_head;
+
+        for i in 0..10 {
+            // println!("Node: {}", self.items[i as usize]);
+            output.push(&self.items[i as usize])
+        }
+        // while cur_node_index != SENTINEL {
+        //     output.push(&self.orders[cur_node_index as usize].val);
+        //     // println!("cur node {}", self.orders[cur_node_index]);
+        //     cur_node_index = self.orders[cur_node_index as usize].next;
+        //     // println!("next? {}", cur_node_index);
+        // }
+
+        write!(f, "output: {:?}", output)
     }
 }
 

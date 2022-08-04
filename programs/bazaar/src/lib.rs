@@ -397,7 +397,7 @@ pub struct InitializeMarket<'info> {
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
-    #[account(init, payer = user, space = 8+std::mem::size_of::<MarketInfo>(), seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
+    #[account(init,          payer = user, space = 8+std::mem::size_of::<MarketInfo>(), seeds = [b"market_auth", exhibit.key().as_ref()], bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
     #[account(init, payer = user, seeds = [b"market_token_mint", market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]

@@ -35,6 +35,7 @@ const Caravan = anchor.workspace.Caravan as Program<Caravan>;
 let bidder = Keypair.generate();
 
 let airdropVal = 20;
+let bidSize = 5;
 
 describe("caravan", () => {
   let nftHeap: PublicKey;
@@ -54,7 +55,7 @@ describe("caravan", () => {
     );
 
     const init_tx = await Caravan.methods
-      .createbinaryheap()
+      .createBinaryHeap()
       .accounts({
         nftHeap: nftHeap,
         initialBidder: bidder.publicKey,
@@ -73,10 +74,8 @@ describe("caravan", () => {
                                         Need to check that the SOL was debited to the heap acc.
                                         */
   it("Makes a bid!", async () => {
-    let firstBid = 5;
-
     const bid_tx = await Caravan.methods
-      .makebid(new BN(firstBid))
+      .makeBid(new BN(bidSize))
       .accounts({
         nftHeap: nftHeap,
         bidder: bidder.publicKey,
@@ -86,19 +85,19 @@ describe("caravan", () => {
 
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
-    assert.ok(Number(account.heap.items[0].bidPrice) == firstBid);
+    assert.ok(Number(account.heap.items[0].bidPrice) == bidSize);
     let balance_bidder = await connection.getBalance(bidder.publicKey);
 
-    assert.ok(balance_bidder / 1e9 < airdropVal - firstBid);
+    assert.ok(balance_bidder / 1e9 < airdropVal - bidSize);
 
     let balance_heap = await connection.getBalance(nftHeap);
-    assert.ok(balance_heap / 1e9 > firstBid);
+    assert.ok(balance_heap / 1e9 > bidSize);
   });
 
   it("Fulfills highest bid!", async () => {
-    const [nftHeap, _bump] = await PublicKey.findProgramAddress
-    ([Buffer.from("nft_heap")], 
-    Caravan.programId
+    const [nftHeap, _bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("nft_heap")],
+      Caravan.programId
     );
 
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
@@ -109,58 +108,62 @@ describe("caravan", () => {
     let balance_heapPre = await connection.getBalance(nftHeap);
 
     const fulfill_highest_tx = await Caravan.methods
-    .accepthighestbid()
-    .accounts({
+      .acceptHighestBid()
+      .accounts({
         nftHeap: nftHeap,
         buyer: bidder.publicKey,
-        systemProgram: SystemProgram.programId
-    })
-    .signers([bidder])
-    .rpc();
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([bidder])
+      .rpc();
 
     let balance_heapPost = await connection.getBalance(nftHeap);
 
-
     let balance_bidderPost = await connection.getBalance(bidder.publicKey);
 
-    assert.ok(balance_bidderPre - highest_bid, balance_bidderPost)
-    assert.ok(balance_heapPre + highest_bid, balance_heapPost)
-})
+    assert.ok(balance_bidderPre - highest_bid, balance_bidderPost);
+    assert.ok(balance_heapPre + highest_bid, balance_heapPost);
+  });
 
-it("Makes a bid!", async () => {
-    let firstBid = 5;
-
+  it("Makes a bid!", async () => {
     const bid_tx = await Caravan.methods
-      .makebid(new BN(firstBid))
+      .makeBid(new BN(bidSize))
       .accounts({
         nftHeap: nftHeap,
         bidder: bidder.publicKey,
+        systemProgram: SystemProgram.programId,
       })
       .signers([bidder])
       .rpc();
 
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
-    assert.ok(Number(account.heap.items[0].bidPrice) == firstBid);
+    assert.ok(Number(account.heap.items[0].bidPrice) == bidSize);
     let balance_bidder = await connection.getBalance(bidder.publicKey);
 
-    assert.ok(balance_bidder / 1e9 < airdropVal - firstBid);
+    assert.ok(balance_bidder / 1e9 < airdropVal - bidSize);
 
     let balance_heap = await connection.getBalance(nftHeap);
-    assert.ok(balance_heap / 1e9 > firstBid);
+    assert.ok(balance_heap / 1e9 > bidSize);
   });
 
   it("Cancels a bid!", async () => {
     const cancel_tx = await Caravan.methods
-      .cancelbid()
+      .cancelBid()
       .accounts({
         nftHeap: nftHeap,
         bidder: bidder.publicKey,
+        systemProgram: SystemProgram.programId,
       })
       .signers([bidder])
       .rpc();
 
     let balance_bidder = await connection.getBalance(bidder.publicKey);
-    assert.ok((balance_bidder * 1.01) / 1e9 > airdropVal);
+    console.log((balance_bidder * 1.01) / 1e9, airdropVal - bidSize);
+    assert.ok((balance_bidder * 1.01) / 1e9 > airdropVal - bidSize);
+  });
+
+  Caravan.provider.connection.onLogs("all", ({ logs }) => {
+    console.log(logs);
   });
 });
