@@ -1,175 +1,166 @@
 import * as anchor from "@project-serum/anchor";
 import { Program, Provider } from "@project-serum/anchor";
-import { program } from "@project-serum/anchor/dist/cjs/spl/associated-token";
 import {
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    createMint,
-    getAccount,
-    getAssociatedTokenAddress,
-    getMint,
-    getOrCreateAssociatedTokenAccount,
-    mintTo,
-    TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createMint,
+  getAccount,
+  getAssociatedTokenAddress,
+  getMint,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
-    Keypair,
-    PublicKey,
-    SystemProgram,
-    SYSVAR_RENT_PUBKEY,
-    LAMPORTS_PER_SOL,
-    Transaction,
-    TransactionInstruction,
-    sendAndConfirmRawTransaction,
-    Connection,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  Transaction,
+  TransactionInstruction,
+  sendAndConfirmRawTransaction,
+  Connection,
 } from "@solana/web3.js";
-import { ok } from "assert";
+
 import { nextTick } from "process";
-import { Nftfloor } from "../target/types/nftfloor";
+import { Caravan } from "../target/types/caravan";
 const assert = require("assert");
 const { BN } = anchor;
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
+const connection = provider.connection;
 
-// const connection = provider.connection;
-const Nftfloor = anchor.workspace.Nftfloor as Program<Nftfloor>;
+const Caravan = anchor.workspace.Caravan as Program<Caravan>;
 
-let bidder = Keypair.generate()
+let bidder = Keypair.generate();
 
-const connection = new Connection("http://localhost:8899");
+let airdropVal = 20;
 
-describe("test heap", () => {
+describe("caravan", () => {
+  let nftHeap: PublicKey;
+  let bump: number;
+  it("init heap", async () => {
+    console.log(new Date(), "requesting airdrop");
+    const airdropTx = await connection.requestAirdrop(
+      bidder.publicKey,
+      airdropVal * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await connection.confirmTransaction(airdropTx);
 
-    it("init heap", async () => {
-        await provider.connection.confirmTransaction(
-            await provider.connection.requestAirdrop(bidder.publicKey, 30e9),
-            "confirmed"
-        );
+    // make pda
+    [nftHeap, bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("nft_heap")],
+      Caravan.programId
+    );
 
-        console.log("Airdrop received");
-        let balance = await provider.connection.getBalance(bidder.publicKey, { commitment: "confirmed" })
-        console.log(balance/ 1e9)
-        
-        // make pda
-        const [nftHeap, _bump] = await PublicKey.findProgramAddress([Buffer.from("nft_heap")], Nftfloor.programId);
+    const init_tx = await Caravan.methods
+      .createbinaryheap()
+      .accounts({
+        nftHeap: nftHeap,
+        initialBidder: bidder.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([bidder])
+      .rpc();
 
-        const result = await Nftfloor.methods.createbinaryheap().accounts({
-            nftHeap: nftHeap,
-            initialBidder: bidder.publicKey,
-            systemProgram: SystemProgram.programId
-        })
-        .signers([bidder])
-        .rpc( {skipPreflight: true, commitment: "confirmed"} );
+    let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
-        let account = await Nftfloor.account.nftHeap.fetch(nftHeap);
-    
-        let zero = new BN(0)
-        console.log(account.heap.items[0])
-        console.log(result)
+    let zero = new BN(0);
+    assert.ok(Number(account.heap.items[0].sequenceNumber) == 0);
+  });
 
-    });
+  /*
+                                        Need to check that the SOL was debited to the heap acc.
+                                        */
+  it("Makes a bid!", async () => {
+    let firstBid = 5;
 
-    /*
-    Need to check that the SOL was debited to the heap acc.
-    */
-    it("Makes a bid!", async () => {
+    const bid_tx = await Caravan.methods
+      .makebid(new BN(firstBid))
+      .accounts({
+        nftHeap: nftHeap,
+        bidder: bidder.publicKey,
+      })
+      .signers([bidder])
+      .rpc();
 
-        let balance = await provider.connection.getBalance(bidder.publicKey, { commitment: "confirmed" })
-        console.log(balance/ 1e9)
+    let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
-        const [nftHeap, _bump] = await PublicKey.findProgramAddress([Buffer.from("nft_heap")], Nftfloor.programId);
+    assert.ok(Number(account.heap.items[0].bidPrice) == firstBid);
+    let balance_bidder = await connection.getBalance(bidder.publicKey);
 
-        const result = await Nftfloor.methods.makebid(new BN(5)).accounts({
-            nftHeap: nftHeap,
-            bidder: bidder.publicKey,
-        })
-        .signers([bidder])
-        .rpc( {skipPreflight: true, commitment: "confirmed"} );
+    assert.ok(balance_bidder / 1e9 < airdropVal - firstBid);
 
-        let account = await Nftfloor.account.nftHeap.fetch(nftHeap);
-    
-        console.log(account.heap.items[0])
-        console.log(bidder.publicKey)
+    let balance_heap = await connection.getBalance(nftHeap);
+    assert.ok(balance_heap / 1e9 > firstBid);
+  });
 
-        let balance_bidder = await connection.getBalance(bidder.publicKey, { commitment: "confirmed" })
-        console.log(balance_bidder/ 1e9)
+  it("Fulfills highest bid!", async () => {
+    const [nftHeap, _bump] = await PublicKey.findProgramAddress
+    ([Buffer.from("nft_heap")], 
+    Caravan.programId
+    );
 
-        let balance_heap = await connection.getBalance(nftHeap, { commitment: "confirmed" })
-        console.log(balance_heap/ 1e9)
+    let account = await Caravan.account.nftHeap.fetch(nftHeap);
+    let highest_bid = account.heap.items[0].bidPrice;
 
-        console.log(result)
-    });
+    let balance_bidderPre = await connection.getBalance(bidder.publicKey);
 
-    it("Fulfills highest bid!", async () => {
-        const [nftHeap, _bump] = await PublicKey.findProgramAddress([Buffer.from("nft_heap")], Nftfloor.programId);
+    let balance_heapPre = await connection.getBalance(nftHeap);
 
-        const result = await Nftfloor.methods.accepthighestbid().accounts({
-            nftHeap: nftHeap,
-            buyer: bidder.publicKey,
-            systemProgram: SystemProgram.programId
-        })
-        .signers([bidder])
-        .rpc( {skipPreflight: true, commitment: "confirmed"} );
-
-        let account = await Nftfloor.account.nftHeap.fetch(nftHeap);   
-
-        console.log(result)
+    const fulfill_highest_tx = await Caravan.methods
+    .accepthighestbid()
+    .accounts({
+        nftHeap: nftHeap,
+        buyer: bidder.publicKey,
+        systemProgram: SystemProgram.programId
     })
+    .signers([bidder])
+    .rpc();
 
-    it("Makes a bid!", async () => {
-
-        let balance = await provider.connection.getBalance(bidder.publicKey, { commitment: "confirmed" })
-        console.log(balance/ 1e9)
-
-        const [nftHeap, _bump] = await PublicKey.findProgramAddress([Buffer.from("nft_heap")], Nftfloor.programId);
-
-        const result = await Nftfloor.methods.makebid(new BN(5)).accounts({
-            nftHeap: nftHeap,
-            bidder: bidder.publicKey,
-        })
-        .signers([bidder])
-        .rpc( {skipPreflight: true, commitment: "confirmed"} );
-
-        let account = await Nftfloor.account.nftHeap.fetch(nftHeap);
-    
-        console.log(account.heap.items[0])
-        console.log(bidder.publicKey)
-
-        let balance_bidder = await connection.getBalance(bidder.publicKey, { commitment: "confirmed" })
-        console.log(balance_bidder/ 1e9)
-
-        let balance_heap = await connection.getBalance(nftHeap, { commitment: "confirmed" })
-        console.log(balance_heap/ 1e9)
-
-        console.log(result)
-    });
-
-    /*
-    Need to check that the SOL was debited to the bidder acc. 
-    */
-    it("Cancels a bid!", async () => {
-        const [nftHeap, _bump] = await PublicKey.findProgramAddress([Buffer.from("nft_heap")], Nftfloor.programId);
-
-        const result = await Nftfloor.methods.cancelbid().accounts({
-            nftHeap: nftHeap,
-            bidder: bidder.publicKey,
-        })
-        .signers([bidder])
-        .rpc( {skipPreflight: true, commitment: "confirmed"} );
-
-        let account = await Nftfloor.account.nftHeap.fetch(nftHeap);
-
-        console.log(account.heap.items[0])
-        console.log(bidder.publicKey)
-
-        let balance_bidder = await connection.getBalance(bidder.publicKey, { commitment: "confirmed" })
-        console.log(balance_bidder/ 1e9)
-
-        let balance_heap = await connection.getBalance(nftHeap, { commitment: "confirmed" })
-        console.log(balance_heap/ 1e9)
-        
-        console.log(result)
-    });
+    let balance_heapPost = await connection.getBalance(nftHeap);
 
 
+    let balance_bidderPost = await connection.getBalance(bidder.publicKey);
+
+    assert.ok(balance_bidderPre - highest_bid, balance_bidderPost)
+    assert.ok(balance_heapPre + highest_bid, balance_heapPost)
+})
+
+it("Makes a bid!", async () => {
+    let firstBid = 5;
+
+    const bid_tx = await Caravan.methods
+      .makebid(new BN(firstBid))
+      .accounts({
+        nftHeap: nftHeap,
+        bidder: bidder.publicKey,
+      })
+      .signers([bidder])
+      .rpc();
+
+    let account = await Caravan.account.nftHeap.fetch(nftHeap);
+
+    assert.ok(Number(account.heap.items[0].bidPrice) == firstBid);
+    let balance_bidder = await connection.getBalance(bidder.publicKey);
+
+    assert.ok(balance_bidder / 1e9 < airdropVal - firstBid);
+
+    let balance_heap = await connection.getBalance(nftHeap);
+    assert.ok(balance_heap / 1e9 > firstBid);
+  });
+
+  it("Cancels a bid!", async () => {
+    const cancel_tx = await Caravan.methods
+      .cancelbid()
+      .accounts({
+        nftHeap: nftHeap,
+        bidder: bidder.publicKey,
+      })
+      .signers([bidder])
+      .rpc();
+
+    let balance_bidder = await connection.getBalance(bidder.publicKey);
+    assert.ok((balance_bidder * 1.01) / 1e9 > airdropVal);
+  });
 });
