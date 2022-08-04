@@ -495,7 +495,6 @@ mod tests {
         assert_eq!(nft_heap.items[6].sequence_number, 6);
         assert_eq!(nft_heap.items[7].sequence_number, 7);
 
-
         nft_heap.cancelnftbid(test_public_key2);
         assert_eq!(nft_heap.size, 7);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
