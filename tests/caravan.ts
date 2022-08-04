@@ -40,6 +40,9 @@ let bidSize = 5;
 describe("caravan", () => {
   let nftHeap: PublicKey;
   let bump: number;
+  let exhibitKeypair: Keypair = Keypair.generate();
+  let exhibit: PublicKey = exhibitKeypair.publicKey;
+
   it("init heap", async () => {
     console.log(new Date(), "requesting airdrop");
     const airdropTx = await connection.requestAirdrop(
@@ -50,13 +53,14 @@ describe("caravan", () => {
 
     // make pda
     [nftHeap, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_heap")],
+      [Buffer.from("nft_heap"), exhibit.toBuffer()],
       Caravan.programId
     );
 
     const init_tx = await Caravan.methods
       .createBinaryHeap()
       .accounts({
+        exhibit: exhibit,
         nftHeap: nftHeap,
         initialBidder: bidder.publicKey,
         systemProgram: SystemProgram.programId,
@@ -77,6 +81,7 @@ describe("caravan", () => {
     const bid_tx = await Caravan.methods
       .makeBid(new BN(bidSize))
       .accounts({
+        exhibit: exhibit,
         nftHeap: nftHeap,
         bidder: bidder.publicKey,
       })
@@ -95,10 +100,7 @@ describe("caravan", () => {
   });
 
   it("Fulfills highest bid!", async () => {
-    const [nftHeap, _bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_heap")],
-      Caravan.programId
-    );
+    console.log("in fullfills bid test");
 
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
     let highest_bid = account.heap.items[0].bidPrice;
@@ -110,6 +112,7 @@ describe("caravan", () => {
     const fulfill_highest_tx = await Caravan.methods
       .acceptHighestBid()
       .accounts({
+        exhibit: exhibit,
         nftHeap: nftHeap,
         buyer: bidder.publicKey,
         systemProgram: SystemProgram.programId,
@@ -125,10 +128,11 @@ describe("caravan", () => {
     assert.ok(balance_heapPre + highest_bid, balance_heapPost);
   });
 
-  it("Makes a bid!", async () => {
+  it("Makes a bid 2!", async () => {
     const bid_tx = await Caravan.methods
       .makeBid(new BN(bidSize))
       .accounts({
+        exhibit: exhibit,
         nftHeap: nftHeap,
         bidder: bidder.publicKey,
         systemProgram: SystemProgram.programId,
@@ -151,6 +155,7 @@ describe("caravan", () => {
     const cancel_tx = await Caravan.methods
       .cancelBid()
       .accounts({
+        exhibit: exhibit,
         nftHeap: nftHeap,
         bidder: bidder.publicKey,
         systemProgram: SystemProgram.programId,

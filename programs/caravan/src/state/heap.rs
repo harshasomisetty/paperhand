@@ -294,6 +294,7 @@ impl Display for Heap {
             // println!("Node: {}", self.items[i as usize]);
             output.push(&self.items[i as usize])
         }
+
         // while cur_node_index != SENTINEL {
         //     output.push(&self.orders[cur_node_index as usize].val);
         //     // println!("cur node {}", self.orders[cur_node_index]);

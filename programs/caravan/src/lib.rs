@@ -23,6 +23,7 @@ pub mod caravan {
 
     pub fn create_binary_heap(ctx: Context<CreateBinaryHeap>) -> Result<()> {
         // let _heap = &mut ctx.accounts.nft_heap.load_init()?;
+        msg!("in create heap");
         Ok(())
     }
 
@@ -30,6 +31,8 @@ pub mod caravan {
     To do -> transfer SOL from bidder to heap
     */
     pub fn make_bid(ctx: Context<MakeBid>, bid_price: u64) -> Result<()> {
+        msg!("in make bid");
+
         let bidder = &ctx.accounts.bidder;
 
         let bid_price_sol = bid_price * LAMPORTS_PER_SOL;
@@ -79,8 +82,6 @@ pub mod caravan {
     }
 
     pub fn accept_highest_bid(ctx: Context<AcceptHighestBid>) -> Result<()> {
-        let buyer = &ctx.accounts.buyer;
-
         let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
         let bid_price_sol = heap.heap.pophighestbid() * LAMPORTS_PER_SOL;
@@ -104,10 +105,13 @@ pub mod caravan {
 
 #[derive(Accounts)]
 pub struct CreateBinaryHeap<'info> {
+    /// CHECK: just reading pubkey
+    pub exhibit: AccountInfo<'info>,
+
     #[account(init,
         payer = initial_bidder,
         space = std::mem::size_of::<NftHeap>() + 8,
-        seeds = [b"nft_heap"], bump
+        seeds = [b"nft_heap", exhibit.key().as_ref()], bump
     )]
     nft_heap: AccountLoader<'info, NftHeap>,
     #[account(mut)]
@@ -117,7 +121,12 @@ pub struct CreateBinaryHeap<'info> {
 
 #[derive(Accounts)]
 pub struct MakeBid<'info> {
-    #[account(mut)]
+    /// CHECK: just reading pubkey
+    pub exhibit: AccountInfo<'info>,
+
+    #[account(mut,
+        seeds = [b"nft_heap", exhibit.key().as_ref()], bump
+    )]
     nft_heap: AccountLoader<'info, NftHeap>,
     #[account(mut)]
     bidder: Signer<'info>,
@@ -126,8 +135,14 @@ pub struct MakeBid<'info> {
 
 #[derive(Accounts)]
 pub struct CancelBid<'info> {
-    #[account(mut)]
+    /// CHECK: just reading pubkey
+    pub exhibit: AccountInfo<'info>,
+
+    #[account(mut,
+        seeds = [b"nft_heap", exhibit.key().as_ref()], bump
+    )]
     nft_heap: AccountLoader<'info, NftHeap>,
+
     #[account(mut)]
     bidder: Signer<'info>,
     system_program: Program<'info, System>,
@@ -135,8 +150,14 @@ pub struct CancelBid<'info> {
 
 #[derive(Accounts)]
 pub struct AcceptHighestBid<'info> {
-    #[account(mut)]
+    /// CHECK: just reading pubkey
+    pub exhibit: AccountInfo<'info>,
+
+    #[account(mut,
+        seeds = [b"nft_heap", exhibit.key().as_ref()], bump
+    )]
     nft_heap: AccountLoader<'info, NftHeap>,
+
     #[account(mut)]
     buyer: Signer<'info>,
     system_program: Program<'info, System>,
