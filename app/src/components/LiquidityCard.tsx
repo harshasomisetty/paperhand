@@ -25,7 +25,7 @@ const LiquidityCard = ({
           <button
             className={`btn btn-success ${!depositLiq && "opacity-50"}`}
             onClick={() => {
-              setDepositLiq(!depositLiq);
+              setDepositLiq(true);
             }}
           >
             Deposit
@@ -33,7 +33,7 @@ const LiquidityCard = ({
           <button
             className={`btn btn-error ${depositLiq && "opacity-50"}`}
             onClick={() => {
-              setDepositLiq(!depositLiq);
+              setDepositLiq(false);
             }}
           >
             Withdraw
