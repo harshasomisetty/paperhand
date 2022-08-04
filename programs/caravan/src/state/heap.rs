@@ -216,7 +216,7 @@ impl Heap {
     /*
     Searches the array for the bid associated with a particular public key
     */
-    pub fn cancelnftbid(&mut self, bidder_pubkey: Pubkey) {
+    pub fn cancelnftbid(&mut self, bidder_pubkey: Pubkey) -> u64 {
         let mut index = 0;
         for elem in self.items {
             if elem.bidder_pubkey == bidder_pubkey {
@@ -226,13 +226,15 @@ impl Heap {
         }
         swap_node(&mut self.items, index, (self.size - 1) as usize);
 
-        let _bid_price = self.items[(self.size - 1) as usize].bid_price;
+        let bid_price = self.items[(self.size - 1) as usize].bid_price;
 
         self.items[(self.size - 1) as usize] = Node::default();
 
         self.size -= 1;
 
         self.heapifydown(index);
+
+        bid_price
     }
 
     pub fn add(&mut self, price: u64, pubkey: Pubkey) {
@@ -251,6 +253,22 @@ impl Heap {
         self.size += 1;
         // maintains the max heap structure
         self.heapifyup()
+    }
+
+    pub fn pophighestbid(&mut self) -> u64 {
+        let lastidx = (self.size - 1) as usize;
+
+        swap_node(&mut self.items, 0, lastidx);
+
+        let bid_price = self.items[lastidx].bid_price;
+
+        self.items[(self.size - 1) as usize] = Node::default();
+
+        self.size -= 1;
+
+        self.heapifydown(0);
+
+        bid_price
     }
 }
 

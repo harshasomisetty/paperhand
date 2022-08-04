@@ -56,20 +56,37 @@ pub mod caravan {
     Transfer SOL from heap to bidder
     */
     pub fn cancelbid(ctx: Context<CancelBid>) -> Result<()> {
-        let bidder = &ctx.accounts.bidder;        
+        let bidder = &ctx.accounts.bidder;   
+
+        let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
         // Need a clever way to somehow know the bid price after the let mut heap declaration
-        let bid_price_sol = 5 * LAMPORTS_PER_SOL;
+        let bid_price_sol =  heap.heap.cancelnftbid(bidder.key()) * LAMPORTS_PER_SOL;
 
         **ctx.accounts.nft_heap.to_account_info().try_borrow_mut_lamports()? -= bid_price_sol;
         **ctx.accounts.bidder.try_borrow_mut_lamports()? += bid_price_sol;
 
-        let mut heap = ctx.accounts.nft_heap.load_mut()?;
-
-        heap.heap.cancelnftbid(bidder.key());
-
         Ok(())
     }
+
+    pub fn accepthighestbid(ctx: Context<AcceptHighestBid>) -> Result<()> {
+        let buyer = &ctx.accounts.buyer;
+    
+        let mut heap = ctx.accounts.nft_heap.load_mut()?;
+    
+        let bid_price_sol = heap.heap.pophighestbid() * LAMPORTS_PER_SOL;
+    
+        invoke(
+            &system_instruction::transfer(&ctx.accounts.buyer.key(), &ctx.accounts.nft_heap.key(), bid_price_sol)
+            ,
+            &[
+                ctx.accounts.nft_heap.to_account_info(),
+                ctx.accounts.buyer.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ]);
+    
+        Ok(())
+       }
 }
 
 pub const HEAP_SIZE: usize = std::mem::size_of::<NftHeap>() + 8;
@@ -103,6 +120,15 @@ pub struct CancelBid<'info> {
     nft_heap: AccountLoader<'info, NftHeap>,
     #[account(mut)]
     bidder: Signer<'info>,
+    system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptHighestBid<'info> {
+    #[account(mut)]
+    nft_heap: AccountLoader<'info, NftHeap>,
+    #[account(mut)]
+    buyer: Signer<'info>,
     system_program: Program<'info, System>,
 }
 
