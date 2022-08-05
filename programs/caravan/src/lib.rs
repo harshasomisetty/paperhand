@@ -81,7 +81,7 @@ pub mod caravan {
         Ok(())
     }
 
-    pub fn accept_highest_bid(ctx: Context<AcceptHighestBid>) -> Result<()> {
+    pub fn bid_floor(ctx: Context<BidFloor>) -> Result<()> {
         let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
         let bid_price_sol = heap.heap.pophighestbid() * LAMPORTS_PER_SOL;
@@ -109,13 +109,13 @@ pub struct CreateBinaryHeap<'info> {
     pub exhibit: AccountInfo<'info>,
 
     #[account(init,
-        payer = initial_bidder,
+        payer = signer,
         space = std::mem::size_of::<NftHeap>() + 8,
         seeds = [b"nft_heap", exhibit.key().as_ref()], bump
     )]
     nft_heap: AccountLoader<'info, NftHeap>,
     #[account(mut)]
-    initial_bidder: Signer<'info>,
+    signer: Signer<'info>,
     system_program: Program<'info, System>,
 }
 
@@ -149,7 +149,7 @@ pub struct CancelBid<'info> {
 }
 
 #[derive(Accounts)]
-pub struct AcceptHighestBid<'info> {
+pub struct BidFloor<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 

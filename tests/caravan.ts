@@ -62,7 +62,7 @@ describe("caravan", () => {
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
-        initialBidder: bidder.publicKey,
+        signer: bidder.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .signers([bidder])
@@ -78,15 +78,21 @@ describe("caravan", () => {
                                         Need to check that the SOL was debited to the heap acc.
                                         */
   it("Makes a bid!", async () => {
-    const bid_tx = await Caravan.methods
-      .makeBid(new BN(bidSize))
-      .accounts({
-        exhibit: exhibit,
-        nftHeap: nftHeap,
-        bidder: bidder.publicKey,
-      })
-      .signers([bidder])
-      .rpc();
+    for (let i = 0; i < 2; i++) {
+      let bid_tx = await Caravan.methods
+        .makeBid(new BN(bidSize))
+        .accounts({
+          exhibit: exhibit,
+          nftHeap: nftHeap,
+          bidder: bidder.publicKey,
+        })
+        .signers([bidder])
+        .rpc();
+
+      console.log("fisnihed bid ", i);
+
+      await new Promise((r) => setTimeout(r, 500));
+    }
 
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
@@ -110,7 +116,7 @@ describe("caravan", () => {
     let balance_heapPre = await connection.getBalance(nftHeap);
 
     const fulfill_highest_tx = await Caravan.methods
-      .acceptHighestBid()
+      .bidFloor()
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
@@ -126,29 +132,6 @@ describe("caravan", () => {
 
     assert.ok(balance_bidderPre - highest_bid, balance_bidderPost);
     assert.ok(balance_heapPre + highest_bid, balance_heapPost);
-  });
-
-  it("Makes a bid 2!", async () => {
-    const bid_tx = await Caravan.methods
-      .makeBid(new BN(bidSize))
-      .accounts({
-        exhibit: exhibit,
-        nftHeap: nftHeap,
-        bidder: bidder.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([bidder])
-      .rpc();
-
-    let account = await Caravan.account.nftHeap.fetch(nftHeap);
-
-    assert.ok(Number(account.heap.items[0].bidPrice) == bidSize);
-    let balance_bidder = await connection.getBalance(bidder.publicKey);
-
-    assert.ok(balance_bidder / 1e9 < airdropVal - bidSize);
-
-    let balance_heap = await connection.getBalance(nftHeap);
-    assert.ok(balance_heap / 1e9 > bidSize);
   });
 
   it("Cancels a bid!", async () => {

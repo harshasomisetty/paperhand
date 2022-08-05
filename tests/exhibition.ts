@@ -68,17 +68,6 @@ describe("exhibition", () => {
   before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, ...otherCreators, ...user];
 
-    // let airdropPromises = [];
-    // airdropees.forEach((dropee) =>
-    //   airdropPromises.push(
-    //     provider.connection.requestAirdrop(
-    //       dropee.publicKey,
-    //       50 * LAMPORTS_PER_SOL
-    //     )
-    //   )
-    // );
-    // await Promise.all(airdropPromises);
-
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
         await provider.connection.requestAirdrop(

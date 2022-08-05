@@ -36,13 +36,13 @@ for (let i = 0; i < 5; i++) {
   checkoutTradeAccounts.push(Keypair.generate());
 }
 
-let normal_list = new Keypair();
+let listHolder = new Keypair();
 
 describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
 
-  let pda_list, bump;
+  let bump;
   const user = Keypair.generate();
   let voucherMint, checkoutVoucher, userVoucher: PublicKey;
   let checkoutAuth: PublicKey;
@@ -55,19 +55,17 @@ describe("checkout", () => {
       console.log("add", i, checkoutTradeAccounts[i].publicKey.toString());
     }
 
-    // let airdropees = [user];
+    let airdropees = [user];
 
-    // let airdropPromises = [];
-    // airdropees.forEach((dropee) =>
-    //   airdropPromises.push(
-    //     provider.connection.requestAirdrop(
-    //       dropee.publicKey,
-    //       50 * LAMPORTS_PER_SOL
-    //     )
-    //   )
-    // );
-    // await Promise.all(airdropPromises);
-
+    for (const dropee of airdropees) {
+      await connection.confirmTransaction(
+        await connection.requestAirdrop(
+          dropee.publicKey,
+          20 * LAMPORTS_PER_SOL
+        ),
+        "confirmed"
+      );
+    }
     const airdropTx = await connection.requestAirdrop(
       user.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
@@ -79,11 +77,6 @@ describe("checkout", () => {
 
     console.log(new Date(), "User pubkey is", user.publicKey.toBase58());
 
-    [pda_list, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("data_holder_v1"), user.publicKey.toBuffer()],
-      Checkout.programId
-    );
-
     [checkoutAuth, authBump] = await PublicKey.findProgramAddress(
       [Buffer.from("checkout_auth"), exhibit.toBuffer()],
       Checkout.programId
@@ -93,6 +86,7 @@ describe("checkout", () => {
     //   EXHIBITION_PROGRAM_ID
     // );
 
+    console.log("before voucher mint create");
     voucherMint = await createMint(
       connection,
       creator,
@@ -101,61 +95,51 @@ describe("checkout", () => {
       0
     );
 
-    try {
-      [checkoutVoucher, bump] = await PublicKey.findProgramAddress(
-        [Buffer.from("checkout_voucher"), checkoutAuth.toBuffer()],
-        Checkout.programId
-      );
+    console.log("after voucher mint create");
+    [checkoutVoucher, bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("checkout_voucher"), checkoutAuth.toBuffer()],
+      Checkout.programId
+    );
 
-      userVoucher = await getAssociatedTokenAddress(
-        voucherMint,
-        user.publicKey
-      );
-    } catch (error) {
-      console.log("before err", error);
-    }
+    userVoucher = await getAssociatedTokenAddress(voucherMint, user.publicKey);
   });
 
   it("Is initialized!", async () => {
-    // TODO make normal_list a pda
-    const init_tx = await Checkout.account.linkedHolder.createInstruction(
-      normal_list
-    );
+    // TODO make listHolder a pda
+    const init_linked_tx =
+      await Checkout.account.linkedHolder.createInstruction(listHolder);
 
-    let acc = await connection.getAccountInfo(normal_list.publicKey);
+    // let acc = await connection.getAccountInfo(listHolder.publicKey);
 
-    console.log("chekoutOut auth", checkoutAuth.toString());
-    console.log(
-      "ref accs",
-      normal_list.publicKey.toString(),
-      exhibit.toString(),
-      checkoutAuth.toString(),
-      voucherMint.toString(),
-      checkoutVoucher.toString(),
-      user.publicKey.toString()
-    );
-    try {
-      const actual_tx = await Checkout.methods
-        .initialize(authBump)
-        .accounts({
-          linkedHolder: normal_list.publicKey,
-          exhibit: exhibit,
-          checkoutAuth: checkoutAuth,
-          voucherMint: voucherMint,
-          checkoutVoucher: checkoutVoucher,
-          user: user.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-          exhibitionProgram: Exhibition.programId,
-        })
-        .preInstructions([init_tx])
-        .signers([normal_list, user])
-        .rpc();
-    } catch (error) {
-      console.log("adding erroe", error);
-    }
+    // console.log("chekoutOut auth", checkoutAuth.toString());
+    // console.log(
+    //   "ref accs",
+    //   listHolder.publicKey.toString(),
+    //   exhibit.toString(),
+    //   checkoutAuth.toString(),
+    //   voucherMint.toString(),
+    //   checkoutVoucher.toString(),
+    //   user.publicKey.toString()
+    // );
+
+    const actual_tx = await Checkout.methods
+      .initialize(authBump)
+      .accounts({
+        linkedHolder: listHolder.publicKey,
+        exhibit: exhibit,
+        checkoutAuth: checkoutAuth,
+        voucherMint: voucherMint,
+        checkoutVoucher: checkoutVoucher,
+        user: user.publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+        exhibitionProgram: Exhibition.programId,
+      })
+      .preInstructions([init_linked_tx])
+      .signers([listHolder, user])
+      .rpc();
 
     assert.ok(
       (await checkIfAccountExists(checkoutVoucher, connection)) == true
@@ -190,7 +174,7 @@ describe("checkout", () => {
         let tx = await Checkout.methods
           .addOrder(checkoutTradeAccounts[i].publicKey, authBump)
           .accounts({
-            linkedHolder: normal_list.publicKey,
+            linkedHolder: listHolder.publicKey,
             exhibit: exhibit,
             checkoutAuth: checkoutAuth,
             voucherMint: voucherMint,
@@ -214,7 +198,7 @@ describe("checkout", () => {
     );
 
     // let linkedHolderInfo = await Checkout.account.linkedHolder.fetch(
-    //   normal_list.publicKey
+    //   listHolder.publicKey
     // );
     // console.log(linkedHolderInfo.trades.orders[1]);
   });
@@ -226,7 +210,7 @@ describe("checkout", () => {
       let tx = await Checkout.methods
         .removeOrder(orderPubkey.publicKey, authBump)
         .accounts({
-          linkedHolder: normal_list.publicKey,
+          linkedHolder: listHolder.publicKey,
           exhibit: exhibit,
           checkoutAuth: checkoutAuth,
           voucherMint: voucherMint,
