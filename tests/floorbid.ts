@@ -1,5 +1,5 @@
 import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
@@ -45,26 +45,36 @@ function regSol(val) {
 }
 
 describe("Full Floorbid", () => {
+  // general info
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
-  let creator: Keypair = Keypair.generate();
-
-  let listHolder = new Keypair();
 
   let voucherMint, checkoutVoucher, userVoucher: PublicKey;
   let checkoutAuth: PublicKey;
   let authBump: number;
 
+  let creator: Keypair = Keypair.generate();
+
   let users: Keypair[] = [Keypair.generate(), Keypair.generate()];
+
   let userVouchers: PublicKey[] = Array(2);
+
+  let bump;
+  let airdropVal = 20;
+
+  // caravan info
 
   let nftHeap: PublicKey;
 
-  let bump;
-
-  let airdropVal = 20;
   let bidSizes = [5 * LAMPORTS_PER_SOL, 10 * LAMPORTS_PER_SOL];
   let totalBidSize = bidSizes.reduce((partialSum, a) => partialSum + a, 0);
+
+  let caravanAuth, orderbookSol: PublicKey;
+  let caravanAuthBump;
+
+  // checkout info
+
+  let listHolder = new Keypair();
 
   before(async () => {
     console.log("start of before");
@@ -81,6 +91,17 @@ describe("Full Floorbid", () => {
       );
     }
 
+    [caravanAuth, caravanAuthBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("auth"), exhibit.toBuffer()],
+      Caravan.programId
+    );
+
+    [orderbookSol, bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("orderbook_sol"), exhibit.toBuffer()],
+      Caravan.programId
+    );
+
+    // make pda
     [nftHeap, bump] = await PublicKey.findProgramAddress(
       [Buffer.from("nft_heap"), exhibit.toBuffer()],
       Caravan.programId
@@ -125,11 +146,14 @@ describe("Full Floorbid", () => {
 
   it("Inited caravan and checkout!", async () => {
     console.log("in inited caravan");
-    const init_caravan_tx = await Caravan.methods
+
+    const init_tx = await Caravan.methods
       .createBinaryHeap()
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
+        auth: caravanAuth,
+        orderbookSol: orderbookSol,
         signer: creator.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -176,47 +200,78 @@ describe("Full Floorbid", () => {
   it("Makes 2 bids!", async () => {
     for (let i = 0; i < 2; i++) {
       let bid_tx = await Caravan.methods
-        .makeBid(new anchor.BN(bidSizes[i]))
+        .makeBid(new BN(bidSizes[i]))
         .accounts({
           exhibit: exhibit,
           nftHeap: nftHeap,
-          bidder: users[i].publicKey,
+          auth: caravanAuth,
+          orderbookSol: orderbookSol,
+          bidder: users[0].publicKey,
+          systemProgram: SystemProgram.programId,
         })
-        .signers([users[i]])
+        .signers([users[0]])
         .rpc();
 
-      console.log("fisnihed bid ", i);
+      console.log("finished bid ", i);
 
       await new Promise((r) => setTimeout(r, 500));
     }
 
-    console.log("first test");
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
-    // check there are 2 bids in heap
-
-    // check that highest bid is 10
-    // heap lamport count is about 15
     printAndTest(
       regSol(account.heap.items[0].bidPrice),
       regSol(Math.max.apply(Math, bidSizes)),
       "max heap"
     );
 
-    console.log("finsihed first test");
-    // let balanceBidder = await connection.getBalance(users[0].publicKey);
-    // assert.ok(balanceBidder / 1e9 < airdropVal - bidSize);
+    // test that there are 2 bids
 
-    let balanceHeap = await connection.getBalance(nftHeap);
+    let postHeapBal = await connection.getBalance(orderbookSol);
+
     printAndTest(
-      regSol(balanceHeap),
+      regSol(postHeapBal),
       regSol(totalBidSize),
       "balance heap size"
     );
-    console.log("finsihed second test");
   });
 
-  it.skip("seller sells to highest bid", async () => {});
+  it("seller sells to highest bid", async () => {
+    let account = await Caravan.account.nftHeap.fetch(nftHeap);
+
+    let highestBid = Number(account.heap.items[0].bidPrice);
+
+    // let preSellerBal = await connection.getBalance(users[0].publicKey);
+    let preHeapBal = await connection.getBalance(orderbookSol);
+
+    const fulfill_highest_tx = await Caravan.methods
+      .bidFloor()
+      .accounts({
+        exhibit: exhibit,
+        nftHeap: nftHeap,
+        auth: caravanAuth,
+        orderbookSol: orderbookSol,
+        seller: users[1].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([users[1]])
+      .rpc();
+
+    // check prelength - 1 = curLength
+
+    // check heap balance changed propperly
+    //
+    let postHeapBal = await connection.getBalance(orderbookSol);
+
+    console.log(
+      "uh prices? ",
+      regSol(preHeapBal),
+      regSol(highestBid),
+      regSol(postHeapBal)
+    );
+    // printAndTest(preSellerBal - highestBid, postSellerBal, "seller bal change");
+    printAndTest(preHeapBal - highestBid, postHeapBal, "heap bal change");
+  });
 
   it.skip("user claims token", async () => {});
 

@@ -36,11 +36,10 @@ for (let i = 0; i < 5; i++) {
   checkoutTradeAccounts.push(Keypair.generate());
 }
 
-let listHolder = new Keypair();
-
 describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
+  let listHolder = new Keypair();
 
   let bump;
   const user = Keypair.generate();

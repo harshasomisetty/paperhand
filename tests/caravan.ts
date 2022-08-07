@@ -44,24 +44,26 @@ function regSol(val) {
 }
 
 describe("caravan", () => {
-  let nftHeap: PublicKey;
-  let bump: number;
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
+
+  let creator: Keypair = Keypair.generate();
+  let users: Keypair[] = [Keypair.generate(), Keypair.generate()];
+
+  let bump: number;
+
+  let nftHeap: PublicKey;
 
   let bidSizes = [5 * LAMPORTS_PER_SOL, 10 * LAMPORTS_PER_SOL];
   let totalBidSize = bidSizes.reduce((partialSum, a) => partialSum + a, 0);
 
-  let auth, orderbookSol: PublicKey;
-  let authBump;
-
-  let users: Keypair[] = [Keypair.generate()];
-  let sellers: Keypair[] = [Keypair.generate()];
+  let caravanAuth, orderbookSol: PublicKey;
+  let caravanAuthBump;
 
   it("init heap", async () => {
     console.log(new Date(), "requesting airdrop");
 
-    let airdropees = [...users, ...sellers];
+    let airdropees = [creator, ...users];
 
     for (const dropee of airdropees) {
       await connection.confirmTransaction(
@@ -73,7 +75,7 @@ describe("caravan", () => {
       );
     }
 
-    [auth, authBump] = await PublicKey.findProgramAddress(
+    [caravanAuth, caravanAuthBump] = await PublicKey.findProgramAddress(
       [Buffer.from("auth"), exhibit.toBuffer()],
       Caravan.programId
     );
@@ -94,12 +96,12 @@ describe("caravan", () => {
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
-        auth: auth,
+        auth: caravanAuth,
         orderbookSol: orderbookSol,
-        signer: users[0].publicKey,
+        signer: creator.publicKey,
         systemProgram: SystemProgram.programId,
       })
-      .signers([users[0]])
+      .signers([creator])
       .rpc();
   });
 
@@ -110,7 +112,7 @@ describe("caravan", () => {
         .accounts({
           exhibit: exhibit,
           nftHeap: nftHeap,
-          auth: auth,
+          auth: caravanAuth,
           orderbookSol: orderbookSol,
           bidder: users[0].publicKey,
           systemProgram: SystemProgram.programId,
@@ -118,7 +120,7 @@ describe("caravan", () => {
         .signers([users[0]])
         .rpc();
 
-      console.log("fisnihed bid ", i);
+      console.log("finished bid ", i);
 
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -143,8 +145,6 @@ describe("caravan", () => {
   });
 
   it("Fulfills highest bid!", async () => {
-    console.log("in fullfills bid test");
-
     let account = await Caravan.account.nftHeap.fetch(nftHeap);
 
     let highestBid = Number(account.heap.items[0].bidPrice);
@@ -157,12 +157,12 @@ describe("caravan", () => {
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
-        auth: auth,
+        auth: caravanAuth,
         orderbookSol: orderbookSol,
-        seller: sellers[0].publicKey,
+        seller: users[1].publicKey,
         systemProgram: SystemProgram.programId,
       })
-      .signers([sellers[0]])
+      .signers([users[1]])
       .rpc();
 
     // check prelength - 1 = curLength
@@ -187,7 +187,7 @@ describe("caravan", () => {
   //     .accounts({
   //       exhibit: exhibit,
   //       nftHeap: nftHeap,
-  //                   auth: auth,
+  //                   auth: caravanAuth,
   // orderbookSol: orderbookSol,
 
   //       bidder: users[0].publicKey,
