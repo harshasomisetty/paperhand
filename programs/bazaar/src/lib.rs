@@ -521,7 +521,7 @@ pub struct WithdrawLiquidity<'info> {
 
     #[account(mut, seeds = [b"token_voucher".as_ref(), market_auth.key().as_ref()], token::mint = voucher_mint, token::authority = market_auth, bump)]
     pub market_voucher: Box<Account<'info, TokenAccount>>,
-    /// CHECK: Only transferring lamports
+
     #[account(mut, seeds = [b"token_sol".as_ref(), market_auth.key().as_ref()], bump)]
     pub market_sol: Account<'info, SolWallet>,
 

@@ -218,7 +218,8 @@ impl Heap {
     /*
     Searches the array for the bid associated with a particular public key
     */
-    pub fn cancelnftbid(&mut self, bidder_pubkey: Pubkey) -> u64 {
+
+    pub fn cancel_bid(&mut self, bidder_pubkey: Pubkey) -> u64 {
         let mut index = 0;
         for elem in self.items {
             if elem.bidder_pubkey == bidder_pubkey {
@@ -257,7 +258,7 @@ impl Heap {
         self.heapifyup()
     }
 
-    pub fn pophighestbid(&mut self) -> u64 {
+    pub fn pop_highest_bid(&mut self) -> u64 {
         let lastidx = (self.size - 1) as usize;
 
         swap_node(&mut self.items, 0, lastidx);
@@ -308,6 +309,8 @@ impl Display for Heap {
 
 #[cfg(test)]
 mod tests {
+    use anchor_lang::prelude::Pubkey;
+
     use super::{Heap, Node};
 
     // test for additions
@@ -318,17 +321,37 @@ mod tests {
             items: [Node::default(); 32],
         };
 
-        let test_public_key = anchor_lang::prelude::Pubkey::new_unique();
-        let test_public_key2 = anchor_lang::prelude::Pubkey::new_unique();
-        let test_public_key3 = anchor_lang::prelude::Pubkey::new_unique();
+        let mut test_keys = Vec::new();
+        let mut test_vals = Vec::new();
+        let mut temp_key: Pubkey;
 
-        nft_heap.add(5, test_public_key);
-        nft_heap.add(5, test_public_key2);
-        nft_heap.add(10, test_public_key3);
+        let num_keys = 5;
+        for i in 1..num_keys {
+            temp_key = anchor_lang::prelude::Pubkey::new_unique();
+            test_keys.push(temp_key);
+            test_vals.push(i);
+        }
 
-        assert_eq!(nft_heap.size, 3);
+        for i in 0..(num_keys - 1) {
+            nft_heap.add(test_vals[i] as u64, test_keys[i]);
+        }
+        println!("heap bid: {}", nft_heap.size);
+
+        println!("HERREEE\n\n\n");
+        println!(
+            "size {} empty {} max price {}",
+            nft_heap.size,
+            nft_heap.is_empty(),
+            nft_heap.items[0].bid_price
+        );
+        println!("heap? {}", nft_heap);
+
+        assert_eq!(nft_heap.size, (num_keys - 1) as u64);
         assert_eq!(nft_heap.is_empty(), false);
-        assert_eq!(nft_heap.items[0].bid_price, 10);
+        assert_eq!(
+            nft_heap.items[0].bid_price,
+            *test_vals.iter().max().unwrap() as u64
+        );
     }
 
     // test for deletions
@@ -470,7 +493,7 @@ mod tests {
         /*
         Now we want to cancel the 5(1) bid -> let's use our cancelbid function to do this
         */
-        nft_heap.cancelnftbid(test_public_key1);
+        nft_heap.cancel_bid(test_public_key1);
 
         /*
            Schematic:
@@ -493,6 +516,28 @@ mod tests {
         assert_eq!(nft_heap.items[5].sequence_number, 5);
         assert_eq!(nft_heap.items[6].sequence_number, 6);
     }
+
+    // #[test]
+    // fn cancel_one_bid() {
+    //     let mut nft_heap = Heap {
+    //         size: 0,
+    //         items: [Node::default(); 32],
+    //     };
+    //     let test_public_key0 = anchor_lang::prelude::Pubkey::new_unique();
+    //     let test_public_key1 = anchor_lang::prelude::Pubkey::new_unique();
+    //     let test_public_key2 = anchor_lang::prelude::Pubkey::new_unique();
+    //     let test_public_key3 = anchor_lang::prelude::Pubkey::new_unique();
+
+    //     nft_heap.add(5, test_public_key0);
+    //     nft_heap.add(5, test_public_key1);
+    //     nft_heap.add(10, test_public_key2);
+
+    //     nft_heap.cancel_bid(test_public_key3);
+
+    //     assert_eq!(nft_heap.items[0].bid_price, 5);
+    //     assert_eq!(nft_heap.items[1].bid_price, 5);
+    //     assert_eq!(nft_heap.items[2].bid_price, 10);
+    // }
 
     #[test]
     fn cancel_multiple_bids() {
@@ -547,7 +592,7 @@ mod tests {
         assert_eq!(nft_heap.items[6].sequence_number, 6);
         assert_eq!(nft_heap.items[7].sequence_number, 7);
 
-        nft_heap.cancelnftbid(test_public_key2);
+        nft_heap.cancel_bid(test_public_key2);
         assert_eq!(nft_heap.size, 7);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -570,7 +615,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_public_key3);
+        nft_heap.cancel_bid(test_public_key3);
         assert_eq!(nft_heap.size, 6);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -591,7 +636,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_public_key4);
+        nft_heap.cancel_bid(test_public_key4);
         assert_eq!(nft_heap.size, 5);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -612,7 +657,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_public_key5);
+        nft_heap.cancel_bid(test_public_key5);
         assert_eq!(nft_heap.size, 4);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -632,7 +677,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_public_key6);
+        nft_heap.cancel_bid(test_public_key6);
         /*
                   5 (0)
                  /   \

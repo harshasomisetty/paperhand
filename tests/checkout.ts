@@ -66,12 +66,7 @@ describe("checkout", () => {
         "confirmed"
       );
     }
-    const airdropTx = await connection.requestAirdrop(
-      user.publicKey,
-      5 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await connection.confirmTransaction(airdropTx);
-    // console.log(airdropPromises);
+
     let userBal = await connection.getBalance(user.publicKey);
     console.log("user bal ", Number(userBal));
 
@@ -86,7 +81,6 @@ describe("checkout", () => {
     //   EXHIBITION_PROGRAM_ID
     // );
 
-    console.log("before voucher mint create");
     voucherMint = await createMint(
       connection,
       creator,
@@ -95,7 +89,6 @@ describe("checkout", () => {
       0
     );
 
-    console.log("after voucher mint create");
     [checkoutVoucher, bump] = await PublicKey.findProgramAddress(
       [Buffer.from("checkout_voucher"), checkoutAuth.toBuffer()],
       Checkout.programId
