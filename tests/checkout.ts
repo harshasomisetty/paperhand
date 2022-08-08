@@ -20,9 +20,10 @@ import {
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
 import { Exhibition } from "../target/types/exhibition";
+import { Caravan } from "../target/types/caravan";
 import { checkIfAccountExists } from "../utils/actions";
 import { otherCreators } from "../utils/constants";
-import { creator, user, EXHIBITION_PROGRAM_ID } from "../utils/constants";
+import { creator, user } from "../utils/constants";
 const assert = require("assert");
 
 const provider = anchor.AnchorProvider.env();
@@ -30,6 +31,7 @@ anchor.setProvider(provider);
 const connection = provider.connection;
 const Checkout = anchor.workspace.Checkout as Program<Checkout>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
+const Caravan = anchor.workspace.Caravan as Program<Caravan>;
 
 const checkoutTradeAccounts = [];
 for (let i = 0; i < 5; i++) {
@@ -39,11 +41,11 @@ for (let i = 0; i < 5; i++) {
 describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
-  let listHolder = new Keypair();
+  let matchedHolder = new Keypair();
 
   let bump;
   const user = Keypair.generate();
-  let voucherMint, checkoutVoucher, userVoucher: PublicKey;
+  let voucherMint, escrowVoucher, userVoucher: PublicKey;
   let checkoutAuth: PublicKey;
   let authBump: number;
 
@@ -77,7 +79,7 @@ describe("checkout", () => {
     );
     // [voucherMint] = await PublicKey.findProgramAddress(
     //   [Buffer.from("voucher_mint"), exhibit.toBuffer()],
-    //   EXHIBITION_PROGRAM_ID
+    //   CARAVAN_PROGRAM_ID
     // );
 
     voucherMint = await createMint(
@@ -88,8 +90,8 @@ describe("checkout", () => {
       0
     );
 
-    [checkoutVoucher, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("checkout_voucher"), checkoutAuth.toBuffer()],
+    [escrowVoucher, bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("escrow_voucher"), checkoutAuth.toBuffer()],
       Checkout.programId
     );
 
@@ -97,45 +99,44 @@ describe("checkout", () => {
   });
 
   it("Is initialized!", async () => {
-    // TODO make listHolder a pda
+    // TODO make matchedHolder a pda
     const init_linked_tx =
-      await Checkout.account.linkedHolder.createInstruction(listHolder);
+      await Checkout.account.matchedOrders.createInstruction(matchedHolder);
 
-    // let acc = await connection.getAccountInfo(listHolder.publicKey);
+    // let acc = await connection.getAccountInfo(matchedHolder.publicKey);
 
     // console.log("chekoutOut auth", checkoutAuth.toString());
     // console.log(
     //   "ref accs",
-    //   listHolder.publicKey.toString(),
+    //   matchedHolder.publicKey.toString(),
     //   exhibit.toString(),
     //   checkoutAuth.toString(),
     //   voucherMint.toString(),
-    //   checkoutVoucher.toString(),
+    //   escrowVoucher.toString(),
     //   user.publicKey.toString()
     // );
 
     const actual_tx = await Checkout.methods
       .initialize(authBump)
       .accounts({
-        linkedHolder: listHolder.publicKey,
         exhibit: exhibit,
+        matchedOrders: matchedHolder.publicKey,
         checkoutAuth: checkoutAuth,
         voucherMint: voucherMint,
-        checkoutVoucher: checkoutVoucher,
+        escrowVoucher: escrowVoucher,
         user: user.publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         exhibitionProgram: Exhibition.programId,
+        caravanProgram: Caravan.programId,
       })
       .preInstructions([init_linked_tx])
-      .signers([listHolder, user])
+      .signers([matchedHolder, user])
       .rpc();
 
-    assert.ok(
-      (await checkIfAccountExists(checkoutVoucher, connection)) == true
-    );
+    assert.ok((await checkIfAccountExists(escrowVoucher, connection)) == true);
 
     assert.ok((await checkIfAccountExists(checkoutAuth, connection)) == true);
   });
@@ -166,11 +167,11 @@ describe("checkout", () => {
         let tx = await Checkout.methods
           .addOrder(checkoutTradeAccounts[i].publicKey, authBump)
           .accounts({
-            linkedHolder: listHolder.publicKey,
+            matchedOrders: matchedHolder.publicKey,
             exhibit: exhibit,
             checkoutAuth: checkoutAuth,
             voucherMint: voucherMint,
-            checkoutVoucher: checkoutVoucher,
+            escrowVoucher: escrowVoucher,
             userVoucher: userVoucher,
             user: user.publicKey,
             tokenProgram: TOKEN_PROGRAM_ID,
@@ -185,14 +186,14 @@ describe("checkout", () => {
     // console.log("Your transaction signature", tx);
 
     assert.ok(
-      Number((await getAccount(connection, checkoutVoucher)).amount) ==
+      Number((await getAccount(connection, escrowVoucher)).amount) ==
         checkoutTradeAccounts.length
     );
 
-    // let linkedHolderInfo = await Checkout.account.linkedHolder.fetch(
-    //   listHolder.publicKey
+    // let matchedOrdersInfo = await Checkout.account.matchedOrders.fetch(
+    //   matchedHolder.publicKey
     // );
-    // console.log(linkedHolderInfo.trades.orders[1]);
+    // console.log(matchedOrdersInfo.trades.orders[1]);
   });
 
   it("Able to remove pubkey order from DLL!", async () => {
@@ -202,11 +203,11 @@ describe("checkout", () => {
       let tx = await Checkout.methods
         .removeOrder(orderPubkey.publicKey, authBump)
         .accounts({
-          linkedHolder: listHolder.publicKey,
+          matchedOrders: matchedHolder.publicKey,
           exhibit: exhibit,
           checkoutAuth: checkoutAuth,
           voucherMint: voucherMint,
-          checkoutVoucher: checkoutVoucher,
+          escrowVoucher: escrowVoucher,
           userVoucher: userVoucher,
           user: user.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -217,7 +218,7 @@ describe("checkout", () => {
       console.log("remove erro", error);
     }
     assert.ok(
-      Number((await getAccount(connection, checkoutVoucher)).amount) ==
+      Number((await getAccount(connection, escrowVoucher)).amount) ==
         checkoutTradeAccounts.length - 1
     );
   });

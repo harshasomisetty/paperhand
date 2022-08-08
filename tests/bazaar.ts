@@ -514,6 +514,11 @@ describe("bazaar", () => {
     let userSol = await connection.getBalance(user[0].publicKey);
     let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
+    console.log(
+      "market vouchers",
+      marketVoucherBal.amount,
+      prevMarketVoucherBal.amount
+    );
     printAndTest(
       Number(marketVoucherBal.amount).toFixed(3),
       (Number(prevMarketVoucherBal.amount) - withdrawAmounts[1]).toFixed(3),

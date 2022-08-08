@@ -112,9 +112,6 @@ pub struct CreateBinaryHeap<'info> {
     )]
     nft_heap: AccountLoader<'info, NftHeap>,
 
-    #[account(init, payer = signer, space = 8, seeds = [b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, Auth>,
-
     #[account(init, payer = signer, space = 8, seeds = [b"orderbook_sol", exhibit.key().as_ref()], bump)]
     pub orderbook_sol: Account<'info, SolWallet>,
 
@@ -132,9 +129,6 @@ pub struct MakeBid<'info> {
         seeds = [b"nft_heap", exhibit.key().as_ref()], bump
     )]
     nft_heap: AccountLoader<'info, NftHeap>,
-
-    #[account(mut, seeds = [b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, Auth>,
 
     #[account(mut, seeds = [b"orderbook_sol", exhibit.key().as_ref()], bump)]
     pub orderbook_sol: Account<'info, SolWallet>,
@@ -154,9 +148,6 @@ pub struct CancelBid<'info> {
     )]
     nft_heap: AccountLoader<'info, NftHeap>,
 
-    #[account(mut, seeds = [b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, Auth>,
-
     #[account(mut, seeds = [b"orderbook_sol", exhibit.key().as_ref()], bump)]
     pub orderbook_sol: Account<'info, SolWallet>,
 
@@ -174,9 +165,6 @@ pub struct BidFloor<'info> {
         seeds = [b"nft_heap", exhibit.key().as_ref()], bump
     )]
     nft_heap: AccountLoader<'info, NftHeap>,
-
-    #[account(mut, seeds = [b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, Auth>,
 
     #[account(mut, seeds = [b"orderbook_sol", exhibit.key().as_ref()], bump)]
     pub orderbook_sol: Account<'info, SolWallet>,
@@ -198,7 +186,3 @@ pub struct NftHeap {
 #[account]
 #[derive(Default)]
 pub struct SolWallet {}
-
-#[account]
-#[derive(Default)]
-pub struct Auth {}

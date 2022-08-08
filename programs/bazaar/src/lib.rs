@@ -87,14 +87,6 @@ pub mod bazaar {
             .checked_div(ctx.accounts.market_voucher.amount)
             .unwrap();
 
-        msg!(
-            "transfer vals: input voucher {}, marketVoucher {}, input sol {}, marketSol {}",
-            &input_voucher_amt,
-            ctx.accounts.market_voucher.amount,
-            &input_sol_amt,
-            ctx.accounts.market_sol.to_account_info().lamports()
-        );
-
         msg!("voucher transfer");
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
         anchor_spl::token::transfer(
@@ -163,14 +155,6 @@ pub mod bazaar {
             let market_diff = market_voucher.checked_sub(vouchers).unwrap();
             let k_diff = k.checked_div(market_diff).unwrap();
             let amount_out = k_diff.checked_sub(market_sol).unwrap();
-
-            msg!(
-                "k {}, marketDiff {}, vouchers in {}, amountOut {}",
-                k,
-                market_diff,
-                vouchers,
-                amount_out,
-            );
 
             msg!("first transfer");
 

@@ -257,23 +257,19 @@ describe("Full Floorbid", () => {
       .signers([users[1]])
       .rpc();
 
-    // check prelength - 1 = curLength
-
-    // check heap balance changed propperly
-    //
-    let postHeapBal = await connection.getBalance(orderbookSol);
-
-    console.log(
-      "uh prices? ",
-      regSol(preHeapBal),
-      regSol(highestBid),
-      regSol(postHeapBal)
-    );
-    // printAndTest(preSellerBal - highestBid, postSellerBal, "seller bal change");
-    printAndTest(preHeapBal - highestBid, postHeapBal, "heap bal change");
+    /*
+     * if user selects nft, call to voucher
+     * if user has a voucher already, good.
+     *
+     * transaction(
+     * transfer voucher to
+     *
+     )
+     *
+     */
   });
 
-  it.skip("user claims token", async () => {});
+  it("user claims token", async () => {});
 
   it.skip("user cancels bid", async () => {});
 

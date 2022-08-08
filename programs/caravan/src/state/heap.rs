@@ -1,4 +1,4 @@
-use std::{fmt::{self, Debug, Display, Formatter}};
+use std::fmt::{self, Debug, Display, Formatter};
 /*
 Cleaner, recursive, implementation of Caravan's heap
 */
@@ -22,10 +22,9 @@ pub struct Node {
 #[zero_copy]
 #[derive(Debug, Default)]
 pub struct Heap {
-    pub size: u64,               // 8 bytes
+    pub size: u64,         // 8 bytes
     pub items: [Node; 32], // 1,536 bytes
 }
-
 
 impl Heap {
     fn swap_node(arr: &mut [Node; 32], parent_idx: usize, added_idx: usize) {

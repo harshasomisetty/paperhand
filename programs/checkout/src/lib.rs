@@ -7,6 +7,9 @@ use anchor_spl::{
 use solana_program;
 use solana_program::{account_info::AccountInfo, program_option::COption};
 
+use caravan::{self, NftHeap};
+use caravan::{program::Caravan, CreateBinaryHeap, SolWallet};
+
 use exhibition::program::Exhibition;
 use exhibition::{self, Exhibit};
 
@@ -17,6 +20,7 @@ declare_id!("8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX");
 
 #[program]
 pub mod checkout {
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, auth_bump: u8) -> Result<()> {
@@ -33,25 +37,38 @@ pub mod checkout {
 
         let list = LinkedList::initialize();
 
-        let mut linked_holder = ctx.accounts.linked_holder.load_init()?;
+        let mut matched_orders = ctx.accounts.matched_orders.load_init()?;
 
-        linked_holder.trades = list;
+        matched_orders.trades = list;
 
-        msg!("linked holder data {:?}", &linked_holder.trades.order_head);
+        // let cpi_program = ctx.accounts.caravan_program.to_account_info();
+
+        // let cpi_accounts = CreateBinaryHeap {
+        //     exhibit: ctx.accounts.exhibit.to_account_info(),
+        //     nft_heap: ctx.accounts.nft_heap.to_account_info(),
+        //     orderbook_sol: ctx.accounts.orderbook_sol.to_account_info(),
+        //     signer: ctx.accounts.user.sig,
+        //     system_program: ctx.accounts.system_program.to_account_info(),
+        // };
+
+        // let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        // caravan::cpi::create_binary_heap(cpi_ctx);
+
+        msg!("linked holder data {:?}", &matched_orders.trades.order_head);
         Ok(())
     }
 
     pub fn add_order(ctx: Context<AddOrder>, pubkey_to_add: Pubkey, auth_bump: u8) -> Result<()> {
         msg!("in set_data pubkey: {}", &pubkey_to_add.to_string());
 
-        let mut linked_holder = ctx.accounts.linked_holder.load_mut()?;
+        let mut matched_orders = ctx.accounts.matched_orders.load_mut()?;
 
-        linked_holder.trades.insert_node(pubkey_to_add);
+        matched_orders.trades.insert_node(pubkey_to_add);
 
         msg!(
             "linked holder data {:?}, {:?}",
-            linked_holder.trades.free_head,
-            linked_holder.trades.order_head
+            matched_orders.trades.free_head,
+            matched_orders.trades.order_head
         );
 
         msg!("voucher balance {}", ctx.accounts.user_voucher.amount);
@@ -61,7 +78,7 @@ pub mod checkout {
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
                     from: ctx.accounts.user_voucher.to_account_info(),
-                    to: ctx.accounts.checkout_voucher.to_account_info(),
+                    to: ctx.accounts.escrow_voucher.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
@@ -78,15 +95,17 @@ pub mod checkout {
     ) -> Result<()> {
         msg!("in remove_order pubkey: {}", &pubkey_to_remove.to_string());
 
-        let mut linked_holder = ctx.accounts.linked_holder.load_mut()?;
-        linked_holder.trades.remove_node_by_pubkey(pubkey_to_remove);
+        let mut matched_orders = ctx.accounts.matched_orders.load_mut()?;
+        matched_orders
+            .trades
+            .remove_node_by_pubkey(pubkey_to_remove);
 
         // TODO get seeds of pda?
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.checkout_voucher.to_account_info(),
+                    from: ctx.accounts.escrow_voucher.to_account_info(),
                     to: ctx.accounts.user_voucher.to_account_info(),
                     authority: ctx.accounts.checkout_auth.to_account_info(),
                 },
@@ -106,13 +125,15 @@ pub mod checkout {
 
 #[derive(Accounts)]
 #[instruction(auth_bump: u8)]
-
 pub struct Initialize<'info> {
-    #[account(zero)]
-    pub linked_holder: AccountLoader<'info, LinkedHolder>,
-
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
+
+    #[account(zero)]
+    pub matched_orders: AccountLoader<'info, MatchedOrders>,
+
+    #[account(mut, seeds = [b"nft_heap", exhibit.key().as_ref()], bump)]
+    nft_heap: AccountLoader<'info, NftHeap>,
 
     #[account(init, payer = user, space = 8+std::mem::size_of::<CheckoutAuth>(), seeds=[b"checkout_auth", exhibit.key().as_ref()], bump)]
     pub checkout_auth: Account<'info, CheckoutAuth>,
@@ -123,12 +144,15 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = user,
-        seeds = [b"checkout_voucher", checkout_auth.key().as_ref()],
+        seeds = [b"escrow_voucher", checkout_auth.key().as_ref()],
         token::mint = voucher_mint,
         token::authority = checkout_auth,
         bump
     )]
-    pub checkout_voucher: Account<'info, TokenAccount>,
+    pub escrow_voucher: Account<'info, TokenAccount>,
+
+    #[account(mut, seeds = [b"orderbook_sol", exhibit.key().as_ref()], bump)]
+    pub orderbook_sol: Account<'info, SolWallet>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -137,6 +161,7 @@ pub struct Initialize<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub exhibition_program: Program<'info, Exhibition>,
+    pub caravan_program: Program<'info, Caravan>,
 }
 
 #[derive(Accounts)]
@@ -144,7 +169,7 @@ pub struct Initialize<'info> {
 
 pub struct AddOrder<'info> {
     #[account(mut)]
-    pub linked_holder: AccountLoader<'info, LinkedHolder>,
+    pub matched_orders: AccountLoader<'info, MatchedOrders>,
 
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -160,7 +185,7 @@ pub struct AddOrder<'info> {
         token::mint = voucher_mint,
         token::authority = checkout_auth,
     )]
-    pub checkout_voucher: Account<'info, TokenAccount>,
+    pub escrow_voucher: Account<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -179,7 +204,7 @@ pub struct AddOrder<'info> {
 #[instruction(pubkey_to_remove: Pubkey, auth_bump: u8)]
 pub struct RemoveOrder<'info> {
     #[account(mut)]
-    pub linked_holder: AccountLoader<'info, LinkedHolder>,
+    pub matched_orders: AccountLoader<'info, MatchedOrders>,
 
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -195,7 +220,7 @@ pub struct RemoveOrder<'info> {
         token::mint = voucher_mint,
         token::authority = checkout_auth,
     )]
-    pub checkout_voucher: Account<'info, TokenAccount>,
+    pub escrow_voucher: Account<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -216,7 +241,7 @@ pub struct RemoveOrder<'info> {
 
 #[account(zero_copy)]
 #[repr(C)]
-pub struct LinkedHolder {
+pub struct MatchedOrders {
     pub trades: LinkedList,
 }
 

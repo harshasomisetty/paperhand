@@ -96,7 +96,6 @@ describe("caravan", () => {
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
-        auth: caravanAuth,
         orderbookSol: orderbookSol,
         signer: creator.publicKey,
         systemProgram: SystemProgram.programId,
@@ -112,7 +111,6 @@ describe("caravan", () => {
         .accounts({
           exhibit: exhibit,
           nftHeap: nftHeap,
-          auth: caravanAuth,
           orderbookSol: orderbookSol,
           bidder: users[0].publicKey,
           systemProgram: SystemProgram.programId,
@@ -157,7 +155,6 @@ describe("caravan", () => {
       .accounts({
         exhibit: exhibit,
         nftHeap: nftHeap,
-        auth: caravanAuth,
         orderbookSol: orderbookSol,
         seller: users[1].publicKey,
         systemProgram: SystemProgram.programId,
