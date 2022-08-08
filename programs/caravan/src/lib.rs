@@ -11,8 +11,6 @@ declare_id!("8xHuptU9RNL6MsssM7Ty6u8WmSnFcdcJ1LNptxot9SNC");
 #[program]
 pub mod caravan {
 
-    use solana_program::program::invoke_signed;
-
     use super::*;
 
     /*
@@ -21,7 +19,7 @@ pub mod caravan {
     PDA seeds: b"max_heap, exhibit pubkey (?) Seems reasonable for keys
     */
 
-    pub fn create_binary_heap(ctx: Context<CreateBinaryHeap>) -> Result<()> {
+    pub fn create_binary_heap(_ctx: Context<CreateBinaryHeap>) -> Result<()> {
         // let _heap = &mut ctx.accounts.nft_heap.load_init()?;
         msg!("in create heap");
         Ok(())
@@ -67,7 +65,7 @@ pub mod caravan {
         let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
         // Need a clever way to somehow know the bid price after the let mut heap declaration
-        let bid_price_sol = heap.heap.cancel_bid(bidder.key());
+        let bid_price_sol = heap.heap.cancelnftbid(bidder.key());
 
         **ctx
             .accounts
@@ -84,7 +82,7 @@ pub mod caravan {
     pub fn bid_floor(ctx: Context<BidFloor>) -> Result<()> {
         let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
-        let bid_price_sol = heap.heap.pop_highest_bid();
+        let bid_price_sol = heap.heap.pophighestbid();
         msg!(
             "bid price: {}, heap lamposts: {}",
             &bid_price_sol,
