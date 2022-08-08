@@ -84,7 +84,7 @@ mod tests {
         assert_eq!(nft_heap.size, 3);
         assert_eq!(nft_heap.items[0].sequence_number, 2);
         // should delete the highest node.
-        nft_heap.pophighestbid();
+        nft_heap.pop_highest_bid();
         /*
             5 (0)
            /  \
@@ -134,7 +134,7 @@ mod tests {
 
         assert_eq!(nft_heap.size, 4);
 
-        nft_heap.pophighestbid();
+        nft_heap.pop_highest_bid();
 
         /*
             12 (0)
@@ -149,7 +149,7 @@ mod tests {
         assert_eq!(nft_heap.items[1].sequence_number, 3);
         assert_eq!(nft_heap.items[2].sequence_number, 1);
 
-        nft_heap.pophighestbid();
+        nft_heap.pop_highest_bid();
         /*
             12 (3)
              /
@@ -204,7 +204,7 @@ mod tests {
         /*
         Now we want to cancel the 5(1) bid -> let's use our cancelbid function to do this
         */
-        nft_heap.cancelnftbid(test_keys[1]);
+        nft_heap.cancel_bid(test_keys[1]);
 
         /*
            Schematic:
@@ -276,7 +276,7 @@ mod tests {
         assert_eq!(nft_heap.items[6].sequence_number, 6);
         assert_eq!(nft_heap.items[7].sequence_number, 7);
 
-        nft_heap.cancelnftbid(test_keys[2]);
+        nft_heap.cancel_bid(test_keys[2]);
         assert_eq!(nft_heap.size, 7);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -299,7 +299,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_keys[3]);
+        nft_heap.cancel_bid(test_keys[3]);
         assert_eq!(nft_heap.size, 6);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -320,7 +320,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_keys[4]);
+        nft_heap.cancel_bid(test_keys[4]);
         assert_eq!(nft_heap.size, 5);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -341,7 +341,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_keys[5]);
+        nft_heap.cancel_bid(test_keys[5]);
         assert_eq!(nft_heap.size, 4);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -361,7 +361,7 @@ mod tests {
 
         */
 
-        nft_heap.cancelnftbid(test_keys[6]);
+        nft_heap.cancel_bid(test_keys[6]);
         /*
                   5 (0)
                  /   \
@@ -399,7 +399,7 @@ mod tests {
 
         let no_bid_user = anchor_lang::prelude::Pubkey::new_unique();
 
-        nft_heap.cancelnftbid(no_bid_user);
+        nft_heap.cancel_bid(no_bid_user);
 
     }
 }

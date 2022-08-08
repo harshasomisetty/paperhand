@@ -65,7 +65,7 @@ pub mod caravan {
         let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
         // Need a clever way to somehow know the bid price after the let mut heap declaration
-        let bid_price_sol = heap.heap.cancelnftbid(bidder.key());
+        let bid_price_sol = heap.heap.cancel_bid(bidder.key());
 
         **ctx
             .accounts
@@ -82,7 +82,7 @@ pub mod caravan {
     pub fn bid_floor(ctx: Context<BidFloor>) -> Result<()> {
         let mut heap = ctx.accounts.nft_heap.load_mut()?;
 
-        let bid_price_sol = heap.heap.pophighestbid();
+        let bid_price_sol = heap.heap.pop_highest_bid();
         msg!(
             "bid price: {}, heap lamposts: {}",
             &bid_price_sol,

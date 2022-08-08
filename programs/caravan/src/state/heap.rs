@@ -120,7 +120,7 @@ impl Heap {
     /*
     TODO : make sure that if bidder is not found that it is not cancelled
     */
-    pub fn cancelnftbid(&mut self, bidder_pubkey: Pubkey) -> u64 {
+    pub fn cancel_bid(&mut self, bidder_pubkey: Pubkey) -> u64 {
         let mut index = 0;
         for elem in self.items {
             if elem.bidder_pubkey == bidder_pubkey {
@@ -166,7 +166,7 @@ impl Heap {
         self.heapifyup(last)
     }
 
-    pub fn pophighestbid(&mut self) -> u64 {
+    pub fn pop_highest_bid(&mut self) -> u64 {
         let lastidx = (self.size - 1) as usize;
 
         Self::swap_node(&mut self.items, 0, lastidx);
