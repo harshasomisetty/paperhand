@@ -11,8 +11,6 @@ declare_id!("8xHuptU9RNL6MsssM7Ty6u8WmSnFcdcJ1LNptxot9SNC");
 #[program]
 pub mod caravan {
 
-    use solana_program::program::invoke_signed;
-
     use super::*;
 
     /*
@@ -21,7 +19,7 @@ pub mod caravan {
     PDA seeds: b"max_heap, exhibit pubkey (?) Seems reasonable for keys
     */
 
-    pub fn create_binary_heap(ctx: Context<CreateBinaryHeap>) -> Result<()> {
+    pub fn create_binary_heap(_ctx: Context<CreateBinaryHeap>) -> Result<()> {
         // let _heap = &mut ctx.accounts.nft_heap.load_init()?;
         msg!("in create heap");
         Ok(())
