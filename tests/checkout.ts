@@ -1,5 +1,5 @@
 import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
@@ -31,32 +31,41 @@ anchor.setProvider(provider);
 const connection = provider.connection;
 const Checkout = anchor.workspace.Checkout as Program<Checkout>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
-const Caravan = anchor.workspace.Caravan as Program<Caravan>;
 
-const checkoutTradeAccounts = [];
-for (let i = 0; i < 5; i++) {
-  checkoutTradeAccounts.push(Keypair.generate());
+function printAndTest(arg1, arg2, name = "") {
+  console.log(name, arg1, arg2);
+  assert.ok(arg1 == arg2);
+}
+
+function regSol(val) {
+  return Math.round(val / LAMPORTS_PER_SOL);
 }
 
 describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
-  let matchedHolder = new Keypair();
+  let matchedOrders;
+
+  let creator: Keypair = Keypair.generate();
+  let users: Keypair[] = [Keypair.generate(), Keypair.generate()];
 
   let bump;
-  const user = Keypair.generate();
-  let voucherMint, escrowVoucher, userVoucher: PublicKey;
-  let checkoutAuth: PublicKey;
+  let voucherMint, escrowVoucher, escrowSol: PublicKey;
+
+  let userVouchers = Array(2);
+
+  let auth: PublicKey;
   let authBump: number;
+  let bidOrders: PublicKey;
+
+  let bidSizes = [5 * LAMPORTS_PER_SOL, 10 * LAMPORTS_PER_SOL];
+
+  let totalBidSize = bidSizes.reduce((partialSum, a) => partialSum + a, 0);
 
   before(async () => {
     console.log(new Date(), "requesting airdrop");
 
-    for (let i = 0; i < checkoutTradeAccounts.length; i++) {
-      console.log("add", i, checkoutTradeAccounts[i].publicKey.toString());
-    }
-
-    let airdropees = [user];
+    let airdropees = [...users, creator];
 
     for (const dropee of airdropees) {
       await connection.confirmTransaction(
@@ -68,19 +77,10 @@ describe("checkout", () => {
       );
     }
 
-    let userBal = await connection.getBalance(user.publicKey);
-    console.log("user bal ", Number(userBal));
-
-    console.log(new Date(), "User pubkey is", user.publicKey.toBase58());
-
-    [checkoutAuth, authBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("checkout_auth"), exhibit.toBuffer()],
+    [auth, authBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("auth"), exhibit.toBuffer()],
       Checkout.programId
     );
-    // [voucherMint] = await PublicKey.findProgramAddress(
-    //   [Buffer.from("voucher_mint"), exhibit.toBuffer()],
-    //   CARAVAN_PROGRAM_ID
-    // );
 
     voucherMint = await createMint(
       connection,
@@ -91,136 +91,228 @@ describe("checkout", () => {
     );
 
     [escrowVoucher, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow_voucher"), checkoutAuth.toBuffer()],
+      [Buffer.from("escrow_voucher"), auth.toBuffer()],
       Checkout.programId
     );
 
-    userVoucher = await getAssociatedTokenAddress(voucherMint, user.publicKey);
+    [escrowSol, bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("escrow_sol"), exhibit.toBuffer()],
+      Checkout.programId
+    );
+
+    // make pda
+    [bidOrders, bump] = await PublicKey.findProgramAddress(
+      [Buffer.from("bid_orders"), exhibit.toBuffer()],
+      Checkout.programId
+    );
+
+    matchedOrders = new Keypair();
+
+    for (let i = 0; i < 2; i++) {
+      userVouchers[i] = await getAssociatedTokenAddress(
+        voucherMint,
+        users[i].publicKey
+      );
+    }
   });
 
   it("Is initialized!", async () => {
-    // TODO make matchedHolder a pda
+    // TODO make matchedOrders a pda
     const init_linked_tx =
-      await Checkout.account.matchedOrders.createInstruction(matchedHolder);
+      await Checkout.account.matchedOrders.createInstruction(matchedOrders);
 
-    // let acc = await connection.getAccountInfo(matchedHolder.publicKey);
-
-    // console.log("chekoutOut auth", checkoutAuth.toString());
-    // console.log(
-    //   "ref accs",
-    //   matchedHolder.publicKey.toString(),
-    //   exhibit.toString(),
-    //   checkoutAuth.toString(),
-    //   voucherMint.toString(),
-    //   escrowVoucher.toString(),
-    //   user.publicKey.toString()
-    // );
-
-    const actual_tx = await Checkout.methods
-      .initialize(authBump)
+    const init_tx = await Checkout.methods
+      .initialize()
       .accounts({
         exhibit: exhibit,
-        matchedOrders: matchedHolder.publicKey,
-        checkoutAuth: checkoutAuth,
+        matchedOrders: matchedOrders.publicKey,
+        bidOrders: bidOrders,
+        auth: auth,
         voucherMint: voucherMint,
         escrowVoucher: escrowVoucher,
-        user: user.publicKey,
+        escrowSol: escrowSol,
+        user: creator.publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         exhibitionProgram: Exhibition.programId,
-        caravanProgram: Caravan.programId,
       })
       .preInstructions([init_linked_tx])
-      .signers([matchedHolder, user])
+      .signers([matchedOrders, creator])
       .rpc();
 
     assert.ok((await checkIfAccountExists(escrowVoucher, connection)) == true);
-
-    assert.ok((await checkIfAccountExists(checkoutAuth, connection)) == true);
+    assert.ok((await checkIfAccountExists(auth, connection)) == true);
   });
 
-  it("Able to add to DLL!", async () => {
+  it("Makes 2 bids!", async () => {
+    for (let i = 0; i < 2; i++) {
+      let bid_tx = await Checkout.methods
+        .makeBid(new BN(bidSizes[i]))
+        .accounts({
+          exhibit: exhibit,
+          bidOrders: bidOrders,
+          escrowSol: escrowSol,
+          bidder: users[i].publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([users[i]])
+        .rpc();
+
+      console.log("finished bid ", i);
+
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    let account = await Checkout.account.bidOrders.fetch(bidOrders);
+
+    console.log("account orders");
+    for (let i = 0; i < 5; i++) {
+      console.log(account.heap.items[i].bidderPubkey.toString());
+    }
+
+    printAndTest(
+      regSol(account.heap.items[0].bidPrice),
+      regSol(Math.max.apply(Math, bidSizes)),
+      "max heap"
+    );
+
+    let postHeapBal = await connection.getBalance(escrowSol);
+
+    printAndTest(
+      regSol(postHeapBal),
+      regSol(totalBidSize),
+      "balance heap size"
+    );
+  });
+
+  it("Bid Floor!", async () => {
+    console.log("in bid floor test");
+    if (!(await checkIfAccountExists(userVouchers[0], connection))) {
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        users[0],
+        voucherMint,
+        users[0].publicKey
+      );
+
+      await mintTo(
+        connection,
+        users[0],
+        voucherMint,
+        userVouchers[0],
+        creator,
+        2
+      );
+    }
+
+    let account = await Checkout.account.bidOrders.fetch(bidOrders);
+    let highestBid = Number(account.heap.items[0].bidPrice);
+
+    let preHeapBal = await connection.getBalance(escrowSol);
+    let preUserBal = await connection.getBalance(users[0].publicKey);
+
     try {
-      if (!(await checkIfAccountExists(userVoucher, connection))) {
-        await getOrCreateAssociatedTokenAccount(
-          connection,
-          user,
-          voucherMint,
-          user.publicKey
-        );
-
-        await mintTo(
-          connection,
-          user,
-          voucherMint,
-          userVoucher,
-          creator,
-          checkoutTradeAccounts.length
-        );
-      } else {
-        console.log("user voucher already created");
-      }
-
-      for (let i = 0; i < checkoutTradeAccounts.length; i++) {
-        let tx = await Checkout.methods
-          .addOrder(checkoutTradeAccounts[i].publicKey, authBump)
-          .accounts({
-            matchedOrders: matchedHolder.publicKey,
-            exhibit: exhibit,
-            checkoutAuth: checkoutAuth,
-            voucherMint: voucherMint,
-            escrowVoucher: escrowVoucher,
-            userVoucher: userVoucher,
-            user: user.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-          })
-          .signers([user])
-          .rpc();
-      }
+      let tx = await Checkout.methods
+        .bidFloor()
+        .accounts({
+          exhibit: exhibit,
+          matchedOrders: matchedOrders.publicKey,
+          bidOrders: bidOrders,
+          auth: auth,
+          voucherMint: voucherMint,
+          escrowVoucher: escrowVoucher,
+          escrowSol: escrowSol,
+          userVoucher: userVouchers[0],
+          user: users[0].publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([users[0]])
+        .rpc();
     } catch (error) {
       console.log("adding erroe", error);
       throw new Error("Throw makes it go boom!");
     }
-    // console.log("Your transaction signature", tx);
 
-    assert.ok(
-      Number((await getAccount(connection, escrowVoucher)).amount) ==
-        checkoutTradeAccounts.length
+    let postHeapBal = await connection.getBalance(escrowSol);
+    let postUserBal = await connection.getBalance(users[0].publicKey);
+
+    printAndTest(regSol(preHeapBal) - regSol(highestBid), regSol(postHeapBal));
+    printAndTest(regSol(preUserBal) + regSol(highestBid), regSol(postUserBal));
+    let matchedOrdersInfo = await Checkout.account.matchedOrders.fetch(
+      matchedOrders.publicKey
     );
 
-    // let matchedOrdersInfo = await Checkout.account.matchedOrders.fetch(
-    //   matchedHolder.publicKey
-    // );
-    // console.log(matchedOrdersInfo.trades.orders[1]);
+    printAndTest(
+      matchedOrdersInfo.trades.orders[1].val.toString(),
+      users[1].publicKey.toString()
+    );
+
+    printAndTest(
+      Number((await getAccount(connection, escrowVoucher)).amount),
+      1
+    );
   });
 
-  it("Able to remove pubkey order from DLL!", async () => {
-    let orderPubkey = checkoutTradeAccounts[2];
-    console.log("removing order from list: ", orderPubkey.publicKey);
+  it("Fulfills bid in DLL!", async () => {
     try {
-      let tx = await Checkout.methods
-        .removeOrder(orderPubkey.publicKey, authBump)
+      const fulfill_tx = await Checkout.methods
+        .fulfillOrder(users[0].publicKey, authBump)
         .accounts({
-          matchedOrders: matchedHolder.publicKey,
           exhibit: exhibit,
-          checkoutAuth: checkoutAuth,
+          matchedOrders: matchedOrders.publicKey,
+          auth: auth,
           voucherMint: voucherMint,
           escrowVoucher: escrowVoucher,
-          userVoucher: userVoucher,
-          user: user.publicKey,
+          orderVoucher: userVouchers[0],
+          orderUser: users[0].publicKey,
+          user: users[1].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([user])
+        .signers([users[1]])
         .rpc();
     } catch (error) {
-      console.log("remove erro", error);
+      console.log("fulfill tx", error);
     }
+
     assert.ok(
-      Number((await getAccount(connection, escrowVoucher)).amount) ==
-        checkoutTradeAccounts.length - 1
+      Number((await getAccount(connection, escrowVoucher)).amount) == 0
     );
+  });
+
+  it("Cancels a bid!", async () => {
+    let preHeapBal = await connection.getBalance(escrowSol);
+    let preUserBal = await connection.getBalance(users[0].publicKey);
+
+    let account = await Checkout.account.bidOrders.fetch(bidOrders);
+
+    console.log("account orders");
+    for (let i = 0; i < 5; i++) {
+      console.log(account.heap.items[i].bidderPubkey.toString());
+    }
+
+    console.log("user 0", users[0].publicKey.toString());
+    console.log("user 1", users[1].publicKey.toString());
+
+    const cancel_tx = await Checkout.methods
+      .cancelBid()
+      .accounts({
+        exhibit: exhibit,
+        bidOrders: bidOrders,
+        escrowSol: escrowSol,
+        bidder: users[0].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([users[0]])
+      .rpc();
+
+    let postHeapBal = await connection.getBalance(escrowSol);
+    let postUserBal = await connection.getBalance(users[0].publicKey);
+
+    printAndTest(regSol(preHeapBal) - regSol(bidSizes[0]), regSol(postHeapBal));
+    printAndTest(regSol(preUserBal) + regSol(bidSizes[0]), regSol(postUserBal));
   });
 
   Checkout.provider.connection.onLogs("all", ({ logs }) => {

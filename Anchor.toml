@@ -5,6 +5,7 @@ exhibition = "AqzBa4Xaiorxbu49AV6Ja9RsspZXSCWcJCZp3imeLLhg"
 bazaar = "7cysYXNdgFsJJ8mGRszhkNDej9rzKWNMKiAAthYcx8U3"
 checkout = "8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX"
 caravan = "8xHuptU9RNL6MsssM7Ty6u8WmSnFcdcJ1LNptxot9SNC"
+festival = "2Xg89F21cvsfqNtV3AaGgnLDoKM8N8meL8Nxf18uFkHi"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -14,7 +15,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/bazaar.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 10000000 tests/checkout.ts"
 
 [test.validator]    
 url = "https://api.mainnet-beta.solana.com"

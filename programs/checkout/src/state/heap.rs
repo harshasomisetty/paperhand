@@ -8,8 +8,8 @@ use anchor_lang::prelude::*;
 48 bytes
 */
 #[zero_copy]
-#[derive(Debug, Default)]
-pub struct Node {
+#[derive(Default, Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
+pub struct HeapNode {
     pub sequence_number: u64,  // 8 bytes
     pub bid_price: u64,        // 8 bytes
     pub bidder_pubkey: Pubkey, // 32 bytes
@@ -20,14 +20,14 @@ pub struct Node {
 32 items
 */
 #[zero_copy]
-#[derive(Debug, Default)]
+#[derive(Default, Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
 pub struct Heap {
-    pub size: u64,         // 8 bytes
-    pub items: [Node; 32], // 1,536 bytes
+    pub size: u64,             // 8 bytes
+    pub items: [HeapNode; 32], // 1,536 byes
 }
 
 impl Heap {
-    fn swap_node(arr: &mut [Node; 32], parent_idx: usize, added_idx: usize) {
+    fn swap_node(arr: &mut [HeapNode; 32], parent_idx: usize, added_idx: usize) {
         let temp = arr[parent_idx];
         arr[parent_idx] = arr[added_idx];
         arr[added_idx] = temp;
@@ -128,29 +128,29 @@ impl Heap {
             index += 1;
         }
 
+        // Bidder does not have an order active
         if index == self.items.len() {
-            panic!("User trying to cancel does not have a bid!")
+            0
+            // panic!("User trying to cancel does not have a bid!")
+        } else {
+            Self::swap_node(&mut self.items, index, (self.size - 1) as usize);
+
+            let bid_price = self.items[(self.size - 1) as usize].bid_price;
+
+            self.items[(self.size - 1) as usize] = HeapNode::default();
+
+            self.size -= 1;
+
+            self.heapifydown(index);
+
+            bid_price
         }
-
-        // utilize MAX_SIZE or something to check whether key was found
-
-        Self::swap_node(&mut self.items, index, (self.size - 1) as usize);
-
-        let bid_price = self.items[(self.size - 1) as usize].bid_price;
-
-        self.items[(self.size - 1) as usize] = Node::default();
-
-        self.size -= 1;
-
-        self.heapifydown(index);
-
-        bid_price
     }
 
     pub fn add(&mut self, price: u64, pubkey: Pubkey) {
         let sequence_number = self.size;
 
-        let bid = Node {
+        let bid = HeapNode {
             sequence_number: sequence_number,
             bid_price: price,
             bidder_pubkey: pubkey,
@@ -162,31 +162,31 @@ impl Heap {
 
         self.size += 1;
         // maintains the max heap structure
-        self.heapifyup(last)
+        self.heapifyup(last);
     }
 
-    pub fn pop_highest_bid(&mut self) -> u64 {
+    pub fn pop_highest_bid(&mut self) -> HeapNode {
         let lastidx = (self.size - 1) as usize;
 
         Self::swap_node(&mut self.items, 0, lastidx);
 
-        let bid_price = self.items[lastidx].bid_price;
+        let highest_bid = self.items[lastidx];
 
-        self.items[(self.size - 1) as usize] = Node::default();
+        self.items[(self.size - 1) as usize] = HeapNode::default();
 
         self.size -= 1;
 
         self.heapifydown(0);
 
-        bid_price
+        highest_bid
     }
 }
 
-impl Display for Node {
+impl Display for HeapNode {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "Node: seq number {} bid price {} bidder pub {}",
+            "HeapNode: seq number {} bid price {} bidder pub {}",
             self.sequence_number, self.bid_price, self.bidder_pubkey
         )
     }
@@ -199,7 +199,7 @@ impl Display for Heap {
         // let mut cur_node_index = self.order_head;
 
         for i in 0..10 {
-            // println!("Node: {}", self.items[i as usize]);
+            // println!("HeapNode: {}", self.items[i as usize]);
             output.push(&self.items[i as usize])
         }
 

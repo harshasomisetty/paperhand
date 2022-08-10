@@ -7,7 +7,6 @@ use solana_program;
 use solana_program::{account_info::AccountInfo, program::invoke};
 
 use solana_program::system_instruction;
-// use spl_math::checked_ceil_div::CheckedCeilDiv;
 
 declare_id!("7cysYXNdgFsJJ8mGRszhkNDej9rzKWNMKiAAthYcx8U3");
 
