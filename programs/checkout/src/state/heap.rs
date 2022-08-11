@@ -180,6 +180,12 @@ impl Heap {
 
         highest_bid
     }
+
+    pub fn peek_highest_bid(&mut self) -> HeapNode {
+        let highest_bid = self.items[0];
+
+        highest_bid
+    }
 }
 
 impl Display for HeapNode {
@@ -218,11 +224,11 @@ impl Display for Heap {
 mod tests {
     use std::vec;
 
-    use anchor_lang::{prelude::Pubkey};
+    use anchor_lang::prelude::Pubkey;
 
     use crate::state::heap::HeapNode;
 
-    use super::{Heap};
+    use super::Heap;
 
     // test for additions
     #[test]
@@ -265,7 +271,7 @@ mod tests {
             *test_vals.iter().max().unwrap() as u64
         );
 
-        println!("{}",*test_vals.iter().max().unwrap());
+        println!("{}", *test_vals.iter().max().unwrap());
         println!("{:?}", test_vals)
     }
 
@@ -277,7 +283,7 @@ mod tests {
             items: [HeapNode::default(); 32],
         };
 
-        let mut test_keys_vals:Vec<(Pubkey, usize)> = Vec::new();
+        let mut test_keys_vals: Vec<(Pubkey, usize)> = Vec::new();
         let test_vals: Vec<usize> = vec![5, 5, 10];
         let mut temp_key: Pubkey;
 
@@ -290,7 +296,7 @@ mod tests {
         for i in 0..num_keys {
             nft_heap.add(test_keys_vals[i].1 as u64, test_keys_vals[i].0)
         }
-        
+
         /*
             10 (2)
            /  \
@@ -320,7 +326,7 @@ mod tests {
             items: [HeapNode::default(); 32],
         };
 
-        let mut test_keys_vals:Vec<(Pubkey, usize)> = Vec::new();
+        let mut test_keys_vals: Vec<(Pubkey, usize)> = Vec::new();
         let test_vals = vec![12, 9, 16, 12];
 
         let mut temp_key: Pubkey;
@@ -379,8 +385,7 @@ mod tests {
 
     #[test]
     fn cancel_one_bid() {
-
-        // need to know exactly what the keys are here. 
+        // need to know exactly what the keys are here.
         let mut nft_heap = Heap {
             size: 0,
             items: [HeapNode::default(); 32],

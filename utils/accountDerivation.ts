@@ -89,10 +89,11 @@ export async function getSwapAccounts(
 
 export async function getCheckoutAccounts(
   exhibit: PublicKey
-): Promise<[PublicKey, number, PublicKey, PublicKey, PublicKey]> {
+): Promise<[PublicKey, number, PublicKey, PublicKey, PublicKey, PublicKey]> {
   let auth: PublicKey;
   let authBump: number;
   let bidOrders: PublicKey;
+  let matchedOrdersAddress: PublicKey;
 
   let voucherMint, escrowVoucher, escrowSol: PublicKey;
   let bump: number;
@@ -117,5 +118,17 @@ export async function getCheckoutAccounts(
     CHECKOUT_PROGRAM_ID
   );
 
-  return [auth, authBump, bidOrders, escrowVoucher, escrowSol];
+  [matchedOrdersAddress, bump] = await PublicKey.findProgramAddress(
+    [Buffer.from("matched_orders"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  return [
+    auth,
+    authBump,
+    bidOrders,
+    matchedOrdersAddress,
+    escrowVoucher,
+    escrowSol,
+  ];
 }

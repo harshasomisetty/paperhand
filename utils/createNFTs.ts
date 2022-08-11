@@ -190,7 +190,6 @@ export async function mintNFTs(
   }
 
   console.log("before nftResults");
-  console.log("Promises?", nftPromises);
   let nftResults = await Promise.all(nftPromises);
 
   console.log("after nftResults");

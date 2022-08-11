@@ -15,6 +15,7 @@ import {
 import {
   AccountInfo,
   Connection,
+  Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   sendAndConfirmTransaction,
@@ -23,8 +24,8 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
+  getCheckoutAccounts,
   getExhibitAccounts,
-  getSwapAccounts,
   getVoucherAddress,
 } from "../utils/accountDerivation";
 import {
@@ -33,6 +34,7 @@ import {
   initAssociatedAddressIfNeeded,
 } from "../utils/actions";
 import {
+  CHECKOUT_PROGRAM_ID,
   creator,
   EXHIBITION_PROGRAM_ID,
   otherCreators,
@@ -47,7 +49,7 @@ interface Project {
 }
 
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
-import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
+import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
 import { airdropAll } from "../utils/helpfulFunctions";
 const connection = new Connection("http://localhost:8899", "processed");
 
@@ -60,43 +62,28 @@ let mintNumberOfNfts = 10;
 let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
-let Shop;
+let Checkout;
 
 let nft;
-let nft2;
-let nft3;
-let exhibit, voucherMint;
+
+let matchedOrders: Keypair = Keypair.generate();
 //voucher wallets for both users
-let userVoucherWallet;
 // nft token account
 let nftUserTokenAccount;
-
-// market pda
-let marketAuth;
-let authBump;
-
-// swap init amounts
-let initAmounts = [2, 6];
-let liqAmounts = [1];
-let swapAmount = [1];
-// mint accounts, 0 is liquidity, array to be able to copy over code
-let tokenMints = new Array(1);
-// shop's token accounts, 0 is voucher account, 1 is sol account, 2 is
-let marketTokens = new Array(2);
-// user 0's tokens, token 0 is liquidity account, token 1 is voucher account
-let userTokens = new Array(2);
 
 export async function airdropAndMint() {
   let provider = await getProvider("http://localhost:8899", creator);
 
   Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
-  Shop = new Program(SHOP_IDL, SHOP_PROGRAM_ID, provider);
+  Checkout = new Program(CHECKOUT_IDL, CHECKOUT_PROGRAM_ID, provider);
 
-  let airdropVal = 20 * LAMPORTS_PER_SOL;
+  let airdropVal = 150 * LAMPORTS_PER_SOL;
 
-  let airdropees = [creator, ...otherCreators, ...users];
+  let airdropees = [...otherCreators, ...users, creator];
   await airdropAll(airdropees, airdropVal, connection);
 
+  let mOrderBal = await connection.getBalance(creator.publicKey);
+  console.log("ardrop bal", mOrderBal);
   nftList = await mintNFTs(
     mintNumberOfNfts,
     mintNumberOfCollections,
@@ -109,11 +96,9 @@ export async function airdropAndMint() {
 
 export async function initializeExhibit() {
   nft = nftList[0][0];
-  nft2 = nftList[0][2];
-  nft3 = nftList[0][6];
-  [exhibit, voucherMint] = await getVoucherAddress(nft);
+  let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
-  const tx = await Exhibition.methods
+  const init_exhibit_tx = await Exhibition.methods
     .initializeExhibit()
     .accounts({
       exhibit: exhibit,
@@ -125,8 +110,7 @@ export async function initializeExhibit() {
       systemProgram: SystemProgram.programId,
     })
     .transaction();
-
-  let transaction = new Transaction().add(tx);
+  let transaction = new Transaction().add(init_exhibit_tx);
 
   let signature = await sendAndConfirmTransaction(connection, transaction, [
     creator,
@@ -136,8 +120,123 @@ export async function initializeExhibit() {
   console.log("initialized exhibit!", exhibitInfo.exhibitSymbol);
 }
 
+export async function initializeCheckout() {
+  console.log("in initialize checkout");
+  let [exhibit, voucherMint] = await getVoucherAddress(nft);
+
+  let transaction = new Transaction();
+  let [
+    auth,
+    authBump,
+    bidOrders,
+    matchedOrdersAddress,
+    escrowVoucher,
+    escrowSol,
+  ] = await getCheckoutAccounts(exhibit);
+
+  const init_create_tx = await SystemProgram.createAccount({
+    fromPubkey: creator.publicKey,
+    newAccountPubkey: matchedOrders.publicKey,
+    space: 3610,
+    lamports: await connection.getMinimumBalanceForRentExemption(3610),
+    programId: CHECKOUT_PROGRAM_ID,
+  });
+
+  const init_checkout_tx = await Checkout.methods
+    .initialize()
+    .accounts({
+      exhibit: exhibit,
+      matchedOrdersAddress: matchedOrdersAddress,
+      matchedOrders: matchedOrders.publicKey,
+      bidOrders: bidOrders,
+      auth: auth,
+      voucherMint: voucherMint,
+      escrowVoucher: escrowVoucher,
+      escrowSol: escrowSol,
+      user: creator.publicKey,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      exhibitionProgram: Exhibition.programId,
+    })
+    .transaction();
+
+  transaction = transaction.add(init_create_tx);
+  transaction = transaction.add(init_checkout_tx);
+
+  let signature = await sendAndConfirmTransaction(connection, transaction, [
+    creator,
+    matchedOrders,
+  ]);
+  await connection.confirmTransaction(signature, "confirmed");
+  console.log("initialized checkout");
+}
+
+export async function makeBids() {
+  console.log("in make mids");
+  let [exhibit, voucherMint] = await getVoucherAddress(nft);
+  let [
+    auth,
+    authBump,
+    bidOrders,
+    matchedOrdersAddress,
+    escrowVoucher,
+    escrowSol,
+  ] = await getCheckoutAccounts(exhibit);
+
+  let preHeapBal = await connection.getBalance(escrowSol);
+  console.log("pre bal", preHeapBal);
+  let bidPromises = [];
+  console.log("about to start bids");
+  for (let i = 0; i < 10; i++) {
+    let bid_tx = await Checkout.methods
+      .makeBid(new BN((i + 1) * LAMPORTS_PER_SOL))
+      .accounts({
+        exhibit: exhibit,
+        bidOrders: bidOrders,
+        escrowSol: escrowSol,
+        bidder: users[i % 2].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    let transaction = new Transaction().add(bid_tx);
+
+    let signature = sendAndConfirmTransaction(connection, transaction, [
+      users[i % 2],
+    ]);
+
+    bidPromises.push(signature);
+
+    console.log("added bid ", i);
+  }
+
+  await Promise.all(bidPromises);
+
+  for (let promise in Promise) {
+    await connection.confirmTransaction(promise, "confirmed");
+  }
+
+  await new Promise((r) => setTimeout(r, 3000));
+  let account = await Checkout.account.bidOrders.fetch(bidOrders);
+
+  for (let i = 0; i < 10; i++) {
+    console.log(
+      i,
+      account.heap.items[i].bidderPubkey.toString(),
+      account.heap.items[i].bidPrice,
+      account.heap.items[i].sequenceNumber
+    );
+  }
+
+  console.log("finsihed making 10 bids`");
+}
+
 async function initialFlow() {
   await airdropAndMint();
   await initializeExhibit();
+  await initializeCheckout();
+  await makeBids();
 }
 initialFlow();

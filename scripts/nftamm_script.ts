@@ -158,7 +158,7 @@ export async function insertNft(nft: Nft) {
     users[0]
   );
 
-  let tx = await Exhibition.methods
+  let insert_tx = await Exhibition.methods
     .artifactInsert()
     .accounts({
       exhibit: exhibit,
@@ -176,7 +176,7 @@ export async function insertNft(nft: Nft) {
     })
     .transaction();
 
-  let transaction = new Transaction().add(tx);
+  let transaction = new Transaction().add(insert_tx);
 
   let signature = await sendAndConfirmTransaction(connection, transaction, [
     users[0],
@@ -291,11 +291,11 @@ export async function instructionDepositLiquidity() {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .signers([users[0]])
-    .rpc();
+    .transaction();
 
-  let transaction = new Transaction().add(deposit_liq_tx);
   console.log("about to send tx");
+  let transaction = new Transaction().add(deposit_liq_tx);
+
   let signature = await sendAndConfirmTransaction(connection, transaction, [
     users[0],
   ]);

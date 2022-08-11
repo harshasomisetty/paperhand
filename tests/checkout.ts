@@ -17,6 +17,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   LAMPORTS_PER_SOL,
   Transaction,
+  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
 import { Exhibition } from "../target/types/exhibition";
@@ -35,11 +36,11 @@ describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
 
-  let matchedOrders: Keypair = Keypair.generate();
-
   let auth: PublicKey;
   let authBump: number;
   let bidOrders: PublicKey;
+  let matchedOrdersAddress: PublicKey;
+  let matchedOrders: Keypair = Keypair.generate();
 
   let voucherMint, escrowVoucher, escrowSol: PublicKey;
   let bump: number;
@@ -73,19 +74,34 @@ describe("checkout", () => {
       );
     }
 
-    [auth, authBump, bidOrders, escrowVoucher, escrowSol] =
-      await getCheckoutAccounts(exhibit);
+    [
+      auth,
+      authBump,
+      bidOrders,
+      matchedOrdersAddress,
+      escrowVoucher,
+      escrowSol,
+    ] = await getCheckoutAccounts(exhibit);
   });
 
-  it("Is initialized!", async () => {
+  it("Initialized Checkout!", async () => {
     // TODO make matchedOrders a pda
-    const init_linked_tx =
-      await Checkout.account.matchedOrders.createInstruction(matchedOrders);
+    // const init_create_tx =
+    // await Checkout.account.matchedOrders.createInstruction(matchedOrders);
 
-    const init_tx = await Checkout.methods
+    const init_create_tx = await SystemProgram.createAccount({
+      fromPubkey: creator.publicKey,
+      newAccountPubkey: matchedOrders.publicKey,
+      space: 3610,
+      lamports: await connection.getMinimumBalanceForRentExemption(3610),
+      programId: Checkout.programId,
+    });
+
+    const init_checkout_tx = await Checkout.methods
       .initialize()
       .accounts({
         exhibit: exhibit,
+        matchedOrdersAddress: matchedOrdersAddress,
         matchedOrders: matchedOrders.publicKey,
         bidOrders: bidOrders,
         auth: auth,
@@ -99,9 +115,25 @@ describe("checkout", () => {
         rent: SYSVAR_RENT_PUBKEY,
         exhibitionProgram: Exhibition.programId,
       })
-      .preInstructions([init_linked_tx])
-      .signers([matchedOrders, creator])
-      .rpc();
+      .transaction();
+    // .preInstructions([init_create_tx])
+    // .signers([matchedOrders, creator])
+    // .rpc();
+
+    let mOrderBal = await connection.getBalance(matchedOrders.publicKey);
+    console.log("order bal", mOrderBal);
+    let cOrderBal = await connection.getBalance(creator.publicKey);
+    console.log("order bal", cOrderBal);
+
+    let transaction = new Transaction();
+
+    transaction = transaction.add(init_create_tx);
+    transaction = transaction.add(init_checkout_tx);
+    let signature = await sendAndConfirmTransaction(connection, transaction, [
+      creator,
+      matchedOrders,
+    ]);
+    await connection.confirmTransaction(signature, "confirmed");
 
     printAndTest(await checkIfAccountExists(escrowVoucher, connection), true);
     printAndTest(await checkIfAccountExists(auth, connection), true);
@@ -179,6 +211,7 @@ describe("checkout", () => {
       .accounts({
         exhibit: exhibit,
         matchedOrders: matchedOrders.publicKey,
+        matchedOrdersAddress: matchedOrdersAddress,
         bidOrders: bidOrders,
         auth: auth,
         voucherMint: voucherMint,
@@ -218,6 +251,7 @@ describe("checkout", () => {
       .accounts({
         exhibit: exhibit,
         matchedOrders: matchedOrders.publicKey,
+        matchedOrdersAddress: matchedOrdersAddress,
         auth: auth,
         voucherMint: voucherMint,
         escrowVoucher: escrowVoucher,

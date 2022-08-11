@@ -19,12 +19,16 @@ declare_id!("8b7yjj2P5fHV9NCyNXJut1pDM1J1D9oRKzqUGW1ycTWk");
 #[program]
 pub mod checkout {
 
+    use solana_program::native_token::LAMPORTS_PER_SOL;
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         msg!("In initializer");
 
         let list = LinkedList::initialize();
+
+        ctx.accounts.matched_orders_address.matched_orders = ctx.accounts.matched_orders.key();
 
         let mut matched_orders = ctx.accounts.matched_orders.load_init()?;
 
@@ -36,6 +40,7 @@ pub mod checkout {
 
     pub fn make_bid(ctx: Context<MakeBid>, bid_price: u64) -> Result<()> {
         msg!("in make bid");
+        msg!("bid price: {}", bid_price / LAMPORTS_PER_SOL);
 
         let bid_price_sol = bid_price;
 
@@ -57,6 +62,10 @@ pub mod checkout {
         bid_orders
             .heap
             .add(bid_price, ctx.accounts.bidder.to_account_info().key());
+
+        let highest_bid = bid_orders.heap.peek_highest_bid();
+
+        msg!("current highest BID : {}", highest_bid.bid_price);
 
         Ok(())
     }
@@ -162,6 +171,7 @@ pub mod checkout {
     // TODO which node indexes (10, 10) to search for pubkey
 }
 
+// TODO MAKE SURE STORED ACCOUNT PUBKEY CONSTRAINT WORKS
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     /// CHECK: just reading pubkey
@@ -169,6 +179,13 @@ pub struct Initialize<'info> {
 
     #[account(zero)]
     pub matched_orders: AccountLoader<'info, MatchedOrders>,
+
+    #[account(init,
+        payer = user,
+        space = std::mem::size_of::<MatchedOrdersAddress>() + 8,
+        seeds = [b"matched_orders", exhibit.key().as_ref()], bump
+    )]
+    pub matched_orders_address: Account<'info, MatchedOrdersAddress>,
 
     #[account(init,
         payer = user,
@@ -219,14 +236,14 @@ pub struct MakeBid<'info> {
     #[account(mut,
         seeds = [b"bid_orders", exhibit.key().as_ref()], bump
     )]
-    bid_orders: AccountLoader<'info, BidOrders>,
+    pub bid_orders: AccountLoader<'info, BidOrders>,
 
     #[account(mut, seeds = [b"escrow_sol", exhibit.key().as_ref()], bump)]
     pub escrow_sol: Account<'info, SolWallet>,
 
     #[account(mut)]
-    bidder: Signer<'info>,
-    system_program: Program<'info, System>,
+    pub bidder: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -237,14 +254,14 @@ pub struct CancelBid<'info> {
     #[account(mut,
         seeds = [b"bid_orders", exhibit.key().as_ref()], bump
     )]
-    bid_orders: AccountLoader<'info, BidOrders>,
+    pub bid_orders: AccountLoader<'info, BidOrders>,
 
     #[account(mut, seeds = [b"escrow_sol", exhibit.key().as_ref()], bump)]
     pub escrow_sol: Account<'info, SolWallet>,
 
     #[account(mut)]
-    bidder: Signer<'info>,
-    system_program: Program<'info, System>,
+    pub bidder: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -254,6 +271,12 @@ pub struct BidFloor<'info> {
 
     #[account(mut)]
     pub matched_orders: AccountLoader<'info, MatchedOrders>,
+
+    #[account(mut,
+        has_one = matched_orders,
+        seeds = [b"matched_orders", exhibit.key().as_ref()], bump
+    )]
+    pub matched_orders_address: Account<'info, MatchedOrdersAddress>,
 
     #[account(mut,
         seeds = [b"bid_orders", exhibit.key().as_ref()], bump
@@ -300,6 +323,12 @@ pub struct FulfillOrder<'info> {
     #[account(mut)]
     pub matched_orders: AccountLoader<'info, MatchedOrders>,
 
+    #[account(mut,
+        has_one = matched_orders,
+        seeds = [b"matched_orders", exhibit.key().as_ref()], bump
+    )]
+    pub matched_orders_address: Account<'info, MatchedOrdersAddress>,
+
     #[account(mut, seeds=[b"auth", exhibit.key().as_ref()], bump)]
     pub auth: Account<'info, CheckoutAuth>,
 
@@ -342,6 +371,12 @@ pub struct MatchedOrders {
 #[account]
 #[derive(Default)]
 pub struct CheckoutAuth {}
+
+#[account]
+#[derive(Default)]
+pub struct MatchedOrdersAddress {
+    pub matched_orders: Pubkey,
+}
 
 #[account(zero_copy)]
 #[repr(C)]
