@@ -9,14 +9,16 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import {
   SHOP_PROGRAM_ID,
   getExhibitProgramAndProvider,
+  getCheckoutProgramAndProvider,
 } from "@/utils/constants";
-import { MarketData, UserData } from "@/utils/interfaces";
+import { MarketData, UserData, BidInterface } from "@/utils/interfaces";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
 import { Wallet } from "@project-serum/anchor";
 import {
   getExhibitAccounts,
   getVoucherAddress,
   getSwapAccounts,
+  getCheckoutAccounts,
 } from "@/utils/accountDerivation";
 
 export async function getAllExhibitArtifacts(
@@ -162,4 +164,33 @@ export async function getMarketData(
     sol: marketSol,
     liq: marketLiqBal,
   };
+}
+
+export async function getCheckoutOrderData(
+  exhibit: PublicKey,
+  wallet: Wallet
+): Promise<BidInterface[]> {
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+  let [
+    auth,
+    authBump,
+    bidOrders,
+    matchedOrdersAddress,
+    escrowVoucher,
+    escrowSol,
+  ] = await getCheckoutAccounts(exhibit);
+  let account = await Checkout.account.bidOrders.fetch(bidOrders);
+  let bids = [];
+
+  let i = 0;
+  while (account.heap.items[i].bidPrice > 0) {
+    i++;
+    bids.push({
+      sequenceNumber: account.heap.items[i].sequenceNumber,
+
+      bidPrice: account.heap.items[i].bidPrice,
+      bidderPubkey: account.heap.items[i].bidderPubkey,
+    });
+  }
+  return bids.sort((a, b) => a.bidPrice - b.bidPrice);
 }

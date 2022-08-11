@@ -211,6 +211,28 @@ export async function makeBids() {
 
     console.log("added bid ", i);
   }
+  for (let i = 3; i < 7; i++) {
+    let bid_tx = await Checkout.methods
+      .makeBid(new BN((i + 1) * LAMPORTS_PER_SOL))
+      .accounts({
+        exhibit: exhibit,
+        bidOrders: bidOrders,
+        escrowSol: escrowSol,
+        bidder: users[i % 2].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    let transaction = new Transaction().add(bid_tx);
+
+    let signature = sendAndConfirmTransaction(connection, transaction, [
+      users[i % 2],
+    ]);
+
+    bidPromises.push(signature);
+
+    console.log("added bid ", i);
+  }
 
   await Promise.all(bidPromises);
 

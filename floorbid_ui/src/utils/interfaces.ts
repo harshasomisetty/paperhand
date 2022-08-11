@@ -11,6 +11,12 @@ export interface UserData {
   liq: number;
 }
 
+export interface BidInterface {
+  sequenceNumber: number;
+  bidPrice: number;
+  bidderPubkey: number;
+}
+
 export interface MarketData {
   voucher: number;
   sol: number;
