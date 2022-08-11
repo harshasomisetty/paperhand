@@ -1,6 +1,7 @@
 import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
 import { instructionDepositNft } from "@/utils/instructions/exhibition";
+import { getAllNftImages } from "@/utils/retrieveData";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
@@ -44,20 +45,7 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
       for (let nftSymbol of Object.keys(colLists)) {
         console.log("in symbol", nftSymbol);
         let nfts = colLists[nftSymbol].slice(0, 3);
-        let imagePromises = [];
-        for (let nft of nfts) {
-          if (!nft.metadataTask.isRunning()) {
-            imagePromises.push(nft.metadataTask.run());
-          } else {
-            imagePromises.push(nft.metadataTask.reset().run());
-          }
-        }
-        await Promise.all(imagePromises);
-        let images = [];
-        for (let nft of nfts) {
-          console.log("still running?", nft.metadataTask.isRunning());
-          images.push(nft.metadata.image);
-        }
+        let images = await getAllNftImages(nfts);
         colImages[nftSymbol] = images;
       }
       setNftColPics(colImages);

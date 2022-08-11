@@ -5,6 +5,7 @@ import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   checkIfSwapExists,
   getAllExhibitArtifacts,
+  getAllNftImages,
   getExhibitAccountData,
   getMarketData,
 } from "@/utils/retrieveData";
@@ -30,17 +31,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
         setMarketData(mdata);
       }
 
-      let imagePromises = [];
-      for (let nft of allNfts) {
-        if (!nft.metadataTask.isRunning()) {
-          imagePromises.push(nft.metadataTask.run());
-        }
-      }
-      await Promise.all(imagePromises);
-      let images = [];
-      for (let nft of allNfts) {
-        images.push(nft.metadata.image);
-      }
+      let images = await getAllNftImages(nfts);
       setExhibitImages(images);
       // console.log("ehxibt images", images);
     }

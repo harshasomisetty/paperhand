@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import {
   getAllExhibitArtifacts,
   getAllNftImages,
@@ -11,7 +11,6 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitData, setExhibitData] = useState();
-  const [nftList, setNftList] = useState<Nft[]>([]);
   const [exhibitImages, setExhibitImages] = useState([]);
   const { connection } = useConnection();
   const { wallet } = useWallet();
@@ -20,11 +19,10 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
     async function fetchData() {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
       setExhibitData(fetchedData);
-      let allNfts = await getAllExhibitArtifacts(exhibit, connection);
+      let nfts = await getAllExhibitArtifacts(exhibit, connection);
 
-      let images = await getAllNftImages(allNfts);
+      let images = await getAllNftImages(nfts);
       setExhibitImages(images);
-      // console.log("ehxibt images", images);
     }
 
     fetchData();

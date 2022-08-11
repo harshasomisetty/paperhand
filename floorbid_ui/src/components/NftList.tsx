@@ -17,7 +17,6 @@ export default function NftList({
     async function fetchData() {
       let images = await getAllNftImages(nftList);
       setNftImages(images);
-      // console.log("nft list images", images);
     }
     fetchData();
   }, [nftList]);

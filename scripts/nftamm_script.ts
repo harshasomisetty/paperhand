@@ -303,6 +303,7 @@ export async function instructionDepositLiquidity() {
   await connection.confirmTransaction(signature, "confirmed");
   console.log("made tx", transaction);
 }
+
 async function initialFlow() {
   await airdropAndMint();
   await initializeExhibit();

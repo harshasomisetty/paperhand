@@ -30,7 +30,6 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
   const [nftColPics, setNftColPics] = useState();
 
   useEffect(() => {
-    // TODO SEPERATE NFTS BY COLLECTION BETTER INSTEAD OF BY SYMBOL
     async function fetchData() {
       let colLists = {};
       for (let nft of nftList!) {

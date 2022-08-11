@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import { Nft } from "@metaplex-foundation/js";
+import { Metaplex, Nft } from "@metaplex-foundation/js";
 import {
   TOKEN_PROGRAM_ID,
   getAccount,
@@ -10,7 +10,6 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
-import { Metaplex } from "@metaplex-foundation/js";
 import { getExhibitProgramAndProvider } from "@/utils/constants";
 
 import {
@@ -22,8 +21,8 @@ import { NftProvider } from "@/context/NftContext";
 import SingleExhibitView from "@/views/SingleExhibitView";
 import TradeView from "@/views/TradeView";
 import { UserData } from "@/utils/interfaces";
-import NftList from "@/components/NftList";
 import Orderbook from "@/components/Orderbook";
+import NftList from "@/components/NftList";
 
 const ExploreProjects = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>();
@@ -43,26 +42,24 @@ const ExploreProjects = () => {
       let exhibitExists = await checkIfAccountExists(exhibit, connection);
 
       let exhibitInfo;
-
-      // TODO MAKE SURE EXHIBIT ALWAYS EXISTS, IF DO)ES NOT, MAKE FIRST USER INIT COLLECTION
       if (exhibitExists) {
         exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
-
+        // let allNfts = await getAllExhibitArtifacts(exhibit, connection);
+        // setNftList(allNfts);
         let uData = await getUserData(exhibit, publicKey, connection);
         setUserData(uData);
       }
 
       const allNftList = await mx.nfts().findAllByOwner(publicKey);
 
-      const nftList = [];
+      const curNfts = [];
       for (let nft of allNftList!) {
         if (nft.symbol == exhibitInfo.exhibitSymbol) {
-          nftList.push(nft);
+          curNfts.push(nft);
         }
       }
-
-      setNftList(nftList);
+      setNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();

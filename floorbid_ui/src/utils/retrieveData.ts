@@ -55,7 +55,6 @@ export async function getAllNftImages(nfts: Nft[]): Promise<string[]> {
   await Promise.all(imagePromises);
   let images = [];
   for (let nft of nfts) {
-    console.log("still running?", nft.metadataTask.isRunning());
     images.push(nft.metadata.image);
   }
 
