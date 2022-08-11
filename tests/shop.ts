@@ -21,9 +21,8 @@ import { Shop } from "../target/types/shop";
 import { Exhibition } from "../target/types/exhibition";
 import { SHOP_PROGRAM_ID, otherCreators } from "../utils/constants";
 import { creator, users } from "../utils/constants";
-const assert = require("assert");
 
-import { printAndTest, regSol } from "../utils/helpfulFunctions";
+import { airdropAll, printAndTest, regSol } from "../utils/helpfulFunctions";
 import { getExhibitAccounts } from "../utils/accountDerivation";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -73,7 +72,7 @@ async function swapFunc(
   return results;
 }
 describe("shop", () => {
-  /* end goal should be for user to press a button that opens the display case and shop simultaneously
+  /* End goal should be for user to press a button that opens the display case and shop simultaneously
    * need to give creator option to bootstrap liq
    * so first open display case, spend some time inserting etc
    * then creator presses button to open market
@@ -89,15 +88,16 @@ describe("shop", () => {
   // for this isolated test for shop, the keypair is random, and serves as a seed for the rest of the program
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
-  let authBump;
+  let authBump: number;
   let marketAuth: PublicKey;
   let marketTokenFee: PublicKey;
-  // tokenMint[0] is the pool liquidity token mint, [1] is the voucher mint
-  let liqMint;
-  let tokenMints: PublicKey[] = new Array(2);
+
+  let liqMint: PublicKey;
+  let voucherMint: PublicKey;
 
   // marketTokens is the wallet for tokenA and sol
   let marketTokens: PublicKey[] = new Array(2);
+
   // userTokens are array of token accs for each user
   // userTokens[0] is token for user1, userTokens[i][0] is liq wallet, [1] is coin A
   let userTokens: PublicKey[][] = new Array(2);
@@ -106,31 +106,13 @@ describe("shop", () => {
   let liqAmounts = [3, 2];
   let swapAmount = [3, 5];
   let withdrawAmounts = [4, 2];
-  let temp;
+
+  let airdropVal = mintAmounts[1] * LAMPORTS_PER_SOL;
 
   before("Init variables", async () => {
     let airdropees = [creator, ...otherCreators, ...users];
 
-    // let airdropPromises = [];
-    // airdropees.forEach((dropee) =>
-    //   airdropPromises.push(
-    //     provider.connection.requestAirdrop(
-    //       dropee.publicKey,
-    //       50 * LAMPORTS_PER_SOL
-    //     )
-    //   )
-    // );
-    // await Promise.all(airdropPromises);
-
-    for (const dropee of airdropees) {
-      await connection.confirmTransaction(
-        await connection.requestAirdrop(
-          dropee.publicKey,
-          50 * LAMPORTS_PER_SOL
-        ),
-        "confirmed"
-      );
-    }
+    await airdropAll(airdropees, airdropVal, connection);
 
     [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
       exhibit
@@ -138,7 +120,7 @@ describe("shop", () => {
 
     marketTokenFee = await getAssociatedTokenAddress(liqMint, marketAuth, true);
 
-    tokenMints[1] = await createMint(
+    voucherMint = await createMint(
       connection,
       creator,
       creator.publicKey,
@@ -157,7 +139,7 @@ describe("shop", () => {
         await getOrCreateAssociatedTokenAccount(
           connection,
           users[i],
-          tokenMints[1],
+          voucherMint,
           users[i].publicKey
         )
       ).address;
@@ -167,7 +149,7 @@ describe("shop", () => {
       await mintTo(
         connection,
         creator,
-        tokenMints[1],
+        voucherMint,
         userTokens[i][1],
         creator,
         mintAmounts[0]
@@ -180,34 +162,30 @@ describe("shop", () => {
 
     console.log("init market");
 
-    try {
-      const tx = await Shop.methods
-        .initializeMarket(
-          new anchor.BN(initAmounts[0]),
-          new anchor.BN(initAmounts[1] * LAMPORTS_PER_SOL),
-          authBump
-        )
-        .accounts({
-          exhibit: exhibit,
-          marketAuth: marketAuth,
-          marketMint: liqMint,
-          marketTokenFee: marketTokenFee,
-          voucherMint: tokenMints[1],
-          marketVoucher: marketTokens[0],
-          marketSol: marketTokens[1],
-          userVoucher: userTokens[0][1],
-          userLiq: userTokens[0][0],
-          user: users[0].publicKey,
-          rent: SYSVAR_RENT_PUBKEY,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([users[0]])
-        .rpc();
-    } catch (error) {
-      console.log("error in init market", error);
-    }
+    const tx = await Shop.methods
+      .initializeMarket(
+        new anchor.BN(initAmounts[0]),
+        new anchor.BN(initAmounts[1] * LAMPORTS_PER_SOL),
+        authBump
+      )
+      .accounts({
+        exhibit: exhibit,
+        marketAuth: marketAuth,
+        marketMint: liqMint,
+        marketTokenFee: marketTokenFee,
+        voucherMint: voucherMint,
+        marketVoucher: marketTokens[0],
+        marketSol: marketTokens[1],
+        userVoucher: userTokens[0][1],
+        userLiq: userTokens[0][0],
+        user: users[0].publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([users[0]])
+      .rpc();
 
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
@@ -262,7 +240,7 @@ describe("shop", () => {
         marketAuth: marketAuth,
         marketMint: liqMint,
         // marketTokenFee: marketTokenFee,
-        voucherMint: tokenMints[1],
+        voucherMint: voucherMint,
         marketVoucher: marketTokens[0],
         marketSol: marketTokens[1],
         userVoucher: userTokens[0][1],
@@ -339,7 +317,7 @@ describe("shop", () => {
           exhibit: exhibit,
           marketAuth: marketAuth,
           // marketTokenFee: marketTokenFee,
-          voucherMint: tokenMints[1],
+          voucherMint: voucherMint,
           marketVoucher: marketTokens[0],
           marketSol: marketTokens[1],
           userVoucher: userTokens[1][1],
@@ -408,7 +386,7 @@ describe("shop", () => {
           exhibit: exhibit,
           marketAuth: marketAuth,
           // marketTokenFee: marketTokenFee,
-          voucherMint: tokenMints[1],
+          voucherMint: voucherMint,
           marketVoucher: marketTokens[0],
           marketSol: marketTokens[1],
           userVoucher: userTokens[1][1],
@@ -478,7 +456,7 @@ describe("shop", () => {
           marketAuth: marketAuth,
           marketMint: liqMint,
           // marketTokenFee: marketTokenFee,
-          voucherMint: tokenMints[1],
+          voucherMint: voucherMint,
           marketVoucher: marketTokens[0],
           marketSol: marketTokens[1],
           userVoucher: userTokens[0][1],

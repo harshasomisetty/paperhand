@@ -22,7 +22,7 @@ import { Checkout } from "../target/types/checkout";
 import { Exhibition } from "../target/types/exhibition";
 import { checkIfAccountExists } from "../utils/actions";
 import { otherCreators, creator, users } from "../utils/constants";
-import { printAndTest, regSol } from "../utils/helpfulFunctions";
+import { airdropAll, printAndTest, regSol } from "../utils/helpfulFunctions";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -49,20 +49,13 @@ describe("checkout", () => {
 
   let totalBidSize = bidSizes.reduce((partialSum, a) => partialSum + a, 0);
 
+  let airdropVal = 20 * LAMPORTS_PER_SOL;
   before(async () => {
     console.log(new Date(), "requesting airdrop");
 
     let airdropees = [...users, creator];
 
-    for (const dropee of airdropees) {
-      await connection.confirmTransaction(
-        await connection.requestAirdrop(
-          dropee.publicKey,
-          20 * LAMPORTS_PER_SOL
-        ),
-        "confirmed"
-      );
-    }
+    await airdropAll(airdropees, airdropVal, connection);
 
     voucherMint = await createMint(
       connection,

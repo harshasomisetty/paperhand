@@ -4,30 +4,31 @@ import { Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAccount,
-  getAssociatedTokenAddress,
   getMint,
   getOrCreateAssociatedTokenAccount,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
-  Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
-  Transaction,
 } from "@solana/web3.js";
 import { Exhibition } from "../target/types/exhibition";
-import { EXHIBITION_PROGRAM_ID } from "../utils/constants";
-import { creator, otherCreators, users } from "../utils/constants";
 import {
-  initAssociatedAddressIfNeeded,
-  getExhibitAddress,
   getUserVoucherWallets,
+  initAssociatedAddressIfNeeded,
 } from "../utils/actions";
+import {
+  creator,
+  EXHIBITION_PROGRAM_ID,
+  otherCreators,
+  users,
+} from "../utils/constants";
 import { mintNFTs } from "../utils/createNFTs";
-import { printAndTest, regSol } from "../utils/helpfulFunctions";
+import { airdropAll, printAndTest } from "../utils/helpfulFunctions";
 
+import { getVoucherAddress } from "../utils/accountDerivation";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
@@ -58,12 +59,7 @@ describe("exhibition", () => {
   before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, ...otherCreators, ...users];
 
-    for (const dropee of airdropees) {
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(dropee.publicKey, airdropVal),
-        "confirmed"
-      );
-    }
+    await airdropAll(airdropees, airdropVal, connection);
 
     nftList = await mintNFTs(
       mintNftCount,
@@ -75,7 +71,7 @@ describe("exhibition", () => {
 
   it("Initialized exhibit!", async () => {
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getExhibitAddress(nft);
+    let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
     let tx = await Exhibition.methods
       .initializeExhibit()
@@ -98,7 +94,7 @@ describe("exhibition", () => {
 
   it("Initialized exhibit 2!", async () => {
     let nft = nftList[1][1];
-    let [exhibit, voucherMint] = await getExhibitAddress(nft);
+    let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
     let tx = await Exhibition.methods
       .initializeExhibit()
@@ -124,7 +120,7 @@ describe("exhibition", () => {
     // Prep accounts for depositing first NFT.
 
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getExhibitAddress(nft);
+    let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
     let [nftArtifact] = await PublicKey.findProgramAddress(
       [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
@@ -188,7 +184,7 @@ describe("exhibition", () => {
 
   it("inserted second nft from user 2", async () => {
     let nft = nftList[0][1];
-    let [exhibit, voucherMint] = await getExhibitAddress(nft);
+    let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
@@ -233,7 +229,7 @@ describe("exhibition", () => {
 
   it("Withdrew from artifact!", async () => {
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getExhibitAddress(nft);
+    let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
     let [nftArtifact] = await PublicKey.findProgramAddress(
       [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
@@ -291,7 +287,7 @@ describe("exhibition", () => {
 
   it("verify final nft artifacts simple", async () => {
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getExhibitAddress(nft);
+    let [exhibit, voucherMint] = await getVoucherAddress(nft);
 
     // ALL initialized exhibits
     let allExhibitAccounts = await connection.getProgramAccounts(

@@ -9,8 +9,8 @@ import { useEffect, useState } from "react";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { MarketData, UserData } from "@/utils/interfaces";
 import {
-  BAZAAR_PROGRAM_ID,
-  getBazaarProgramAndProvider,
+  SHOP_PROGRAM_ID,
+  getShopProgramAndProvider,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
 import SwapCard from "@/components/SwapCard";
@@ -42,14 +42,14 @@ export default function TradeView({}) {
       setSwapActive(swapExists);
 
       if (swapExists) {
-        let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+        let { Shop } = await getShopProgramAndProvider(wallet);
 
         let [marketAuth, temp] = await PublicKey.findProgramAddress(
           [Buffer.from("market_auth"), exhibit.toBuffer()],
-          BAZAAR_PROGRAM_ID
+          SHOP_PROGRAM_ID
         );
 
-        let marketInfo = await Bazaar.account.marketInfo.fetch(marketAuth);
+        let marketInfo = await Shop.account.marketInfo.fetch(marketAuth);
         setFeesPaid(Number(marketInfo.feesPaid) / LAMPORTS_PER_SOL);
         let mdata = await getMarketData(exhibit, connection);
         setMarketData(mdata);

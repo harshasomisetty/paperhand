@@ -3,7 +3,7 @@ import { useState } from "react";
 import { HiChevronDoubleDown } from "react-icons/hi";
 
 import { MarketData, UserData } from "@/utils/interfaces";
-import { instructionWithdrawLiquidity } from "@/utils/instructions";
+import { instructionWithdrawLiquidity } from "@/utils/instructions/shop";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import {

@@ -6,7 +6,7 @@ import {
   VoucherSlider,
   VoucherSolDisplay,
 } from "@/components/MarketInputs";
-import { instructionDepositLiquidity } from "@/utils/instructions";
+import { instructionDepositLiquidity } from "@/utils/instructions/shop";
 import { MarketData, UserData } from "@/utils/interfaces";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";

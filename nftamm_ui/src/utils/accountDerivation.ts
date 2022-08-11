@@ -1,14 +1,11 @@
-import {
-  BAZAAR_PROGRAM_ID,
-  EXHIBITION_PROGRAM_ID,
-  getExhibitProgramAndProvider,
-} from "@/utils/constants";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
 import { Creator } from "@metaplex-foundation/mpl-token-metadata";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 
-export async function getExhibitAddress(nft: Nft): Promise<PublicKey[]> {
+import { SHOP_PROGRAM_ID, EXHIBITION_PROGRAM_ID } from "../utils/constants";
+
+export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
   let seeds: Buffer[] = [];
 
   nft.creators?.forEach((creatorKey: Creator) => {
@@ -37,22 +34,22 @@ export async function getExhibitAccounts(
 
   let [marketAuth, authBump] = await PublicKey.findProgramAddress(
     [Buffer.from("market_auth"), exhibit.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
   [marketTokens[0]] = await PublicKey.findProgramAddress(
     [Buffer.from("token_voucher"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
   [marketTokens[1]] = await PublicKey.findProgramAddress(
     [Buffer.from("token_sol"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
   let [liqMint] = await PublicKey.findProgramAddress(
     [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
   return [marketAuth, authBump, marketTokens, liqMint];

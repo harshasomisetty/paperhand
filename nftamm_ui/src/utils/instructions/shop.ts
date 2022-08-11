@@ -1,16 +1,19 @@
 import {
-  BAZAAR_PROGRAM_ID,
+  SHOP_PROGRAM_ID,
   EXHIBITION_PROGRAM_ID,
-  getBazaarProgramAndProvider,
+  getShopProgramAndProvider,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
 import {
   checkIfAccountExists,
   checkIfExhibitExists,
-  getExhibitAddress,
-  getSwapAccounts,
 } from "@/utils/retrieveData";
-import { Nft } from "@metaplex-foundation/js";
+import {
+  getExhibitAccounts,
+  getVoucherAddress,
+  getSwapAccounts,
+} from "@/utils/accountDerivation";
+
 import { BN, Wallet } from "@project-serum/anchor";
 import {
   Connection,
@@ -34,6 +37,7 @@ async function manualSendTransaction(
   connection: Connection,
   signTransaction: any
 ) {
+  console.log("in man send tx");
   transaction.feePayer = publicKey;
   transaction.recentBlockhash = (
     await connection.getRecentBlockhash("finalized")
@@ -48,164 +52,6 @@ async function manualSendTransaction(
   console.log("sent tx!!!");
 }
 
-export async function instructionDepositNft(
-  wallet: Wallet,
-  publicKey: PublicKey,
-  signTransaction: any,
-  nft: Nft,
-  connection: Connection
-) {
-  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-  await nft.metadataTask.run();
-
-  let [exhibit, voucherMint] = await getExhibitAddress(nft);
-
-  let [nftArtifact] = await PublicKey.findProgramAddress(
-    [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
-
-  let userVoucherWallet = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
-
-  let nftUserTokenAccount = await getAssociatedTokenAddress(
-    nft.mint,
-    publicKey
-  );
-
-  let transaction = new Transaction();
-
-  if (!(await checkIfExhibitExists(nft, connection))) {
-    const init_tx = await Exhibition.methods
-      .initializeExhibit()
-      .accounts({
-        exhibit: exhibit,
-        voucherMint: voucherMint,
-        nftMetadata: nft.metadataAccount.publicKey,
-        creator: publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
-
-    transaction = transaction.add(init_tx);
-
-    console.log("initing exhibit");
-  }
-
-  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-    let voucher_tx = createAssociatedTokenAccountInstruction(
-      publicKey,
-      userVoucherWallet,
-      publicKey,
-      voucherMint,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-    transaction = transaction.add(voucher_tx);
-  } else {
-    console.log("user voucher already created");
-  }
-
-  let insert_tx = await Exhibition.methods
-    .artifactInsert()
-    .accounts({
-      exhibit: exhibit,
-      voucherMint: voucherMint,
-      userVoucherWallet: userVoucherWallet,
-      nftMint: nft.mint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAccount,
-      nftArtifact: nftArtifact,
-      user: publicKey,
-      systemProgram: SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-    })
-    .transaction();
-
-  transaction = transaction.add(insert_tx);
-  await manualSendTransaction(
-    transaction,
-    publicKey,
-    connection,
-    signTransaction
-  );
-  console.log("deposited nft");
-}
-
-export async function instructionWithdrawNft(
-  wallet: Wallet,
-  publicKey: PublicKey,
-  signTransaction: any,
-  nft: Nft,
-  connection: Connection
-) {
-  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-  await nft.metadataTask.run();
-
-  let [exhibit, voucherMint] = await getExhibitAddress(nft);
-
-  let [nftArtifact] = await PublicKey.findProgramAddress(
-    [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
-
-  let userVoucherWallet = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
-
-  let nftUserTokenAccount = await getAssociatedTokenAddress(
-    nft.mint,
-    publicKey
-  );
-
-  let transaction = new Transaction();
-
-  if (!(await checkIfAccountExists(nftUserTokenAccount, connection))) {
-    let voucher_tx = createAssociatedTokenAccountInstruction(
-      publicKey,
-      nftUserTokenAccount,
-      publicKey,
-      nft.mint
-    );
-    transaction = transaction.add(voucher_tx);
-  } else {
-    console.log("user voucher already created");
-  }
-
-  let withdraw_tx = await Exhibition.methods
-    .artifactWithdraw()
-    .accounts({
-      exhibit: exhibit,
-      voucherMint: voucherMint,
-      userVoucherWallet: userVoucherWallet,
-      nftMint: nft.mint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAccount,
-      nftArtifact: nftArtifact,
-      user: publicKey,
-      systemProgram: SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    })
-    .transaction();
-
-  transaction = transaction.add(withdraw_tx);
-
-  await manualSendTransaction(
-    transaction,
-    publicKey,
-    connection,
-    signTransaction
-  );
-  console.log("Withdrew nft!");
-}
-
 export async function instructionInitSwap(
   wallet: Wallet,
   publicKey: PublicKey,
@@ -215,8 +61,8 @@ export async function instructionInitSwap(
   signTransaction: any,
   connection: Connection
 ) {
-  console.log("in instruction", solIn, voucherIn);
-  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+  console.log("in init instruction", solIn, voucherIn);
+  let { Shop } = await getShopProgramAndProvider(wallet);
 
   let [
     voucherMint,
@@ -227,25 +73,17 @@ export async function instructionInitSwap(
     liqMint,
   ] = await getSwapAccounts(exhibit, publicKey);
 
-  let temp;
-  let tokenMints = new Array(1);
-
-  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
   let marketTokenFee = await getAssociatedTokenAddress(
-    tokenMints[0],
+    liqMint,
     marketAuth,
     true
   );
 
-  let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
+  let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
 
   let transaction = new Transaction();
 
-  const init_tx = await Bazaar.methods
+  const init_tx = await Shop.methods
     .initializeMarket(
       new BN(voucherIn),
       new BN(solIn * LAMPORTS_PER_SOL),
@@ -269,8 +107,11 @@ export async function instructionInitSwap(
     })
     .transaction();
 
+  console.log("before add");
   transaction = transaction.add(init_tx);
   try {
+    console.log("before manual send");
+
     await manualSendTransaction(
       transaction,
       publicKey,
@@ -291,7 +132,7 @@ export async function instructionSwap(
   signTransaction: any,
   connection: Connection
 ) {
-  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+  let { Shop } = await getShopProgramAndProvider(wallet);
 
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
 
@@ -324,7 +165,7 @@ export async function instructionSwap(
   }
 
   console.log("swap amounts", vouchers, buyVouchers);
-  const swap_tx = await Bazaar.methods
+  const swap_tx = await Shop.methods
     .swap(new BN(vouchers), buyVouchers, authBump)
     .accounts({
       exhibit: exhibit,
@@ -364,7 +205,7 @@ export async function instructionDepositLiquidity(
   connection: Connection
 ) {
   console.log("in instruction dpeo");
-  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+  let { Shop } = await getShopProgramAndProvider(wallet);
 
   let [
     voucherMint,
@@ -377,12 +218,12 @@ export async function instructionDepositLiquidity(
 
   let tokenMints = new Array(1);
   let temp;
-  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
+  [liqMint, temp] = await PublicKey.findProgramAddress(
     [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
-  let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
+  let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
 
   let transaction = new Transaction();
 
@@ -400,12 +241,12 @@ export async function instructionDepositLiquidity(
     console.log("user voucher already created");
   }
 
-  const deposit_liq_tx = await Bazaar.methods
+  const deposit_liq_tx = await Shop.methods
     .depositLiquidity(new BN(vouchers), authBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
-      marketMint: tokenMints[0],
+      marketMint: liqMint,
       // marketTokenFee: marketTokenFee,
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],
@@ -442,7 +283,7 @@ export async function instructionWithdrawLiquidity(
   connection: Connection
 ) {
   console.log("in instruction dpeo");
-  let { Bazaar } = await getBazaarProgramAndProvider(wallet);
+  let { Shop } = await getShopProgramAndProvider(wallet);
 
   let [
     voucherMint,
@@ -455,12 +296,12 @@ export async function instructionWithdrawLiquidity(
 
   let tokenMints = new Array(1);
   let temp;
-  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
+  [liqMint, temp] = await PublicKey.findProgramAddress(
     [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
-  let userTokenLiq = await getAssociatedTokenAddress(tokenMints[0], publicKey);
+  let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
 
   let transaction = new Transaction();
 
@@ -478,12 +319,12 @@ export async function instructionWithdrawLiquidity(
     console.log("user voucher already created");
   }
 
-  const withdraw_liq_tx = await Bazaar.methods
+  const withdraw_liq_tx = await Shop.methods
     .withdrawLiquidity(new BN(liqTokens), new BN(vouchers), authBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
-      marketMint: tokenMints[0],
+      marketMint: liqMint,
       // marketTokenFee: marketTokenFee,
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],

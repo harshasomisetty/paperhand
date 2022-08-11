@@ -7,7 +7,7 @@ import {
 import { Connection, PublicKey } from "@solana/web3.js";
 
 import {
-  BAZAAR_PROGRAM_ID,
+  SHOP_PROGRAM_ID,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
 import { MarketData, UserData } from "@/utils/interfaces";
@@ -15,9 +15,9 @@ import { Metaplex, Nft } from "@metaplex-foundation/js";
 import { Wallet } from "@project-serum/anchor";
 import {
   getExhibitAccounts,
-  getExhibitAddress,
+  getVoucherAddress,
   getSwapAccounts,
-} from "./accountDerivation";
+} from "@/utils/accountDerivation";
 
 export async function getAllExhibitArtifacts(
   exhibit: PublicKey,
@@ -58,7 +58,7 @@ export async function checkIfExhibitExists(
   nft: Nft,
   connection: Connection
 ): Promise<boolean> {
-  let [exhibit] = await getExhibitAddress(nft);
+  let [exhibit] = await getVoucherAddress(nft);
   let exhibitExists = await checkIfAccountExists(exhibit, connection);
   return exhibitExists;
 }
@@ -69,7 +69,7 @@ export async function checkIfSwapExists(
 ): Promise<boolean> {
   let [marketAuth, authBump] = await PublicKey.findProgramAddress(
     [Buffer.from("market_auth"), exhibit.toBuffer()],
-    BAZAAR_PROGRAM_ID
+    SHOP_PROGRAM_ID
   );
 
   let swapExists = await checkIfAccountExists(marketAuth, connection);
@@ -129,8 +129,7 @@ export async function getMarketData(
   connection: Connection
 ): Promise<MarketData> {
   let [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
-    exhibit,
-    publicKey
+    exhibit
   );
 
   let marketVoucherBal = Number(

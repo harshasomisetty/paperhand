@@ -126,7 +126,7 @@ export const VoucherSlider = ({
   );
 };
 
-export const BazaarData = ({
+export const ShopData = ({
   marketData,
   exhibitSymbol,
 }: {
@@ -157,7 +157,7 @@ export const BazaarData = ({
           </tbody>
         </table>
       ) : (
-        <p>Loading bazaar data</p>
+        <p>Loading shop data</p>
       )}
     </>
   );

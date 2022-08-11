@@ -1,6 +1,6 @@
 import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
-import { instructionWithdrawNft } from "@/utils/instructions";
+import { instructionWithdrawNft } from "@/utils/instructions/exhibition";
 import { UserData } from "@/utils/interfaces";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";

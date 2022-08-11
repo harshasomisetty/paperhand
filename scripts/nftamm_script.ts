@@ -1,22 +1,15 @@
-import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
-import { Shop, IDL as SHOP_IDL } from "../target/types/shop";
-import { BN } from "bn.js";
 import {
   bundlrStorage,
-  findMetadataPda,
   keypairIdentity,
   Metaplex,
-  BundlrStorageDriver,
   Nft,
 } from "@metaplex-foundation/js";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  createMint,
   getAccount,
   getAssociatedTokenAddress,
   getOrCreateAssociatedTokenAccount,
-  mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
@@ -30,20 +23,41 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
-  creator,
-  otherCreators,
-  user,
-  EXHIBITION_PROGRAM_ID,
-  SHOP_PROGRAM_ID,
-} from "../utils/constants";
+  getExhibitAccounts,
+  getSwapAccounts,
+  getVoucherAddress,
+} from "../utils/accountDerivation";
 import {
+  getProvider,
   getUserVoucherWallets,
   initAssociatedAddressIfNeeded,
-  checkIfExhibitExists,
 } from "../utils/actions";
-import { getVoucherAddress, getSwapAccounts } from "../utils/accountDerivation";
+import {
+  creator,
+  EXHIBITION_PROGRAM_ID,
+  otherCreators,
+  SHOP_PROGRAM_ID,
+  users,
+} from "../utils/constants";
+import { mintNFTs } from "../utils/createNFTs";
 
+interface Project {
+  pubkey: PublicKey;
+  account: AccountInfo<Buffer>;
+}
+
+import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
+import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
+import { airdropAll } from "../utils/helpfulFunctions";
 const connection = new Connection("http://localhost:8899", "processed");
+
+const metaplex = Metaplex.make(connection)
+  .use(keypairIdentity(creator))
+  .use(bundlrStorage());
+
+let mintNumberOfCollections = 2;
+let mintNumberOfNfts = 10;
+let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
 let Shop;
@@ -72,18 +86,68 @@ let marketTokens = new Array(2);
 // user 0's tokens, token 0 is liquidity account, token 1 is voucher account
 let userTokens = new Array(2);
 
+export async function airdropAndMint() {
+  let provider = await getProvider("http://localhost:8899", creator);
+
+  Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+  Shop = new Program(SHOP_IDL, SHOP_PROGRAM_ID, provider);
+
+  let airdropVal = 20 * LAMPORTS_PER_SOL;
+
+  let airdropees = [creator, ...otherCreators, ...users];
+  await airdropAll(airdropees, airdropVal, connection);
+
+  nftList = await mintNFTs(
+    mintNumberOfNfts,
+    mintNumberOfCollections,
+    metaplex,
+    connection
+  );
+
+  console.log("minted all nfts!");
+}
+
+export async function initializeExhibit() {
+  nft = nftList[0][0];
+  nft2 = nftList[0][2];
+  nft3 = nftList[0][6];
+  [exhibit, voucherMint] = await getVoucherAddress(nft);
+
+  const tx = await Exhibition.methods
+    .initializeExhibit()
+    .accounts({
+      exhibit: exhibit,
+      voucherMint: voucherMint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      creator: creator.publicKey,
+      rent: SYSVAR_RENT_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  let transaction = new Transaction().add(tx);
+
+  let signature = await sendAndConfirmTransaction(connection, transaction, [
+    creator,
+  ]);
+  await connection.confirmTransaction(signature, "confirmed");
+  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+  console.log("initialized exhibit!", exhibitInfo.exhibitSymbol);
+}
+
 export async function insertNft(nft: Nft) {
   let [nftArtifact] = await PublicKey.findProgramAddress(
     [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
+  userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
   nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
     connection,
-    user[0],
+    users[0],
     nft.mint,
-    user[0].publicKey
+    users[0].publicKey
   );
 
   // create new user voucher token account outside of artifact insert
@@ -91,7 +155,7 @@ export async function insertNft(nft: Nft) {
     connection,
     userVoucherWallet[0],
     voucherMint,
-    user[0]
+    users[0]
   );
 
   let tx = await Exhibition.methods
@@ -104,7 +168,7 @@ export async function insertNft(nft: Nft) {
       nftMetadata: nft.metadataAccount.publicKey,
       nftUserToken: nftUserTokenAccount.address,
       nftArtifact: nftArtifact,
-      user: user[0].publicKey,
+      user: users[0].publicKey,
       systemProgram: SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -115,7 +179,7 @@ export async function insertNft(nft: Nft) {
   let transaction = new Transaction().add(tx);
 
   let signature = await sendAndConfirmTransaction(connection, transaction, [
-    user[0],
+    users[0],
   ]);
 
   await connection.confirmTransaction(signature, "confirmed");
@@ -132,36 +196,29 @@ export async function insertNft(nft: Nft) {
     Number(postUserVoucherTokenBal)
   );
 }
-export async function initializeSwap(exhibit: PublicKey) {
+async function initializeSwap() {
   console.log("in initialize swap");
   // create new user voucher token account outside of artifact insert
-  let temp;
+  console.log("got pdas");
 
-  let [
-    voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ] = await getSwapAccounts(exhibit);
+  let [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
+    exhibit
+  );
 
   let marketTokenFee = await getAssociatedTokenAddress(
-    tokenMints[0],
+    liqMint,
     marketAuth,
     true
   );
 
-  console.log("got pdas");
-
   userTokens[0] = await getAssociatedTokenAddress(
     tokenMints[0],
-    user[0].publicKey
+    users[0].publicKey
   );
 
   userTokens[1] = await getAssociatedTokenAddress(
     voucherMint,
-    user[0].publicKey
+    users[0].publicKey
   );
 
   console.log("auth", marketAuth.toString());
@@ -192,19 +249,19 @@ export async function initializeSwap(exhibit: PublicKey) {
         marketSol: marketTokens[1],
         userVoucher: userTokens[1],
         userLiq: userTokens[0],
-        user: user[0].publicKey,
+        user: users[0].publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
-      .signers([user[0]])
+      .signers([users[0]])
       .rpc();
 
     let transaction = new Transaction().add(tx);
     console.log("about to send tx");
     let signature = await sendAndConfirmTransaction(connection, transaction, [
-      user[0],
+      users[0],
     ]);
 
     await connection.confirmTransaction(signature, "confirmed");
@@ -229,20 +286,31 @@ export async function instructionDepositLiquidity() {
       marketSol: marketTokens[1],
       userVoucher: userTokens[1],
       userLiq: userTokens[0],
-      user: user[0].publicKey,
+      user: users[0].publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .signers([user[0]])
+    .signers([users[0]])
     .rpc();
 
   let transaction = new Transaction().add(deposit_liq_tx);
   console.log("about to send tx");
   let signature = await sendAndConfirmTransaction(connection, transaction, [
-    user[0],
+    users[0],
   ]);
 
   await connection.confirmTransaction(signature, "confirmed");
   console.log("made tx", transaction);
 }
+async function initialFlow() {
+  await airdropAndMint();
+  await initializeExhibit();
+
+  await insertNft(nft);
+  await insertNft(nft2);
+  await insertNft(nft3);
+  await initializeSwap();
+  await instructionDepositLiquidity();
+}
+initialFlow();

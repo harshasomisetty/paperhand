@@ -3,7 +3,7 @@ seeds = false
 [programs.localnet]
 exhibition = "AqzBa4Xaiorxbu49AV6Ja9RsspZXSCWcJCZp3imeLLhg"
 shop = "3H8A6ZMT9XfTDjCsm1nsCwA37PtSPERDmsh5npmjBtak"
-checkout = "8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX"
+checkout = "8b7yjj2P5fHV9NCyNXJut1pDM1J1D9oRKzqUGW1ycTWk"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -13,7 +13,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 10000000 tests/shop.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 10000000 tests/**/*.ts"
 
 [test.validator]    
 url = "https://api.mainnet-beta.solana.com"

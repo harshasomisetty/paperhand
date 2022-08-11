@@ -3,7 +3,7 @@ import { useState } from "react";
 import { MarketData, UserData } from "@/utils/interfaces";
 import DepositLiquidity from "@/components/DepositLiquidity";
 import WithdrawLiquidity from "@/components/WithdrawLiquidity";
-import { BazaarData } from "./MarketInputs";
+import { ShopData } from "./MarketInputs";
 
 const LiquidityCard = ({
   userData,
@@ -54,7 +54,7 @@ const LiquidityCard = ({
           />
         )}
         <div className="p-2"></div>
-        <BazaarData marketData={marketData} exhibitSymbol={exhibitSymbol} />
+        <ShopData marketData={marketData} exhibitSymbol={exhibitSymbol} />
       </div>
     </div>
   );
