@@ -3,7 +3,11 @@ import { Metaplex, Nft } from "@metaplex-foundation/js";
 import { Creator } from "@metaplex-foundation/mpl-token-metadata";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 
-import { SHOP_PROGRAM_ID, EXHIBITION_PROGRAM_ID } from "../utils/constants";
+import {
+  SHOP_PROGRAM_ID,
+  EXHIBITION_PROGRAM_ID,
+  CHECKOUT_PROGRAM_ID,
+} from "../utils/constants";
 
 export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
   let seeds: Buffer[] = [];
@@ -81,4 +85,37 @@ export async function getSwapAccounts(
     userTokenVoucher,
     liqMint,
   ];
+}
+
+export async function getCheckoutAccounts(
+  exhibit: PublicKey
+): Promise<[PublicKey, number, PublicKey, PublicKey, PublicKey]> {
+  let auth: PublicKey;
+  let authBump: number;
+  let bidOrders: PublicKey;
+
+  let voucherMint, escrowVoucher, escrowSol: PublicKey;
+  let bump: number;
+
+  [auth, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("auth"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  [escrowVoucher, bump] = await PublicKey.findProgramAddress(
+    [Buffer.from("escrow_voucher"), auth.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  [escrowSol, bump] = await PublicKey.findProgramAddress(
+    [Buffer.from("escrow_sol"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  [bidOrders, bump] = await PublicKey.findProgramAddress(
+    [Buffer.from("bid_orders"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  return [auth, authBump, bidOrders, escrowVoucher, escrowSol];
 }

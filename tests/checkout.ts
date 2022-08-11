@@ -20,6 +20,7 @@ import {
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
 import { Exhibition } from "../target/types/exhibition";
+import { getCheckoutAccounts } from "../utils/accountDerivation";
 import { checkIfAccountExists } from "../utils/actions";
 import { otherCreators, creator, users } from "../utils/constants";
 import { airdropAll, printAndTest, regSol } from "../utils/helpfulFunctions";
@@ -36,14 +37,14 @@ describe("checkout", () => {
 
   let matchedOrders: Keypair = Keypair.generate();
 
-  let bump: number;
-  let voucherMint, escrowVoucher, escrowSol: PublicKey;
-
-  let userVouchers = Array(2);
-
   let auth: PublicKey;
   let authBump: number;
   let bidOrders: PublicKey;
+
+  let voucherMint, escrowVoucher, escrowSol: PublicKey;
+  let bump: number;
+
+  let userVouchers = Array(2);
 
   let bidSizes = [5 * LAMPORTS_PER_SOL, 10 * LAMPORTS_PER_SOL];
 
@@ -72,25 +73,8 @@ describe("checkout", () => {
       );
     }
 
-    [auth, authBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("auth"), exhibit.toBuffer()],
-      Checkout.programId
-    );
-
-    [escrowVoucher, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow_voucher"), auth.toBuffer()],
-      Checkout.programId
-    );
-
-    [escrowSol, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow_sol"), exhibit.toBuffer()],
-      Checkout.programId
-    );
-
-    [bidOrders, bump] = await PublicKey.findProgramAddress(
-      [Buffer.from("bid_orders"), exhibit.toBuffer()],
-      Checkout.programId
-    );
+    [auth, authBump, bidOrders, escrowVoucher, escrowSol] =
+      await getCheckoutAccounts(exhibit);
   });
 
   it("Is initialized!", async () => {
