@@ -1,15 +1,4 @@
-import {
-  bundlrStorage,
-  findMetadataPda,
-  keypairIdentity,
-  Metaplex,
-  BundlrStorageDriver,
-  Nft,
-} from "@metaplex-foundation/js";
-import {
-  createSignMetadataInstruction,
-  Creator,
-} from "@metaplex-foundation/mpl-token-metadata";
+import { keypairIdentity, Metaplex, Nft } from "@metaplex-foundation/js";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import {
@@ -28,16 +17,16 @@ import {
   SYSVAR_RENT_PUBKEY,
   Transaction,
 } from "@solana/web3.js";
-import assert from "assert";
 import { Exhibition } from "../target/types/exhibition";
 import { EXHIBITION_PROGRAM_ID } from "../utils/constants";
-import { creator, otherCreators, user } from "../utils/constants";
+import { creator, otherCreators, users } from "../utils/constants";
 import {
   initAssociatedAddressIfNeeded,
   getExhibitAddress,
   getUserVoucherWallets,
 } from "../utils/actions";
 import { mintNFTs } from "../utils/createNFTs";
+import { printAndTest, regSol } from "../utils/helpfulFunctions";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -65,15 +54,13 @@ describe("exhibition", () => {
   let mintNftCount = 2;
   let nftList: Nft[][] = Array(mintCollectionCount);
 
+  let airdropVal = 20 * LAMPORTS_PER_SOL;
   before("Init create and mint exhibits and Metadata", async () => {
-    let airdropees = [creator, ...otherCreators, ...user];
+    let airdropees = [creator, ...otherCreators, ...users];
 
     for (const dropee of airdropees) {
       await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(
-          dropee.publicKey,
-          20 * LAMPORTS_PER_SOL
-        ),
+        await provider.connection.requestAirdrop(dropee.publicKey, airdropVal),
         "confirmed"
       );
     }
@@ -106,7 +93,7 @@ describe("exhibition", () => {
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
-    assert.ok(exhibitInfo.exhibitSymbol === nft.symbol.replace(/\0.*$/g, ""));
+    printAndTest(exhibitInfo.exhibitSymbol, nft.symbol.replace(/\0.*$/g, ""));
   });
 
   it("Initialized exhibit 2!", async () => {
@@ -129,9 +116,8 @@ describe("exhibition", () => {
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
-    assert.ok(exhibitInfo.exhibitSymbol === nft.symbol.replace(/\0.*$/g, ""));
-    assert.ok(exhibitInfo.artifactCount === 0);
-    throw new Error();
+    printAndTest(exhibitInfo.exhibitSymbol, nft.symbol.replace(/\0.*$/g, ""));
+    printAndTest(exhibitInfo.artifactCount, 0);
   });
 
   it("Inserted correct nft into corresponding artifact!", async () => {
@@ -145,12 +131,12 @@ describe("exhibition", () => {
       EXHIBITION_PROGRAM_ID
     );
 
-    let userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
+    let userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
-      user[0],
+      users[0],
       nft.mint,
-      user[0].publicKey
+      users[0].publicKey
     );
 
     // create new user voucher token account outside of artifact insert
@@ -158,7 +144,7 @@ describe("exhibition", () => {
       connection,
       userVoucherWallet[0],
       voucherMint,
-      user[0]
+      users[0]
     );
 
     let tx = await Exhibition.methods
@@ -171,13 +157,13 @@ describe("exhibition", () => {
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
-        user: user[0].publicKey,
+        user: users[0].publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
       })
-      .signers([user[0]])
+      .signers([users[0]])
       .rpc();
 
     let postUserVoucherTokenBal = await getAccount(
@@ -194,10 +180,10 @@ describe("exhibition", () => {
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
-    assert.ok(Number(postUserVoucherTokenBal.amount) == 1);
-    assert.ok(Number(postUserNftTokenBal.amount) == 0);
-    assert.ok(Number(postNftArtifactBal.amount) == 1);
-    assert.ok(exhibitInfo.artifactCount === 1);
+    printAndTest(Number(postUserVoucherTokenBal.amount), 1);
+    printAndTest(Number(postUserNftTokenBal.amount), 0);
+    printAndTest(Number(postNftArtifactBal.amount), 1);
+    printAndTest(exhibitInfo.artifactCount, 1);
   });
 
   it("inserted second nft from user 2", async () => {
@@ -206,9 +192,9 @@ describe("exhibition", () => {
 
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
-      user[1],
+      users[1],
       nft.mint,
-      user[1].publicKey
+      users[1].publicKey
     );
 
     let [nftArtifact] = await PublicKey.findProgramAddress(
@@ -216,13 +202,13 @@ describe("exhibition", () => {
       EXHIBITION_PROGRAM_ID
     );
 
-    let userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
+    let userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
 
     await initAssociatedAddressIfNeeded(
       connection,
       userVoucherWallet[1],
       voucherMint,
-      user[1]
+      users[1]
     );
 
     const tx = await Exhibition.methods
@@ -235,13 +221,13 @@ describe("exhibition", () => {
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
-        user: user[1].publicKey,
+        user: users[1].publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       })
-      .signers([user[1]])
+      .signers([users[1]])
       .rpc();
   });
 
@@ -254,13 +240,13 @@ describe("exhibition", () => {
       EXHIBITION_PROGRAM_ID
     );
 
-    let userVoucherWallet = await getUserVoucherWallets(voucherMint, user);
+    let userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
 
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
-      user[0],
+      users[0],
       nft.mint,
-      user[0].publicKey
+      users[0].publicKey
     );
 
     try {
@@ -274,11 +260,11 @@ describe("exhibition", () => {
           nftMetadata: nft.metadataAccount.publicKey,
           nftUserToken: nftUserTokenAccount.address,
           nftArtifact: nftArtifact,
-          user: user[0].publicKey,
+          user: users[0].publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([user[0]])
+        .signers([users[0]])
         .rpc();
     } catch (error) {
       console.log("withdraw error", error);
@@ -296,11 +282,11 @@ describe("exhibition", () => {
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
-    assert.ok(exhibitInfo.artifactCount === 1);
+    printAndTest(exhibitInfo.artifactCount, 1);
 
-    assert.ok(Number(postUserVoucherTokenBal.amount) == 0);
-    assert.ok(Number(postUserNftTokenBal.amount) == 1);
-    assert.ok((await connection.getAccountInfo(nftArtifact)) == null);
+    printAndTest(Number(postUserVoucherTokenBal.amount), 0);
+    printAndTest(Number(postUserNftTokenBal.amount), 1);
+    printAndTest(await connection.getAccountInfo(nftArtifact), null);
   });
 
   it("verify final nft artifacts simple", async () => {
@@ -327,7 +313,7 @@ describe("exhibition", () => {
 
     let voucherMintInfo = await getMint(connection, voucherMint);
 
-    assert.ok(artifactKeys.length == Number(voucherMintInfo.supply));
+    printAndTest(artifactKeys.length, Number(voucherMintInfo.supply));
 
     let artifactMints = [];
     artifactKeys.forEach(async (key, i) => {

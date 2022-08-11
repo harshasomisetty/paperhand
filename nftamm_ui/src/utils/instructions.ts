@@ -254,7 +254,7 @@ export async function instructionInitSwap(
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
-      marketMint: tokenMints[0],
+      marketMint: liqMint,
       marketTokenFee: marketTokenFee,
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],

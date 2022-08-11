@@ -8,10 +8,10 @@ use solana_program::{account_info::AccountInfo, program::invoke};
 
 use solana_program::system_instruction;
 
-declare_id!("7cysYXNdgFsJJ8mGRszhkNDej9rzKWNMKiAAthYcx8U3");
+declare_id!("3H8A6ZMT9XfTDjCsm1nsCwA37PtSPERDmsh5npmjBtak");
 
 #[program]
-pub mod bazaar {
+pub mod shop {
 
     use super::*;
 

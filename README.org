@@ -1,30 +1,27 @@
 #+title: NFTAMM
 
-* Literature
-
-
-
-
-
 * Overview
-NFTAMM is a system that allows people to fungitize their NFTs with voucherable tokens, and trade these voucherables in an AMM.
+NFTAMM is a system that allows people to fungitize their NFTs, and trade these voucherables in an AMM.
 
 This allows for an easily determinable floor for people to use.
 
 * Architecture
-** Core
-NFTAMM contains two contracts, the *Exhibition* and *Bazaar* contracts.
 *** Exhibition
 Exhibition is vault system that allows NFT owners to deposit their NFTs into an exhibit (an account that relates to a single collection).
 
 Every time a user deposits their NFT, they get a voucher token they can then trade for SOL in the Bazaar
 *** Bazaar
-Bazaar is a market factory that instantiates a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
+Bazaar is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 
 The Bazaar has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
+*** Checkout
+The next stage of the project was to implement a floor bid system, where bidders can place limit buy orders, and sellers can instant sell into these bids.
+
+This involved storing using commited SOL for buy orders in a heap data structure, allowing functionallity for a seller to come market sell to a buyer, and the buyer being able to come redeem their newly acquired nft
+*** Semiswap
+
 
 ** Floor bid
-The next stage of the project was to implement a floor bid system, where bidders can place limit buy orders, and sellers can instant sell into these bids.
 
 This will consist of the *Cantina* and *Checkout*
 *** Cantina
@@ -43,6 +40,7 @@ the transaction will consist of the following instructions
 this contract is associated with an exhibit, and is a queue of all satisfied trades
 each trade consists of
 - pubkey to send a voucher tokens
+  **
 * Deploy script
 the test folder has a full workflow of interacting with the exhibition and bazaar contracts
 

@@ -2,10 +2,8 @@
 seeds = false
 [programs.localnet]
 exhibition = "AqzBa4Xaiorxbu49AV6Ja9RsspZXSCWcJCZp3imeLLhg"
-bazaar = "7cysYXNdgFsJJ8mGRszhkNDej9rzKWNMKiAAthYcx8U3"
+shop = "3H8A6ZMT9XfTDjCsm1nsCwA37PtSPERDmsh5npmjBtak"
 checkout = "8uRUPQtyoC3XvQp8Rg8cG2py4AiqRodqrSurU3GxcnVX"
-caravan = "8xHuptU9RNL6MsssM7Ty6u8WmSnFcdcJ1LNptxot9SNC"
-festival = "2Xg89F21cvsfqNtV3AaGgnLDoKM8N8meL8Nxf18uFkHi"
 
 [registry]
 url = "https://anchor.projectserum.com"

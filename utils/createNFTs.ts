@@ -34,7 +34,7 @@ import {
   BEAR_URLS,
 } from "./constants";
 
-import { creator, otherCreators, user } from "./constants";
+import { creator, otherCreators, users } from "./constants";
 
 export function nftJsonFormat(
   image: string,
@@ -149,7 +149,7 @@ export async function mintNFTs(
       uri: uriData[i][j],
       mintAuthority: otherCreators[i], // other creator[i] created all of collection i
       updateAuthority: otherCreators[i],
-      owner: user[j % 2].publicKey, // users alternate ownership of nfts,
+      owner: users[j % 2].publicKey, // users alternate ownership of nfts,
       payer: otherCreators[i],
       creators: [
         {
@@ -188,10 +188,14 @@ export async function mintNFTs(
 
       console.log("promise", i, j);
     }
+    console.log("inner loop");
   }
 
+  console.log("before nftResults");
+  console.log("Promises?", nftPromises);
   let nftResults = await Promise.all(nftPromises);
 
+  console.log("after nftResults");
   for (let i = 0; i < mintNumberOfCollections; i++) {
     for (let j = 0; j < mintNumberOfNfts; j++) {
       nftList[i][j] = nftResults[i * mintNumberOfCollections + j];
@@ -213,10 +217,10 @@ export async function getOwnedNfts(
   // .getDataAsPublicKeys();
 
   // console.log(mints);
-  console.log("user[0]", user[0].publicKey.toString());
-  let myNfts = await metaplex.nfts().findAllByOwner(user[0].publicKey);
+  console.log("user[0]", users[0].publicKey.toString());
+  let myNfts = await metaplex.nfts().findAllByOwner(users[0].publicKey);
   console.log("length", myNfts.length);
-  myNfts = await metaplex.nfts().findAllByOwner(user[1].publicKey);
+  myNfts = await metaplex.nfts().findAllByOwner(users[1].publicKey);
   console.log("length", myNfts.length);
   myNfts = await metaplex.nfts().findAllByOwner(otherCreators[0].publicKey);
   console.log("length", myNfts.length);

@@ -17,16 +17,18 @@ import {
   SYSVAR_RENT_PUBKEY,
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-import { Bazaar } from "../target/types/bazaar";
+import { Shop } from "../target/types/shop";
 import { Exhibition } from "../target/types/exhibition";
-import { BAZAAR_PROGRAM_ID, otherCreators } from "../utils/constants";
-import { creator, user } from "../utils/constants";
+import { SHOP_PROGRAM_ID, otherCreators } from "../utils/constants";
+import { creator, users } from "../utils/constants";
 const assert = require("assert");
 
+import { printAndTest, regSol } from "../utils/helpfulFunctions";
+import { getExhibitAccounts } from "../utils/accountDerivation";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
-const Bazaar = anchor.workspace.Bazaar as Program<Bazaar>;
+const Shop = anchor.workspace.Shop as Program<Shop>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
 async function swapFunc(
@@ -70,14 +72,8 @@ async function swapFunc(
   console.log("results", results);
   return results;
 }
-
-function printAndTest(arg1, arg2, name = "") {
-  console.log(name, arg1, arg2);
-  assert.ok(arg1 == arg2);
-  // console.log("passed", name);
-}
-describe("bazaar", () => {
-  /* end goal should be for user to press a button that opens the display case and bazaar simultaneously
+describe("shop", () => {
+  /* end goal should be for user to press a button that opens the display case and shop simultaneously
    * need to give creator option to bootstrap liq
    * so first open display case, spend some time inserting etc
    * then creator presses button to open market
@@ -90,13 +86,14 @@ describe("bazaar", () => {
   // The arrays contain info for Token A, and Liq token
   // There are arrays for the full mint, and for the specific token accounts for each user
 
-  // for this isolated test for bazaar, the keypair is random, and serves as a seed for the rest of the program
+  // for this isolated test for shop, the keypair is random, and serves as a seed for the rest of the program
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
   let authBump;
   let marketAuth: PublicKey;
   let marketTokenFee: PublicKey;
   // tokenMint[0] is the pool liquidity token mint, [1] is the voucher mint
+  let liqMint;
   let tokenMints: PublicKey[] = new Array(2);
 
   // marketTokens is the wallet for tokenA and sol
@@ -112,44 +109,34 @@ describe("bazaar", () => {
   let temp;
 
   before("Init variables", async () => {
-    let airdropees = [creator, ...otherCreators, ...user];
+    let airdropees = [creator, ...otherCreators, ...users];
 
-    let airdropPromises = [];
-    airdropees.forEach((dropee) =>
-      airdropPromises.push(
-        provider.connection.requestAirdrop(
+    // let airdropPromises = [];
+    // airdropees.forEach((dropee) =>
+    //   airdropPromises.push(
+    //     provider.connection.requestAirdrop(
+    //       dropee.publicKey,
+    //       50 * LAMPORTS_PER_SOL
+    //     )
+    //   )
+    // );
+    // await Promise.all(airdropPromises);
+
+    for (const dropee of airdropees) {
+      await connection.confirmTransaction(
+        await connection.requestAirdrop(
           dropee.publicKey,
           50 * LAMPORTS_PER_SOL
-        )
-      )
-    );
-    await Promise.all(airdropPromises);
+        ),
+        "confirmed"
+      );
+    }
 
-    [marketAuth, authBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("market_auth"), exhibit.toBuffer()],
-      BAZAAR_PROGRAM_ID
-    );
-
-    [tokenMints[0], temp] = await PublicKey.findProgramAddress(
-      [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-      BAZAAR_PROGRAM_ID
+    [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
+      exhibit
     );
 
-    [marketTokens[0], temp] = await PublicKey.findProgramAddress(
-      [Buffer.from("token_voucher"), marketAuth.toBuffer()],
-      BAZAAR_PROGRAM_ID
-    );
-
-    [marketTokens[1], temp] = await PublicKey.findProgramAddress(
-      [Buffer.from("token_sol"), marketAuth.toBuffer()],
-      BAZAAR_PROGRAM_ID
-    );
-
-    marketTokenFee = await getAssociatedTokenAddress(
-      tokenMints[0],
-      marketAuth,
-      true
-    );
+    marketTokenFee = await getAssociatedTokenAddress(liqMint, marketAuth, true);
 
     tokenMints[1] = await createMint(
       connection,
@@ -163,15 +150,15 @@ describe("bazaar", () => {
       userTokens[i] = new Array(2);
 
       userTokens[i][0] = await getAssociatedTokenAddress(
-        tokenMints[0],
-        user[i].publicKey
+        liqMint,
+        users[i].publicKey
       );
       userTokens[i][1] = (
         await getOrCreateAssociatedTokenAccount(
           connection,
-          user[i],
+          users[i],
           tokenMints[1],
-          user[i].publicKey
+          users[i].publicKey
         )
       ).address;
     }
@@ -194,7 +181,7 @@ describe("bazaar", () => {
     console.log("init market");
 
     try {
-      const tx = await Bazaar.methods
+      const tx = await Shop.methods
         .initializeMarket(
           new anchor.BN(initAmounts[0]),
           new anchor.BN(initAmounts[1] * LAMPORTS_PER_SOL),
@@ -203,20 +190,20 @@ describe("bazaar", () => {
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
-          marketMint: tokenMints[0],
+          marketMint: liqMint,
           marketTokenFee: marketTokenFee,
           voucherMint: tokenMints[1],
           marketVoucher: marketTokens[0],
           marketSol: marketTokens[1],
           userVoucher: userTokens[0][1],
           userLiq: userTokens[0][0],
-          user: user[0].publicKey,
+          user: users[0].publicKey,
           rent: SYSVAR_RENT_PUBKEY,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[0]])
+        .signers([users[0]])
         .rpc();
     } catch (error) {
       console.log("error in init market", error);
@@ -225,7 +212,7 @@ describe("bazaar", () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[0][1]);
-    let userSol = await connection.getBalance(user[0].publicKey);
+    let userSol = await connection.getBalance(users[0].publicKey);
 
     printAndTest(
       Number(marketVoucherBal.amount),
@@ -259,33 +246,33 @@ describe("bazaar", () => {
       userTokens[i][0] = (
         await getOrCreateAssociatedTokenAccount(
           connection,
-          user[i],
-          tokenMints[0],
-          user[i].publicKey
+          users[i],
+          liqMint,
+          users[i].publicKey
         )
       ).address;
     }
 
     console.log("finished minting");
 
-    const tx = await Bazaar.methods
+    const tx = await Shop.methods
       .depositLiquidity(new anchor.BN(liqAmounts[0]), authBump)
       .accounts({
         exhibit: exhibit,
         marketAuth: marketAuth,
-        marketMint: tokenMints[0],
+        marketMint: liqMint,
         // marketTokenFee: marketTokenFee,
         voucherMint: tokenMints[1],
         marketVoucher: marketTokens[0],
         marketSol: marketTokens[1],
         userVoucher: userTokens[0][1],
         userLiq: userTokens[0][0],
-        user: user[0].publicKey,
+        user: users[0].publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
-      .signers([user[0]])
+      .signers([users[0]])
       .rpc();
 
     console.log("finished deposit liq tx");
@@ -293,7 +280,7 @@ describe("bazaar", () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[0][1]);
-    let userSol = await connection.getBalance(user[0].publicKey);
+    let userSol = await connection.getBalance(users[0].publicKey);
     let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
     printAndTest(
@@ -329,7 +316,7 @@ describe("bazaar", () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[1][1]);
-    let userSol = await connection.getBalance(user[1].publicKey);
+    let userSol = await connection.getBalance(users[1].publicKey);
 
     console.log(Number(marketVoucherBal.amount), "market voucher amt");
     console.log(Number(marketSol) / LAMPORTS_PER_SOL, "market sol");
@@ -346,7 +333,7 @@ describe("bazaar", () => {
     );
 
     try {
-      const tx = await Bazaar.methods
+      const tx = await Shop.methods
         .swap(new anchor.BN(swapAmount[0]), true, authBump)
         .accounts({
           exhibit: exhibit,
@@ -357,12 +344,12 @@ describe("bazaar", () => {
           marketSol: marketTokens[1],
           userVoucher: userTokens[1][1],
           creator: otherCreators[0].publicKey,
-          user: user[1].publicKey,
+          user: users[1].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[1]])
+        .signers([users[1]])
         .rpc();
     } catch (error) {
       console.log("fuck swap", error);
@@ -371,7 +358,7 @@ describe("bazaar", () => {
     marketVoucherBal = await getAccount(connection, marketTokens[0]);
     marketSol = await connection.getBalance(marketTokens[1]);
     userVoucherBal = await getAccount(connection, userTokens[1][1]);
-    userSol = await connection.getBalance(user[1].publicKey);
+    userSol = await connection.getBalance(users[1].publicKey);
 
     printAndTest(
       Number(marketVoucherBal.amount),
@@ -390,7 +377,7 @@ describe("bazaar", () => {
     //   "user sol"
     // );
 
-    let marketInfo = await Bazaar.account.marketInfo.fetch(marketAuth);
+    let marketInfo = await Shop.account.marketInfo.fetch(marketAuth);
     console.log("market info", Number(marketInfo.feesPaid) / LAMPORTS_PER_SOL);
   });
 
@@ -398,7 +385,7 @@ describe("bazaar", () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[1][1]);
-    let userSol = await connection.getBalance(user[1].publicKey);
+    let userSol = await connection.getBalance(users[1].publicKey);
 
     console.log(Number(marketVoucherBal.amount), "market voucher amt");
     console.log(Number(marketSol) / LAMPORTS_PER_SOL, "market sol");
@@ -415,7 +402,7 @@ describe("bazaar", () => {
     );
 
     try {
-      const tx = await Bazaar.methods
+      const tx = await Shop.methods
         .swap(new anchor.BN(swapAmount[1]), false, authBump)
         .accounts({
           exhibit: exhibit,
@@ -426,12 +413,12 @@ describe("bazaar", () => {
           marketSol: marketTokens[1],
           userVoucher: userTokens[1][1],
           creator: otherCreators[0].publicKey,
-          user: user[1].publicKey,
+          user: users[1].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[1]])
+        .signers([users[1]])
         .rpc();
     } catch (error) {
       console.log("fuck swap", error);
@@ -440,7 +427,7 @@ describe("bazaar", () => {
     marketVoucherBal = await getAccount(connection, marketTokens[0]);
     marketSol = await connection.getBalance(marketTokens[1]);
     userVoucherBal = await getAccount(connection, userTokens[1][1]);
-    userSol = await connection.getBalance(user[1].publicKey);
+    userSol = await connection.getBalance(users[1].publicKey);
 
     printAndTest(
       Number(marketVoucherBal.amount),
@@ -464,7 +451,7 @@ describe("bazaar", () => {
     let prevMarketVoucherBal = await getAccount(connection, marketTokens[0]);
     let prevMarketSol = await connection.getBalance(marketTokens[1]);
     let prevUserVoucherBal = await getAccount(connection, userTokens[0][1]);
-    let prevUserSol = await connection.getBalance(user[0].publicKey);
+    let prevUserSol = await connection.getBalance(users[0].publicKey);
     let prevUserTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
     console.log(Number(prevMarketVoucherBal.amount));
@@ -472,7 +459,7 @@ describe("bazaar", () => {
     console.log(Number(prevUserVoucherBal.amount));
     console.log(Number(prevUserSol));
     console.log(Number(prevUserTokenLiqBal.amount));
-    const mintInfo = await getMint(connection, tokenMints[0]);
+    const mintInfo = await getMint(connection, liqMint);
 
     let liqTokenValue = (2 * prevMarketSol) / Number(mintInfo.supply);
 
@@ -480,7 +467,7 @@ describe("bazaar", () => {
       liqTokenValue * (withdrawAmounts[0] - withdrawAmounts[1]);
 
     try {
-      const tx = await Bazaar.methods
+      const tx = await Shop.methods
         .withdrawLiquidity(
           new anchor.BN(withdrawAmounts[0]),
           new anchor.BN(withdrawAmounts[1]),
@@ -489,19 +476,19 @@ describe("bazaar", () => {
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
-          marketMint: tokenMints[0],
+          marketMint: liqMint,
           // marketTokenFee: marketTokenFee,
           voucherMint: tokenMints[1],
           marketVoucher: marketTokens[0],
           marketSol: marketTokens[1],
           userVoucher: userTokens[0][1],
           userLiq: userTokens[0][0],
-          user: user[0].publicKey,
+          user: users[0].publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([user[0]])
+        .signers([users[0]])
         .rpc();
     } catch (error) {
       console.log("fuck withdraw", error);
@@ -511,7 +498,7 @@ describe("bazaar", () => {
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[0][1]);
-    let userSol = await connection.getBalance(user[0].publicKey);
+    let userSol = await connection.getBalance(users[0].publicKey);
     let userTokenLiqBal = await getAccount(connection, userTokens[0][0]);
 
     console.log(
@@ -546,7 +533,7 @@ describe("bazaar", () => {
     );
   });
 
-  Bazaar.provider.connection.onLogs("all", ({ logs }) => {
+  Shop.provider.connection.onLogs("all", ({ logs }) => {
     console.log(logs);
   });
 });

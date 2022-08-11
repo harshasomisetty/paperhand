@@ -36,7 +36,7 @@ export const otherCreators = [
   ),
 ];
 
-export const user = [
+export const users = [
   Keypair.fromSecretKey(
     Uint8Array.from([
       243, 175, 79, 103, 190, 63, 200, 29, 117, 225, 114, 71, 25, 77, 208, 231,
@@ -61,8 +61,8 @@ export let EXHIBITION_PROGRAM_ID = new PublicKey(
   Exhibition["metadata"]["address"]
 );
 
-const Bazaar = require("../target/idl/bazaar.json");
-export let BAZAAR_PROGRAM_ID = new PublicKey(Bazaar["metadata"]["address"]);
+const Shop = require("../target/idl/shop.json");
+export let SHOP_PROGRAM_ID = new PublicKey(Shop["metadata"]["address"]);
 
 export let APE_URLS: string[] = [
   "https://arweave.net/cDIEJDoklWxqjgGxpO0_usU6EYl3ZhFhS9lr2LRJz3I",

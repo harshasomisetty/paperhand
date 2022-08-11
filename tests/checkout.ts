@@ -20,11 +20,9 @@ import {
 } from "@solana/web3.js";
 import { Checkout } from "../target/types/checkout";
 import { Exhibition } from "../target/types/exhibition";
-import { Caravan } from "../target/types/caravan";
 import { checkIfAccountExists } from "../utils/actions";
-import { otherCreators } from "../utils/constants";
-import { creator, user } from "../utils/constants";
-const assert = require("assert");
+import { otherCreators, creator, users } from "../utils/constants";
+import { printAndTest, regSol } from "../utils/helpfulFunctions";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -32,24 +30,13 @@ const connection = provider.connection;
 const Checkout = anchor.workspace.Checkout as Program<Checkout>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
-function printAndTest(arg1, arg2, name = "") {
-  console.log(name, arg1, arg2);
-  assert.ok(arg1 == arg2);
-}
-
-function regSol(val) {
-  return Math.round(val / LAMPORTS_PER_SOL);
-}
-
 describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
-  let matchedOrders;
 
-  let creator: Keypair = Keypair.generate();
-  let users: Keypair[] = [Keypair.generate(), Keypair.generate()];
+  let matchedOrders: Keypair = Keypair.generate();
 
-  let bump;
+  let bump: number;
   let voucherMint, escrowVoucher, escrowSol: PublicKey;
 
   let userVouchers = Array(2);
@@ -77,17 +64,24 @@ describe("checkout", () => {
       );
     }
 
-    [auth, authBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("auth"), exhibit.toBuffer()],
-      Checkout.programId
-    );
-
     voucherMint = await createMint(
       connection,
       creator,
       creator.publicKey,
       creator.publicKey,
       0
+    );
+
+    for (let i = 0; i < 2; i++) {
+      userVouchers[i] = await getAssociatedTokenAddress(
+        voucherMint,
+        users[i].publicKey
+      );
+    }
+
+    [auth, authBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("auth"), exhibit.toBuffer()],
+      Checkout.programId
     );
 
     [escrowVoucher, bump] = await PublicKey.findProgramAddress(
@@ -100,20 +94,10 @@ describe("checkout", () => {
       Checkout.programId
     );
 
-    // make pda
     [bidOrders, bump] = await PublicKey.findProgramAddress(
       [Buffer.from("bid_orders"), exhibit.toBuffer()],
       Checkout.programId
     );
-
-    matchedOrders = new Keypair();
-
-    for (let i = 0; i < 2; i++) {
-      userVouchers[i] = await getAssociatedTokenAddress(
-        voucherMint,
-        users[i].publicKey
-      );
-    }
   });
 
   it("Is initialized!", async () => {
@@ -142,8 +126,8 @@ describe("checkout", () => {
       .signers([matchedOrders, creator])
       .rpc();
 
-    assert.ok((await checkIfAccountExists(escrowVoucher, connection)) == true);
-    assert.ok((await checkIfAccountExists(auth, connection)) == true);
+    printAndTest(await checkIfAccountExists(escrowVoucher, connection), true);
+    printAndTest(await checkIfAccountExists(auth, connection), true);
   });
 
   it("Makes 2 bids!", async () => {
@@ -213,28 +197,23 @@ describe("checkout", () => {
     let preHeapBal = await connection.getBalance(escrowSol);
     let preUserBal = await connection.getBalance(users[0].publicKey);
 
-    try {
-      let tx = await Checkout.methods
-        .bidFloor()
-        .accounts({
-          exhibit: exhibit,
-          matchedOrders: matchedOrders.publicKey,
-          bidOrders: bidOrders,
-          auth: auth,
-          voucherMint: voucherMint,
-          escrowVoucher: escrowVoucher,
-          escrowSol: escrowSol,
-          userVoucher: userVouchers[0],
-          user: users[0].publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([users[0]])
-        .rpc();
-    } catch (error) {
-      console.log("adding erroe", error);
-      throw new Error("Throw makes it go boom!");
-    }
+    let tx = await Checkout.methods
+      .bidFloor()
+      .accounts({
+        exhibit: exhibit,
+        matchedOrders: matchedOrders.publicKey,
+        bidOrders: bidOrders,
+        auth: auth,
+        voucherMint: voucherMint,
+        escrowVoucher: escrowVoucher,
+        escrowSol: escrowSol,
+        userVoucher: userVouchers[0],
+        user: users[0].publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([users[0]])
+      .rpc();
 
     let postHeapBal = await connection.getBalance(escrowSol);
     let postUserBal = await connection.getBalance(users[0].publicKey);
@@ -257,28 +236,25 @@ describe("checkout", () => {
   });
 
   it("Fulfills bid in DLL!", async () => {
-    try {
-      const fulfill_tx = await Checkout.methods
-        .fulfillOrder(users[0].publicKey, authBump)
-        .accounts({
-          exhibit: exhibit,
-          matchedOrders: matchedOrders.publicKey,
-          auth: auth,
-          voucherMint: voucherMint,
-          escrowVoucher: escrowVoucher,
-          orderVoucher: userVouchers[0],
-          orderUser: users[0].publicKey,
-          user: users[1].publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .signers([users[1]])
-        .rpc();
-    } catch (error) {
-      console.log("fulfill tx", error);
-    }
+    const fulfill_tx = await Checkout.methods
+      .fulfillOrder(users[0].publicKey, authBump)
+      .accounts({
+        exhibit: exhibit,
+        matchedOrders: matchedOrders.publicKey,
+        auth: auth,
+        voucherMint: voucherMint,
+        escrowVoucher: escrowVoucher,
+        orderVoucher: userVouchers[0],
+        orderUser: users[0].publicKey,
+        user: users[1].publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([users[1]])
+      .rpc();
 
-    assert.ok(
-      Number((await getAccount(connection, escrowVoucher)).amount) == 0
+    printAndTest(
+      Number((await getAccount(connection, escrowVoucher)).amount),
+      0
     );
   });
 
