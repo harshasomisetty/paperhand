@@ -1,5 +1,5 @@
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
-import { Bazaar, IDL as BAZAAR_IDL } from "../target/types/bazaar";
+import { Shop, IDL as SHOP_IDL } from "../target/types/shop";
 import { BN } from "bn.js";
 import {
   bundlrStorage,
@@ -34,20 +34,19 @@ import {
   otherCreators,
   user,
   EXHIBITION_PROGRAM_ID,
-  BAZAAR_PROGRAM_ID,
+  SHOP_PROGRAM_ID,
 } from "../utils/constants";
 import {
-  getExhibitAddress,
-  getProvider,
   getUserVoucherWallets,
   initAssociatedAddressIfNeeded,
   checkIfExhibitExists,
 } from "../utils/actions";
+import { getVoucherAddress, getSwapAccounts } from "../utils/accountDerivation";
 
 const connection = new Connection("http://localhost:8899", "processed");
 
 let Exhibition;
-let Bazaar;
+let Shop;
 
 let nft;
 let nft2;
@@ -68,7 +67,7 @@ let liqAmounts = [1];
 let swapAmount = [1];
 // mint accounts, 0 is liquidity, array to be able to copy over code
 let tokenMints = new Array(1);
-// bazaar's token accounts, 0 is voucher account, 1 is sol account, 2 is
+// shop's token accounts, 0 is voucher account, 1 is sol account, 2 is
 let marketTokens = new Array(2);
 // user 0's tokens, token 0 is liquidity account, token 1 is voucher account
 let userTokens = new Array(2);
@@ -133,37 +132,27 @@ export async function insertNft(nft: Nft) {
     Number(postUserVoucherTokenBal)
   );
 }
-export async function initializeSwap() {
+export async function initializeSwap(exhibit: PublicKey) {
   console.log("in initialize swap");
   // create new user voucher token account outside of artifact insert
   let temp;
 
-  [marketAuth, authBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_auth"), exhibit.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
+  let [
+    voucherMint,
+    marketAuth,
+    authBump,
+    marketTokens,
+    userTokenVoucher,
+    liqMint,
+  ] = await getSwapAccounts(exhibit);
 
-  [tokenMints[0], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  [marketTokens[0], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_voucher"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  [marketTokens[1], temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("token_sol"), marketAuth.toBuffer()],
-    BAZAAR_PROGRAM_ID
-  );
-
-  console.log("got pdas");
   let marketTokenFee = await getAssociatedTokenAddress(
     tokenMints[0],
     marketAuth,
     true
   );
+
+  console.log("got pdas");
 
   userTokens[0] = await getAssociatedTokenAddress(
     tokenMints[0],
@@ -187,7 +176,7 @@ export async function initializeSwap() {
     );
 
     console.log("making tx");
-    const tx = await Bazaar.methods
+    const tx = await Shop.methods
       .initializeMarket(
         new BN(initAmounts[0]),
         new BN(initAmounts[1] * LAMPORTS_PER_SOL),
@@ -196,7 +185,7 @@ export async function initializeSwap() {
       .accounts({
         exhibit: exhibit,
         marketAuth: marketAuth,
-        marketMint: tokenMints[0],
+        marketMint: liqMint,
         marketTokenFee: marketTokenFee,
         voucherMint: voucherMint,
         marketVoucher: marketTokens[0],
@@ -228,7 +217,7 @@ export async function initializeSwap() {
 export async function instructionDepositLiquidity() {
   console.log("in instruction dpeo");
 
-  const deposit_liq_tx = await Bazaar.methods
+  const deposit_liq_tx = await Shop.methods
     .depositLiquidity(new BN(liqAmounts[0]), authBump)
     .accounts({
       exhibit: exhibit,

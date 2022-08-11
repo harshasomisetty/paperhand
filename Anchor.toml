@@ -13,7 +13,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 10000000 tests/checkout.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 10000000 tests/shop.ts"
 
 [test.validator]    
 url = "https://api.mainnet-beta.solana.com"

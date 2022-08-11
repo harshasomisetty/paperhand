@@ -23,18 +23,18 @@ import {
   otherCreators,
   user,
   EXHIBITION_PROGRAM_ID,
-  BAZAAR_PROGRAM_ID,
+  SHOP_PROGRAM_ID,
 } from "../utils/constants";
-import { getExhibitAddress, getProvider } from "../utils/actions";
+import { getProvider } from "../utils/actions";
+import { getVoucherAddress } from "../utils/accountDerivation";
 
-import { getOwnedNfts } from "../utils/createNFTs";
 interface Project {
   pubkey: PublicKey;
   account: AccountInfo<Buffer>;
 }
 
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
-import { Bazaar, IDL as BAZAAR_IDL } from "../target/types/bazaar";
+import { Shop, IDL as SHOP_IDL } from "../target/types/shop";
 import {
   initializeSwap,
   insertNft,
@@ -51,7 +51,7 @@ let mintNumberOfNfts = 10;
 let nftList: Nft[][] = Array(mintNumberOfCollections);
 
 let Exhibition;
-let Bazaar;
+let Shop;
 
 let nft;
 let nft2;
@@ -72,7 +72,7 @@ let liqAmounts = [1];
 let swapAmount = [1];
 // mint accounts, 0 is liquidity, array to be able to copy over code
 let tokenMints = new Array(1);
-// bazaar's token accounts, 0 is voucher account, 1 is sol account, 2 is
+// shop's token accounts, 0 is voucher account, 1 is sol account, 2 is
 let marketTokens = new Array(2);
 // user 0's tokens, token 0 is liquidity account, token 1 is voucher account
 let userTokens = new Array(2);
@@ -81,7 +81,7 @@ export async function airdropAndMint() {
   let provider = await getProvider("http://localhost:8899", creator);
   console.log("Prog id", EXHIBITION_PROGRAM_ID.toString());
   Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
-  Bazaar = new Program(BAZAAR_IDL, BAZAAR_PROGRAM_ID, provider);
+  Shop = new Program(SHOP_IDL, SHOP_PROGRAM_ID, provider);
   let airdropees = [creator, ...otherCreators, ...user];
   for (const dropee of airdropees) {
     await connection.confirmTransaction(
@@ -104,7 +104,7 @@ export async function initializeExhibit() {
   nft = nftList[0][0];
   nft2 = nftList[0][2];
   nft3 = nftList[0][6];
-  [exhibit, voucherMint] = await getExhibitAddress(nft);
+  [exhibit, voucherMint] = await getVoucherAddress(nft);
 
   const tx = await Exhibition.methods
     .initializeExhibit()
@@ -129,7 +129,6 @@ export async function initializeExhibit() {
   console.log("initialized exhibit!", exhibitInfo.exhibitSymbol);
 }
 
-// getAllExhibitions();
 async function initialFlow() {
   const input = process.argv.slice(2);
   const uiType = input[0];
@@ -146,54 +145,8 @@ async function initialFlow() {
     console.log("finsihed nftamm process");
   } else if (uiType == "floorbid") {
     console.log("finsihed floorbid process");
-  } else if (uiType == "bazaar") {
-    console.log("finsihed bazaar process");
+  } else if (uiType == "shop") {
+    console.log("finsihed shop process");
   }
-  // await quickSwap();
-  // await getAllNfts();
 }
 initialFlow();
-
-// async function printAdds() {
-//   console.log(creator.publicKey.toString());
-//   console.log("user 1", user[0].publicKey.toString());
-//   console.log("user 2", user[1].publicKey.toString());
-//   console.log("other creator 1", otherCreators[0].publicKey.toString());
-//   console.log("other creator 2", otherCreators[1].publicKey.toString());
-// }
-
-// async function getAllExhibitions() {
-//   let allExhibitAccounts = await connection.getProgramAccounts(
-//     EXHIBITION_PROGRAM_ID
-//   );
-//   allExhibitAccounts.forEach((key) => {
-//     console.log("exhibits", key.pubkey.toString());
-//   });
-// }
-
-// async function getAllNfts() {
-//   let exhibitBal = await connection.getBalance(exhibit);
-//   if (exhibitBal > 0) {
-//     console.log("exhibit exists");
-//     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-
-//     console.log("exhibit info", exhibitInfo.exhibitSymbol);
-//     let allArtifactAccounts: Project[] = (
-//       await connection.getTokenAccountsByOwner(exhibit, {
-//         programId: TOKEN_PROGRAM_ID,
-//       })
-//     ).value;
-
-//     let artifactMints = [];
-//     for (let i = 0; i < allArtifactAccounts.length; i++) {
-//       let key = allArtifactAccounts[i].pubkey;
-
-//       let tokenAccount = await getAccount(connection, key);
-//       artifactMints.push(tokenAccount.mint);
-//     }
-
-//     console.log("setting nfts");
-//     let allNFTs = await metaplex.nfts().findAllByMintList(artifactMints);
-//     console.log(allNFTs.length);
-//   }
-// }

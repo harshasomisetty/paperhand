@@ -4,7 +4,6 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 export function printAndTest(arg1, arg2, name = "") {
   console.log(name, arg1, arg2);
   assert.ok(arg1 == arg2);
-  // console.log("passed", name);
 }
 
 export function regSol(val: number) {

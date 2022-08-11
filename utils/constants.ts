@@ -1,9 +1,4 @@
-import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Connection,
-} from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
 /* These are some keypairs to aid in testing, do not contain any real funds :) */
 
