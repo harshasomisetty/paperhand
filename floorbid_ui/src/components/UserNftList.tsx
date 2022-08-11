@@ -7,7 +7,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 
-export default function UserView({ nftList }: { nftList: Nft[] | null }) {
+export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
   const { selectedNft } = useContext(NftContext);
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
@@ -116,9 +116,5 @@ export default function UserView({ nftList }: { nftList: Nft[] | null }) {
         <p>Loading data</p>
       )}
     </>
-
-    // <div>
-    //   <NftList nftList={nftList} />
-    // </div>
   );
 }

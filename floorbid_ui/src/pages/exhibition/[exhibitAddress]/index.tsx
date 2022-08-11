@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
@@ -17,19 +17,22 @@ import {
   getAllExhibitArtifacts,
   getUserData,
 } from "@/utils/retrieveData";
-import { NftProvider } from "@/context/NftContext";
-import SingleExhibitView from "@/views/SingleExhibitView";
-import TradeView from "@/views/TradeView";
+import { NftContext, NftProvider } from "@/context/NftContext";
 import { UserData } from "@/utils/interfaces";
 import Orderbook from "@/components/Orderbook";
 import NftList from "@/components/NftList";
+import BidCard from "@/components/BidCard";
 
 const ExploreProjects = () => {
-  const [exhibitSymbol, setExhibitSymbol] = useState<string>();
+  const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
   const [nftList, setNftList] = useState<Nft[]>([]);
-  const [userData, setUserData] = useState<UserData>();
+  const [userData, setUserData] = useState<UserData>(null);
 
-  const { wallet, publicKey } = useWallet();
+  const [bidSide, setBidSide] = useState<boolean>(true);
+
+  const { selectedNft } = useContext(NftContext);
+
+  const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
   const router = useRouter();
   const { exhibitAddress } = router.query;
@@ -66,22 +69,33 @@ const ExploreProjects = () => {
     }
   }, [wallet, exhibitAddress, publicKey]);
 
+  async function withdrawNft() {
+    console.log("withdrawing nft");
+
+    await instructionWithdrawNft(
+      wallet,
+      publicKey,
+      signTransaction,
+      selectedNft,
+      connection
+    );
+    router.reload(window.location.pathname);
+  }
+
   return (
     <>
-      {exhibitSymbol ? (
-        <>
-          <div className="grid grid-cols-3">
-            <Orderbook />
-            {/* needs exhibit value, interact w floorbid contract */}
-            <TradeView />
-            {/* needs exhibit value, interact w floorbid contract */}
-            <NftProvider>
-              <NftList nftList={nftList} />
-            </NftProvider>
-          </div>
-        </>
-      ) : (
-        <p>Loading data</p>
+      {exhibitSymbol && (
+        <div className="grid grid-cols-3">
+          <Orderbook />
+          {userData ? (
+            <BidCard bidSide={bidSide} setBidSide={setBidSide} />
+          ) : (
+            <p>Loading market data</p>
+          )}
+          <NftProvider>
+            <NftList nftList={nftList} />
+          </NftProvider>
+        </div>
       )}
     </>
   );

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { NftProvider } from "@/context/NftContext";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import UserView from "@/views/UserView";
+import UserNftList from "@/components/UserNftList";
 import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
 import ExhibitList from "@/components/ExhibitList";
 
@@ -60,7 +60,7 @@ export default function Home() {
         {publicKey ? (
           <>
             <NftProvider>
-              <UserView nftList={nftList} />
+              <UserNftList nftList={nftList} />
             </NftProvider>
           </>
         ) : (
