@@ -1,50 +1,22 @@
 #+title: NFTAMM
-
 * Overview
 NFTAMM is a system that allows people to fungitize their NFTs, and trade these voucherables in an AMM.
 
 This allows for an easily determinable floor for people to use.
-
 * Architecture
 *** Exhibition
 Exhibition is vault system that allows NFT owners to deposit their NFTs into an exhibit (an account that relates to a single collection).
 
 Every time a user deposits their NFT, they get a voucher token they can then trade for SOL in the Bazaar
-*** Bazaar
-Bazaar is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
+*** Shop
+Shop is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 
-The Bazaar has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
+The Shop has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
 *** Checkout
 The next stage of the project was to implement a floor bid system, where bidders can place limit buy orders, and sellers can instant sell into these bids.
 
-This involved storing using commited SOL for buy orders in a heap data structure, allowing functionallity for a seller to come market sell to a buyer, and the buyer being able to come redeem their newly acquired nft
-*** Semiswap
+This involved storing using commited SOL for buy orders in a heap data structure, allowing functionallity for a seller to come market sell to a buyer, and the buyer being able to come redeem their newly acquired nft.
 
-
-** Floor bid
-
-This will consist of the *Cantina* and *Checkout*
-*** Cantina
-this contract allows bidders to place orders, where they deposit sol into the contract, as well as cancel orders and receive their sol back
-
-also allows sellers to accept a bid, receive sol,
-
-the transaction will consist of the following instructions
-- voucherize their nft
-
-- transfer voucher to checkout contract
-- transfer bider's sol to seller
-- cpi to checkout and add node
-
-*** checkout
-this contract is associated with an exhibit, and is a queue of all satisfied trades
-each trade consists of
-- pubkey to send a voucher tokens
-  **
-* Deploy script
-the test folder has a full workflow of interacting with the exhibition and bazaar contracts
-
-the deploy/testnet.ts is a script adapting features from the test files to start a new local-test-validator with the relavent data for easy network bootstrapping
-* TODO
-** select multiple nfts at once
-** better check of creators in exhibition and nft
+Checkout thus manages a heap to store user bids, and a DLL to store fulfilled orders
+*** Bazaar
+Bazaar is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
