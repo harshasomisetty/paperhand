@@ -192,5 +192,5 @@ export async function getCheckoutOrderData(
       bidderPubkey: account.heap.items[i].bidderPubkey,
     });
   }
-  return bids.sort((a, b) => a.bidPrice - b.bidPrice);
+  return bids.sort((a, b) => b.bidPrice - a.bidPrice);
 }
