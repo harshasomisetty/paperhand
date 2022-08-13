@@ -8,11 +8,12 @@ import {
 import {
   checkIfAccountExists,
   checkIfExhibitExists,
+  getMatchedOrdersAccountData,
 } from "@/utils/retrieveData";
+
 import {
-  getExhibitAccounts,
-  getVoucherAddress,
-  getSwapAccounts,
+  getNftDerivedAddresses,
+  getShopAccounts,
   getCheckoutAccounts,
 } from "@/utils/accountDerivation";
 
@@ -32,6 +33,7 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { Nft } from "@metaplex-foundation/js";
 
 async function manualSendTransaction(
   transaction: Transaction,
@@ -66,17 +68,16 @@ export async function instructionPlaceBid(
 
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
-  let [
-    auth,
-    authBump,
+  let {
+    matchedStorage,
     bidOrders,
-    matchedOrdersAddress,
-    escrowVoucher,
+    checkoutAuth,
+    checkoutAuthBump,
     escrowSol,
-  ] = await getCheckoutAccounts(exhibit);
+    escrowVoucher,
+  } = await getCheckoutAccounts(exhibit);
 
-  console.log("about to start bids");
-  let bid_tx = await Checkout.methods
+  let place_bid_tx = await Checkout.methods
     .makeBid(new BN(bidSize))
     .accounts({
       exhibit: exhibit,
@@ -87,7 +88,126 @@ export async function instructionPlaceBid(
     })
     .transaction();
 
-  let transaction = new Transaction().add(bid_tx);
+  let transaction = new Transaction().add(place_bid_tx);
+
+  try {
+    console.log("before manual send");
+
+    await manualSendTransaction(
+      transaction,
+      publicKey,
+      connection,
+      signTransaction
+    );
+  } catch (error) {
+    console.log("initing error", error);
+  }
+}
+
+export async function instructionBidFloor(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  bidCount: number,
+  signTransaction: any,
+  connection: Connection,
+  nft?: Nft
+) {
+  console.log("in bid floor");
+
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+
+  let {
+    voucherMint,
+    matchedStorage,
+    bidOrders,
+    checkoutAuth,
+    checkoutAuthBump,
+    escrowSol,
+    escrowVoucher,
+  } = await getCheckoutAccounts(exhibit);
+
+  let matchedOrdersInfo = await getMatchedOrdersAccountData(
+    matchedStorage,
+    wallet
+  );
+  let matchedOrders = matchedOrdersInfo.matchedOrders;
+
+  let transaction = new Transaction();
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    console.log("creating usre voucher");
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
+  if (nft) {
+    console.log("in nft adding");
+    let [nftArtifact] = await PublicKey.findProgramAddress(
+      [Buffer.from("nft_artifact"), exhibit!.toBuffer(), nft.mint.toBuffer()],
+      EXHIBITION_PROGRAM_ID
+    );
+
+    let nftUserTokenAccount = await getAssociatedTokenAddress(
+      nft.mint,
+      publicKey
+    );
+
+    let insert_nft_tx = await Exhibition.methods
+      .artifactInsert()
+      .accounts({
+        exhibit: exhibit,
+        voucherMint: voucherMint,
+        userVoucherWallet: userVoucherWallet,
+        nftMint: nft.mint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        nftUserToken: nftUserTokenAccount,
+        nftArtifact: nftArtifact,
+        user: publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .transaction();
+
+    transaction = transaction.add(insert_nft_tx);
+  }
+
+  let bid_floor_tx = await Checkout.methods
+    .bidFloor()
+    .accounts({
+      exhibit: exhibit,
+      matchedOrders: matchedOrders,
+      matchedStorage: matchedStorage,
+      bidOrders: bidOrders,
+      checkoutAuth: checkoutAuth,
+      voucherMint: voucherMint,
+      escrowVoucher: escrowVoucher,
+      escrowSol: escrowSol,
+      userVoucher: userVoucherWallet,
+      user: publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  transaction = transaction.add(bid_floor_tx);
 
   try {
     console.log("before manual send");

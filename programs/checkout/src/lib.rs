@@ -28,7 +28,7 @@ pub mod checkout {
 
         let list = LinkedList::initialize();
 
-        ctx.accounts.matched_orders_address.matched_orders = ctx.accounts.matched_orders.key();
+        ctx.accounts.matched_storage.matched_orders = ctx.accounts.matched_orders.key();
 
         let mut matched_orders = ctx.accounts.matched_orders.load_init()?;
 
@@ -138,7 +138,7 @@ pub mod checkout {
     pub fn fulfill_order(
         ctx: Context<FulfillOrder>,
         pubkey_to_remove: Pubkey,
-        auth_bump: u8,
+        checkout_auth_bump: u8,
     ) -> Result<()> {
         msg!("in remove_order pubkey: {}", &pubkey_to_remove.to_string());
 
@@ -155,12 +155,12 @@ pub mod checkout {
                 anchor_spl::token::Transfer {
                     from: ctx.accounts.escrow_voucher.to_account_info(),
                     to: ctx.accounts.order_voucher.to_account_info(),
-                    authority: ctx.accounts.auth.to_account_info(),
+                    authority: ctx.accounts.checkout_auth.to_account_info(),
                 },
                 &[&[
-                    b"auth",
+                    b"checkout_auth",
                     ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                    &[auth_bump],
+                    &[checkout_auth_bump],
                 ]],
             ),
             1,
@@ -182,10 +182,10 @@ pub struct Initialize<'info> {
 
     #[account(init,
         payer = user,
-        space = std::mem::size_of::<MatchedOrdersAddress>() + 8,
+        space = std::mem::size_of::<MatchedStorage>() + 8,
         seeds = [b"matched_orders", exhibit.key().as_ref()], bump
     )]
-    pub matched_orders_address: Account<'info, MatchedOrdersAddress>,
+    pub matched_storage: Account<'info, MatchedStorage>,
 
     #[account(init,
         payer = user,
@@ -194,8 +194,8 @@ pub struct Initialize<'info> {
     )]
     pub bid_orders: AccountLoader<'info, BidOrders>,
 
-    #[account(init, payer = user, space = 8+std::mem::size_of::<CheckoutAuth>(), seeds=[b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, CheckoutAuth>,
+    #[account(init, payer = user, space = 8+std::mem::size_of::<CheckoutAuth>(), seeds=[b"checkout_auth", exhibit.key().as_ref()], bump)]
+    pub checkout_auth: Account<'info, CheckoutAuth>,
 
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
@@ -203,9 +203,9 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = user,
-        seeds = [b"escrow_voucher", auth.key().as_ref()],
+        seeds = [b"escrow_voucher", checkout_auth.key().as_ref()],
         token::mint = voucher_mint,
-        token::authority = auth,
+        token::authority = checkout_auth,
         bump
     )]
     pub escrow_voucher: Account<'info, TokenAccount>,
@@ -276,15 +276,15 @@ pub struct BidFloor<'info> {
         has_one = matched_orders,
         seeds = [b"matched_orders", exhibit.key().as_ref()], bump
     )]
-    pub matched_orders_address: Account<'info, MatchedOrdersAddress>,
+    pub matched_storage: Account<'info, MatchedStorage>,
 
     #[account(mut,
         seeds = [b"bid_orders", exhibit.key().as_ref()], bump
     )]
     pub bid_orders: AccountLoader<'info, BidOrders>,
 
-    #[account(mut, seeds=[b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, CheckoutAuth>,
+    #[account(mut, seeds=[b"checkout_auth", exhibit.key().as_ref()], bump)]
+    pub checkout_auth: Account<'info, CheckoutAuth>,
 
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
@@ -292,7 +292,7 @@ pub struct BidFloor<'info> {
     #[account(
         mut,
         token::mint = voucher_mint,
-        token::authority = auth,
+        token::authority = checkout_auth,
     )]
     pub escrow_voucher: Account<'info, TokenAccount>,
 
@@ -315,7 +315,7 @@ pub struct BidFloor<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(pubkey_to_remove: Pubkey, auth_bump: u8)]
+#[instruction(pubkey_to_remove: Pubkey, checkout_auth_bump: u8)]
 pub struct FulfillOrder<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -327,10 +327,10 @@ pub struct FulfillOrder<'info> {
         has_one = matched_orders,
         seeds = [b"matched_orders", exhibit.key().as_ref()], bump
     )]
-    pub matched_orders_address: Account<'info, MatchedOrdersAddress>,
+    pub matched_storage: Account<'info, MatchedStorage>,
 
-    #[account(mut, seeds=[b"auth", exhibit.key().as_ref()], bump)]
-    pub auth: Account<'info, CheckoutAuth>,
+    #[account(mut, seeds=[b"checkout_auth", exhibit.key().as_ref()], bump)]
+    pub checkout_auth: Account<'info, CheckoutAuth>,
 
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
@@ -338,7 +338,7 @@ pub struct FulfillOrder<'info> {
     #[account(
         mut,
         token::mint = voucher_mint,
-        token::authority = auth,
+        token::authority = checkout_auth,
     )]
     pub escrow_voucher: Account<'info, TokenAccount>,
 
@@ -374,7 +374,7 @@ pub struct CheckoutAuth {}
 
 #[account]
 #[derive(Default)]
-pub struct MatchedOrdersAddress {
+pub struct MatchedStorage {
     pub matched_orders: Pubkey,
 }
 

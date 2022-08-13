@@ -9,7 +9,10 @@ import {
   CHECKOUT_PROGRAM_ID,
 } from "../utils/constants";
 
-export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
+export async function getNftDerivedAddresses(
+  nft: Nft
+): Promise<{ exhibit: PublicKey; voucherMint: PublicKey }> {
+  // export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
   let seeds: Buffer[] = [];
 
   nft.creators?.forEach((creatorKey: Creator) => {
@@ -28,15 +31,24 @@ export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
     EXHIBITION_PROGRAM_ID
   );
 
-  return [exhibit, voucherMint];
+  return { exhibit, voucherMint };
 }
 
-export async function getExhibitAccounts(
-  exhibit: PublicKey
-): Promise<[PublicKey, number, PublicKey[], PublicKey]> {
+export async function getShopAccounts(exhibit: PublicKey): Promise<{
+  voucherMint: PublicKey;
+  marketAuth: PublicKey;
+  shopAuthBump: number;
+  marketTokens: PublicKey[];
+  liqMint: PublicKey;
+}> {
   let marketTokens = new Array(2);
 
-  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  let [marketAuth, shopAuthBump] = await PublicKey.findProgramAddress(
     [Buffer.from("market_auth"), exhibit.toBuffer()],
     SHOP_PROGRAM_ID
   );
@@ -56,79 +68,61 @@ export async function getExhibitAccounts(
     SHOP_PROGRAM_ID
   );
 
-  return [marketAuth, authBump, marketTokens, liqMint];
+  return {
+    voucherMint,
+    marketAuth,
+    shopAuthBump,
+    marketTokens,
+    liqMint,
+  };
 }
 
-export async function getSwapAccounts(
-  exhibit: PublicKey,
-  publicKey: PublicKey
-): Promise<[PublicKey, PublicKey, number, PublicKey[], PublicKey, PublicKey]> {
-  let [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
-    exhibit
-  );
-
+export async function getCheckoutAccounts(exhibit: PublicKey): Promise<{
+  voucherMint: PublicKey;
+  matchedStorage: PublicKey;
+  bidOrders: PublicKey;
+  checkoutAuth: PublicKey;
+  checkoutAuthBump: number;
+  escrowSol: PublicKey;
+  escrowVoucher: PublicKey;
+}> {
   let [voucherMint] = await PublicKey.findProgramAddress(
     [Buffer.from("voucher_mint"), exhibit.toBuffer()],
     EXHIBITION_PROGRAM_ID
   );
 
-  let userTokenVoucher = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
-
-  return [
-    voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ];
-}
-
-export async function getCheckoutAccounts(
-  exhibit: PublicKey
-): Promise<[PublicKey, number, PublicKey, PublicKey, PublicKey, PublicKey]> {
-  let auth: PublicKey;
-  let authBump: number;
-  let bidOrders: PublicKey;
-  let matchedOrdersAddress: PublicKey;
-
-  let voucherMint, escrowVoucher, escrowSol: PublicKey;
-  let bump: number;
-
-  [auth, authBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("auth"), exhibit.toBuffer()],
-    CHECKOUT_PROGRAM_ID
-  );
-
-  [escrowVoucher, bump] = await PublicKey.findProgramAddress(
-    [Buffer.from("escrow_voucher"), auth.toBuffer()],
-    CHECKOUT_PROGRAM_ID
-  );
-
-  [escrowSol, bump] = await PublicKey.findProgramAddress(
-    [Buffer.from("escrow_sol"), exhibit.toBuffer()],
-    CHECKOUT_PROGRAM_ID
-  );
-
-  [bidOrders, bump] = await PublicKey.findProgramAddress(
-    [Buffer.from("bid_orders"), exhibit.toBuffer()],
-    CHECKOUT_PROGRAM_ID
-  );
-
-  [matchedOrdersAddress, bump] = await PublicKey.findProgramAddress(
+  let [matchedStorage] = await PublicKey.findProgramAddress(
     [Buffer.from("matched_orders"), exhibit.toBuffer()],
     CHECKOUT_PROGRAM_ID
   );
 
-  return [
-    auth,
-    authBump,
+  let [bidOrders] = await PublicKey.findProgramAddress(
+    [Buffer.from("bid_orders"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  let [checkoutAuth, checkoutAuthBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("checkout_auth"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  let [escrowVoucher] = await PublicKey.findProgramAddress(
+    [Buffer.from("escrow_voucher"), checkoutAuth.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  let [escrowSol] = await PublicKey.findProgramAddress(
+    [Buffer.from("escrow_sol"), exhibit.toBuffer()],
+    CHECKOUT_PROGRAM_ID
+  );
+
+  return {
+    voucherMint,
+    matchedStorage,
     bidOrders,
-    matchedOrdersAddress,
-    escrowVoucher,
+    checkoutAuth,
+    checkoutAuthBump,
     escrowSol,
-  ];
+    escrowVoucher,
+  };
 }

@@ -8,10 +8,11 @@ import {
   checkIfAccountExists,
   checkIfExhibitExists,
 } from "@/utils/retrieveData";
+
 import {
-  getExhibitAccounts,
-  getVoucherAddress,
-  getSwapAccounts,
+  getNftDerivedAddresses,
+  getShopAccounts,
+  getCheckoutAccounts,
 } from "@/utils/accountDerivation";
 
 import { BN, Wallet } from "@project-serum/anchor";

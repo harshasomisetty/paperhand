@@ -36,14 +36,7 @@ describe("checkout", () => {
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
 
-  let auth: PublicKey;
-  let authBump: number;
-  let bidOrders: PublicKey;
-  let matchedOrdersAddress: PublicKey;
-  let matchedOrders: Keypair = Keypair.generate();
-
-  let voucherMint, escrowVoucher, escrowSol: PublicKey;
-  let bump: number;
+  let voucherMint: PublicKey;
 
   let userVouchers = Array(2);
 
@@ -73,38 +66,33 @@ describe("checkout", () => {
         users[i].publicKey
       );
     }
-
-    [
-      auth,
-      authBump,
-      bidOrders,
-      matchedOrdersAddress,
-      escrowVoucher,
-      escrowSol,
-    ] = await getCheckoutAccounts(exhibit);
   });
 
   it("Initialized Checkout!", async () => {
-    // TODO make matchedOrders a pda
-    // const init_create_tx =
-    // await Checkout.account.matchedOrders.createInstruction(matchedOrders);
+    let { matchedStorage, bidOrders, checkoutAuth, escrowSol, escrowVoucher } =
+      await getCheckoutAccounts(exhibit);
+
+    let matchedOrdersPair: Keypair = Keypair.generate();
+    let matchedOrders = matchedOrdersPair.publicKey;
 
     const init_create_tx = await SystemProgram.createAccount({
       fromPubkey: creator.publicKey,
-      newAccountPubkey: matchedOrders.publicKey,
+      newAccountPubkey: matchedOrders,
       space: 3610,
       lamports: await connection.getMinimumBalanceForRentExemption(3610),
       programId: Checkout.programId,
     });
+    // const init_create_tx =
+    //   await Checkout.account.matchedOrders.createInstruction(matchedOrdersPair);
 
     const init_checkout_tx = await Checkout.methods
       .initialize()
       .accounts({
         exhibit: exhibit,
-        matchedOrdersAddress: matchedOrdersAddress,
-        matchedOrders: matchedOrders.publicKey,
+        matchedStorage: matchedStorage,
+        matchedOrders: matchedOrders,
         bidOrders: bidOrders,
-        auth: auth,
+        checkoutAuth: checkoutAuth,
         voucherMint: voucherMint,
         escrowVoucher: escrowVoucher,
         escrowSol: escrowSol,
@@ -115,12 +103,12 @@ describe("checkout", () => {
         rent: SYSVAR_RENT_PUBKEY,
         exhibitionProgram: Exhibition.programId,
       })
+      // .preInstructions([init_create_tx])
       .transaction();
-    // .preInstructions([init_create_tx])
     // .signers([matchedOrders, creator])
     // .rpc();
 
-    let mOrderBal = await connection.getBalance(matchedOrders.publicKey);
+    let mOrderBal = await connection.getBalance(matchedOrders);
     console.log("order bal", mOrderBal);
     let cOrderBal = await connection.getBalance(creator.publicKey);
     console.log("order bal", cOrderBal);
@@ -131,15 +119,17 @@ describe("checkout", () => {
     transaction = transaction.add(init_checkout_tx);
     let signature = await sendAndConfirmTransaction(connection, transaction, [
       creator,
-      matchedOrders,
+      matchedOrdersPair,
     ]);
     await connection.confirmTransaction(signature, "confirmed");
 
     printAndTest(await checkIfAccountExists(escrowVoucher, connection), true);
-    printAndTest(await checkIfAccountExists(auth, connection), true);
+    printAndTest(await checkIfAccountExists(checkoutAuth, connection), true);
   });
 
   it("Makes 2 bids!", async () => {
+    let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
+
     for (let i = 0; i < 2; i++) {
       let bid_tx = await Checkout.methods
         .makeBid(new BN(bidSizes[i]))
@@ -181,6 +171,20 @@ describe("checkout", () => {
   });
 
   it("Bid Floor!", async () => {
+    let {
+      matchedStorage,
+      bidOrders,
+      checkoutAuth,
+      checkoutAuthBump,
+      escrowSol,
+      escrowVoucher,
+    } = await getCheckoutAccounts(exhibit);
+
+    let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
+      matchedStorage
+    );
+    let matchedOrders = matchedOrdersInfo.matchedOrders;
+
     console.log("in bid floor test");
     if (!(await checkIfAccountExists(userVouchers[0], connection))) {
       await getOrCreateAssociatedTokenAccount(
@@ -210,10 +214,10 @@ describe("checkout", () => {
       .bidFloor()
       .accounts({
         exhibit: exhibit,
-        matchedOrders: matchedOrders.publicKey,
-        matchedOrdersAddress: matchedOrdersAddress,
+        matchedOrders: matchedOrders,
+        matchedStorage: matchedStorage,
         bidOrders: bidOrders,
-        auth: auth,
+        checkoutAuth: checkoutAuth,
         voucherMint: voucherMint,
         escrowVoucher: escrowVoucher,
         escrowSol: escrowSol,
@@ -230,8 +234,8 @@ describe("checkout", () => {
 
     printAndTest(regSol(preHeapBal) - regSol(highestBid), regSol(postHeapBal));
     printAndTest(regSol(preUserBal) + regSol(highestBid), regSol(postUserBal));
-    let matchedOrdersInfo = await Checkout.account.matchedOrders.fetch(
-      matchedOrders.publicKey
+    matchedOrdersInfo = await Checkout.account.matchedOrders.fetch(
+      matchedOrders
     );
 
     printAndTest(
@@ -246,13 +250,21 @@ describe("checkout", () => {
   });
 
   it("Fulfills bid in DLL!", async () => {
+    let { matchedStorage, checkoutAuth, checkoutAuthBump, escrowVoucher } =
+      await getCheckoutAccounts(exhibit);
+
+    let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
+      matchedStorage
+    );
+    let matchedOrders = matchedOrdersInfo.matchedOrders;
+
     const fulfill_tx = await Checkout.methods
-      .fulfillOrder(users[0].publicKey, authBump)
+      .fulfillOrder(users[0].publicKey, checkoutAuthBump)
       .accounts({
         exhibit: exhibit,
-        matchedOrders: matchedOrders.publicKey,
-        matchedOrdersAddress: matchedOrdersAddress,
-        auth: auth,
+        matchedOrders: matchedOrders,
+        matchedStorage: matchedStorage,
+        checkoutAuth: checkoutAuth,
         voucherMint: voucherMint,
         escrowVoucher: escrowVoucher,
         orderVoucher: userVouchers[0],
@@ -270,7 +282,10 @@ describe("checkout", () => {
   });
 
   it("Cancels a bid!", async () => {
+    let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
+
     let preHeapBal = await connection.getBalance(escrowSol);
+
     let preUserBal = await connection.getBalance(users[0].publicKey);
 
     let account = await Checkout.account.bidOrders.fetch(bidOrders);

@@ -19,7 +19,7 @@ pub mod shop {
         ctx: Context<InitializeMarket>,
         starting_voucher: u64,
         starting_sol: u64,
-        auth_bump: u8,
+        shop_auth_bump: u8,
     ) -> Result<()> {
         msg!("first transfer");
         anchor_spl::token::transfer(
@@ -60,7 +60,7 @@ pub mod shop {
                 &[&[
                     b"market_auth".as_ref(),
                     ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                    &[auth_bump],
+                    &[shop_auth_bump],
                 ]],
             ),
             starting_voucher,
@@ -74,7 +74,7 @@ pub mod shop {
     pub fn deposit_liquidity(
         ctx: Context<DepositLiquidity>,
         input_voucher_amt: u64,
-        auth_bump: u8,
+        shop_auth_bump: u8,
     ) -> Result<()> {
         let input_sol_amt = ctx
             .accounts
@@ -127,7 +127,7 @@ pub mod shop {
                 &[&[
                     b"market_auth".as_ref(),
                     ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                    &[auth_bump],
+                    &[shop_auth_bump],
                 ]],
             ),
             input_voucher_amt,
@@ -140,7 +140,7 @@ pub mod shop {
         ctx: Context<Swap>,
         vouchers: u64,
         buy_vouchers: bool,
-        auth_bump: u8,
+        shop_auth_bump: u8,
     ) -> Result<()> {
         let market_voucher = ctx.accounts.market_voucher.amount;
         let market_sol = ctx.accounts.market_sol.to_account_info().lamports();
@@ -169,7 +169,7 @@ pub mod shop {
                     &[&[
                         b"market_auth".as_ref(),
                         ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                        &[auth_bump],
+                        &[shop_auth_bump],
                     ]],
                 ),
                 vouchers as u64,
@@ -293,7 +293,7 @@ pub mod shop {
         ctx: Context<WithdrawLiquidity>,
         user_liq_tokens: u64,
         user_vouchers: u64,
-        auth_bump: u8,
+        shop_auth_bump: u8,
     ) -> Result<()> {
         msg!(
             "withdrawing liq: {}, wants {}",
@@ -351,7 +351,7 @@ pub mod shop {
                 &[&[
                     b"market_auth".as_ref(),
                     ctx.accounts.exhibit.to_account_info().key.as_ref(),
-                    &[auth_bump],
+                    &[shop_auth_bump],
                 ]],
             ),
             user_vouchers,
@@ -374,7 +374,7 @@ pub mod shop {
 }
 
 #[derive(Accounts)]
-#[instruction(starting_voucher: u64, starting_sol: u64, auth_bump: u8)]
+#[instruction(starting_voucher: u64, starting_sol: u64, shop_auth_bump: u8)]
 pub struct InitializeMarket<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
@@ -412,14 +412,14 @@ pub struct InitializeMarket<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(input_voucher_amt: u64, auth_bump: u8)]
+#[instruction(input_voucher_amt: u64, shop_auth_bump: u8)]
 pub struct DepositLiquidity<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
     /// CHECK: Need market auth since can't pass in market state as a signer
-    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
+    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = shop_auth_bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
     #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]
@@ -449,7 +449,7 @@ pub struct DepositLiquidity<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[instruction(vouchers: u64, buy_vouchers: bool, auth_bump: u8)]
+#[instruction(vouchers: u64, buy_vouchers: bool, shop_auth_bump: u8)]
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// CHECK: just reading pubkey
@@ -484,14 +484,14 @@ pub struct Swap<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(user_liq_tokens: u64, user_vouchers: u64, auth_bump: u8)]
+#[instruction(user_liq_tokens: u64, user_vouchers: u64, shop_auth_bump: u8)]
 pub struct WithdrawLiquidity<'info> {
     /// CHECK: just reading pubkey
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
     /// CHECK: Need market auth since can't pass in market state as a signer
-    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = auth_bump)]
+    #[account(mut, seeds = [b"market_auth", exhibit.key().as_ref()], bump = shop_auth_bump)]
     pub market_auth: Account<'info, MarketInfo>,
 
     #[account(mut, seeds = [b"market_token_mint".as_ref(), market_auth.key().as_ref()], bump, mint::decimals = 0, mint::authority = market_auth, mint::freeze_authority = market_auth)]

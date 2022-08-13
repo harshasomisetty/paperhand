@@ -85,17 +85,17 @@ const ExploreProjects = () => {
   return (
     <>
       {exhibitSymbol && (
-        <div className="grid grid-cols-3">
-          <Orderbook />
-          {userData ? (
-            <BidCard bidSide={bidSide} setBidSide={setBidSide} />
-          ) : (
-            <p>Loading market data</p>
-          )}
-          <NftProvider>
+        <NftProvider>
+          <div className="grid grid-cols-3">
+            <Orderbook />
+            {userData ? (
+              <BidCard bidSide={bidSide} setBidSide={setBidSide} />
+            ) : (
+              <p>Loading market data</p>
+            )}
             <NftList nftList={nftList} />
-          </NftProvider>
-        </div>
+          </div>
+        </NftProvider>
       )}
     </>
   );

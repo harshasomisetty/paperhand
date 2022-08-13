@@ -1,13 +1,17 @@
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   SolDisplay,
   VoucherDisplay,
   VoucherSlider,
 } from "@/components/MarketInputs";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { instructionPlaceBid } from "@/utils/instructions/checkout";
+import {
+  instructionBidFloor,
+  instructionPlaceBid,
+} from "@/utils/instructions/checkout";
 import router from "next/router";
+import { NftContext } from "@/context/NftContext";
 
 const BidCard = ({ bidSide, setBidSide }) => {
   const { wallet, publicKey, signTransaction } = useWallet();
@@ -16,6 +20,8 @@ const BidCard = ({ bidSide, setBidSide }) => {
   const [bidValue, setBidValue] = useState(0);
   const [userSol, setUserSol] = useState(0);
   const { exhibitAddress } = router.query;
+
+  const { selectedNft, setSelectedNft } = useContext(NftContext);
 
   useEffect(() => {
     async function fetchData() {
@@ -28,6 +34,7 @@ const BidCard = ({ bidSide, setBidSide }) => {
   }, [wallet, publicKey]);
 
   async function executePlaceBid() {
+    console.log("in p[lace ] bid");
     if (exhibitAddress) {
       let exhibit = new PublicKey(exhibitAddress);
       console.log("placing bid");
@@ -40,7 +47,24 @@ const BidCard = ({ bidSide, setBidSide }) => {
         connection
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
+  }
+
+  async function executeBidFloor() {
+    if (exhibitAddress) {
+      let exhibit = new PublicKey(exhibitAddress);
+      console.log("bid floor");
+      await instructionBidFloor(
+        wallet,
+        publicKey,
+        exhibit,
+        bidValue,
+        signTransaction,
+        connection,
+        selectedNft
+      );
+    }
+    // router.reload(window.location.pathname);
   }
 
   return (
@@ -83,8 +107,11 @@ const BidCard = ({ bidSide, setBidSide }) => {
                 <p>value{bidValue / LAMPORTS_PER_SOL}</p>
               </div>
             ) : (
-              <p>sell</p>
+              <div>
+                <button onClick={executeBidFloor}>Sell</button>
+              </div>
             )}
+            {selectedNft && <p>{selectedNft.name}</p>}
           </div>
         </div>
       </div>

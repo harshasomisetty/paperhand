@@ -28,7 +28,7 @@ import {
 import { mintNFTs } from "../utils/createNFTs";
 import { airdropAll, printAndTest } from "../utils/helpfulFunctions";
 
-import { getVoucherAddress } from "../utils/accountDerivation";
+import { getNftDerivedAddresses } from "../utils/accountDerivation";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
@@ -71,7 +71,7 @@ describe("exhibition", () => {
 
   it("Initialized exhibit!", async () => {
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getVoucherAddress(nft);
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     let tx = await Exhibition.methods
       .initializeExhibit()
@@ -94,7 +94,7 @@ describe("exhibition", () => {
 
   it("Initialized exhibit 2!", async () => {
     let nft = nftList[1][1];
-    let [exhibit, voucherMint] = await getVoucherAddress(nft);
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     let tx = await Exhibition.methods
       .initializeExhibit()
@@ -120,7 +120,7 @@ describe("exhibition", () => {
     // Prep accounts for depositing first NFT.
 
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getVoucherAddress(nft);
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     let [nftArtifact] = await PublicKey.findProgramAddress(
       [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
@@ -184,7 +184,7 @@ describe("exhibition", () => {
 
   it("inserted second nft from user 2", async () => {
     let nft = nftList[0][1];
-    let [exhibit, voucherMint] = await getVoucherAddress(nft);
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
@@ -229,7 +229,7 @@ describe("exhibition", () => {
 
   it("Withdrew from artifact!", async () => {
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getVoucherAddress(nft);
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     let [nftArtifact] = await PublicKey.findProgramAddress(
       [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
@@ -287,7 +287,7 @@ describe("exhibition", () => {
 
   it("verify final nft artifacts simple", async () => {
     let nft = nftList[0][0];
-    let [exhibit, voucherMint] = await getVoucherAddress(nft);
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     // ALL initialized exhibits
     let allExhibitAccounts = await connection.getProgramAccounts(

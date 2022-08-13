@@ -24,9 +24,9 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
+  getNftDerivedAddresses,
+  getShopAccounts,
   getCheckoutAccounts,
-  getExhibitAccounts,
-  getVoucherAddress,
 } from "../utils/accountDerivation";
 import {
   getProvider,
@@ -66,7 +66,6 @@ let Checkout;
 
 let nft;
 
-let matchedOrders: Keypair = Keypair.generate();
 //voucher wallets for both users
 // nft token account
 let nftUserTokenAccount;
@@ -95,8 +94,10 @@ export async function airdropAndMint() {
 }
 
 export async function initializeExhibit() {
+  console.log("inside of init exhibit");
+
   nft = nftList[0][0];
-  let [exhibit, voucherMint] = await getVoucherAddress(nft);
+  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
   const init_exhibit_tx = await Exhibition.methods
     .initializeExhibit()
@@ -122,17 +123,20 @@ export async function initializeExhibit() {
 
 export async function initializeCheckout() {
   console.log("in initialize checkout");
-  let [exhibit, voucherMint] = await getVoucherAddress(nft);
+  let matchedOrders: Keypair = Keypair.generate();
+
+  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+
+  let {
+    matchedStorage,
+    bidOrders,
+    checkoutAuth,
+    checkoutAuthBump,
+    escrowSol,
+    escrowVoucher,
+  } = await getCheckoutAccounts(exhibit);
 
   let transaction = new Transaction();
-  let [
-    auth,
-    authBump,
-    bidOrders,
-    matchedOrdersAddress,
-    escrowVoucher,
-    escrowSol,
-  ] = await getCheckoutAccounts(exhibit);
 
   const init_create_tx = await SystemProgram.createAccount({
     fromPubkey: creator.publicKey,
@@ -146,10 +150,10 @@ export async function initializeCheckout() {
     .initialize()
     .accounts({
       exhibit: exhibit,
-      matchedOrdersAddress: matchedOrdersAddress,
+      matchedStorage: matchedStorage,
       matchedOrders: matchedOrders.publicKey,
       bidOrders: bidOrders,
-      auth: auth,
+      checkoutAuth: checkoutAuth,
       voucherMint: voucherMint,
       escrowVoucher: escrowVoucher,
       escrowSol: escrowSol,
@@ -170,20 +174,35 @@ export async function initializeCheckout() {
     matchedOrders,
   ]);
   await connection.confirmTransaction(signature, "confirmed");
+
+  let matchedOrdersInfo = await connection.getAccountInfo(
+    matchedStorage,
+    "confirmed"
+  );
+
+  // let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
+  //   matchedStorage
+  // );
+
+  console.log("snaity info obj?", matchedOrdersInfo);
+  console.log("address as well", matchedStorage.toString());
+  console.log("matched order", matchedOrders.publicKey.toString());
   console.log("initialized checkout");
 }
 
 export async function makeBids() {
-  console.log("in make mids");
-  let [exhibit, voucherMint] = await getVoucherAddress(nft);
-  let [
-    auth,
-    authBump,
+  console.log("in make bids");
+
+  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+
+  let {
+    matchedStorage,
     bidOrders,
-    matchedOrdersAddress,
-    escrowVoucher,
+    checkoutAuth,
+    checkoutAuthBump,
     escrowSol,
-  ] = await getCheckoutAccounts(exhibit);
+    escrowVoucher,
+  } = await getCheckoutAccounts(exhibit);
 
   let preHeapBal = await connection.getBalance(escrowSol);
   console.log("pre bal", preHeapBal);
@@ -196,7 +215,7 @@ export async function makeBids() {
         exhibit: exhibit,
         bidOrders: bidOrders,
         escrowSol: escrowSol,
-        bidder: users[i % 2].publicKey,
+        bidder: otherCreators[i % 2].publicKey,
         systemProgram: SystemProgram.programId,
       })
       .transaction();
@@ -204,7 +223,7 @@ export async function makeBids() {
     let transaction = new Transaction().add(bid_tx);
 
     let signature = sendAndConfirmTransaction(connection, transaction, [
-      users[i % 2],
+      otherCreators[i % 2],
     ]);
 
     bidPromises.push(signature);
@@ -218,7 +237,7 @@ export async function makeBids() {
         exhibit: exhibit,
         bidOrders: bidOrders,
         escrowSol: escrowSol,
-        bidder: users[i % 2].publicKey,
+        bidder: otherCreators[i % 2].publicKey,
         systemProgram: SystemProgram.programId,
       })
       .transaction();
@@ -226,7 +245,7 @@ export async function makeBids() {
     let transaction = new Transaction().add(bid_tx);
 
     let signature = sendAndConfirmTransaction(connection, transaction, [
-      users[i % 2],
+      otherCreators[i % 2],
     ]);
 
     bidPromises.push(signature);
@@ -257,6 +276,7 @@ export async function makeBids() {
 
 async function initialFlow() {
   await airdropAndMint();
+  console.log("outside of init exhibit");
   await initializeExhibit();
   await initializeCheckout();
   await makeBids();

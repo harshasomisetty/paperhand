@@ -22,7 +22,11 @@ import {
 } from "@solana/web3.js";
 import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 
-import { getVoucherAddress } from "../utils/accountDerivation";
+import {
+  getNftDerivedAddresses,
+  getShopAccounts,
+  getCheckoutAccounts,
+} from "../utils/accountDerivation";
 
 export async function initAssociatedAddressIfNeeded(
   connection: Connection,
@@ -113,7 +117,7 @@ export async function checkIfExhibitExists(
   nft: Nft,
   connection: Connection
 ): Promise<Boolean> {
-  let [exhibit] = await getVoucherAddress(nft);
+  let { exhibit } = await getNftDerivedAddresses(nft);
   let exhibitExists = await checkIfAccountExists(exhibit, connection);
   return exhibitExists;
 }

@@ -8,12 +8,12 @@ import {
   checkIfAccountExists,
   checkIfExhibitExists,
 } from "@/utils/retrieveData";
-import {
-  getExhibitAccounts,
-  getVoucherAddress,
-  getSwapAccounts,
-} from "@/utils/accountDerivation";
 
+import {
+  getNftDerivedAddresses,
+  getShopAccounts,
+  getCheckoutAccounts,
+} from "@/utils/accountDerivation";
 import { Nft } from "@metaplex-foundation/js";
 import { BN, Wallet } from "@project-serum/anchor";
 import {

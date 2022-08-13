@@ -23,7 +23,7 @@ import { SHOP_PROGRAM_ID, otherCreators } from "../utils/constants";
 import { creator, users } from "../utils/constants";
 
 import { airdropAll, printAndTest, regSol } from "../utils/helpfulFunctions";
-import { getExhibitAccounts } from "../utils/accountDerivation";
+import { getShopAccounts } from "../utils/accountDerivation";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const connection = provider.connection;
@@ -88,15 +88,11 @@ describe("shop", () => {
   // for this isolated test for shop, the keypair is random, and serves as a seed for the rest of the program
   let exhibitKeypair: Keypair = Keypair.generate();
   let exhibit: PublicKey = exhibitKeypair.publicKey;
-  let authBump: number;
-  let marketAuth: PublicKey;
   let marketTokenFee: PublicKey;
 
-  let liqMint: PublicKey;
   let voucherMint: PublicKey;
 
   // marketTokens is the wallet for tokenA and sol
-  let marketTokens: PublicKey[] = new Array(2);
 
   // userTokens are array of token accs for each user
   // userTokens[0] is token for user1, userTokens[i][0] is liq wallet, [1] is coin A
@@ -114,9 +110,8 @@ describe("shop", () => {
 
     await airdropAll(airdropees, airdropVal, connection);
 
-    [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
-      exhibit
-    );
+    let { marketAuth, shopAuthBump, marketTokens, liqMint } =
+      await getShopAccounts(exhibit);
 
     marketTokenFee = await getAssociatedTokenAddress(liqMint, marketAuth, true);
 
@@ -159,67 +154,74 @@ describe("shop", () => {
 
   it("init market", async () => {
     // This method starts the market and bootstraps it with liquidity from the market creator
+    try {
+      console.log("init market");
 
-    console.log("init market");
+      let { marketAuth, shopAuthBump, marketTokens, liqMint } =
+        await getShopAccounts(exhibit);
+      // console.log("market auth", marketAuth.toString());
+      const tx = await Shop.methods
+        .initializeMarket(
+          new anchor.BN(initAmounts[0]),
+          new anchor.BN(initAmounts[1] * LAMPORTS_PER_SOL),
+          shopAuthBump
+        )
+        .accounts({
+          exhibit: exhibit,
+          marketAuth: marketAuth,
+          marketMint: liqMint,
+          marketTokenFee: marketTokenFee,
+          voucherMint: voucherMint,
+          marketVoucher: marketTokens[0],
+          marketSol: marketTokens[1],
+          userVoucher: userTokens[0][1],
+          userLiq: userTokens[0][0],
+          user: users[0].publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([users[0]])
+        .rpc();
 
-    const tx = await Shop.methods
-      .initializeMarket(
-        new anchor.BN(initAmounts[0]),
-        new anchor.BN(initAmounts[1] * LAMPORTS_PER_SOL),
-        authBump
-      )
-      .accounts({
-        exhibit: exhibit,
-        marketAuth: marketAuth,
-        marketMint: liqMint,
-        marketTokenFee: marketTokenFee,
-        voucherMint: voucherMint,
-        marketVoucher: marketTokens[0],
-        marketSol: marketTokens[1],
-        userVoucher: userTokens[0][1],
-        userLiq: userTokens[0][0],
-        user: users[0].publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([users[0]])
-      .rpc();
+      let marketVoucherBal = await getAccount(connection, marketTokens[0]);
+      let marketSol = await connection.getBalance(marketTokens[1]);
+      let userVoucherBal = await getAccount(connection, userTokens[0][1]);
+      let userSol = await connection.getBalance(users[0].publicKey);
+      printAndTest(
+        Number(marketVoucherBal.amount),
+        initAmounts[0],
+        "market voucher bal"
+      );
+      printAndTest(
+        Math.round(Number(marketSol) / LAMPORTS_PER_SOL),
+        initAmounts[1],
+        "market sol bal"
+      );
+      printAndTest(
+        Number(userVoucherBal.amount),
+        mintAmounts[0] - initAmounts[0],
+        "user voucher bal"
+      );
+      printAndTest(
+        Math.round(Number(userSol) / LAMPORTS_PER_SOL),
+        mintAmounts[1] - initAmounts[1],
+        "user sol bal"
+      );
 
-    let marketVoucherBal = await getAccount(connection, marketTokens[0]);
-    let marketSol = await connection.getBalance(marketTokens[1]);
-    let userVoucherBal = await getAccount(connection, userTokens[0][1]);
-    let userSol = await connection.getBalance(users[0].publicKey);
-
-    printAndTest(
-      Number(marketVoucherBal.amount),
-      initAmounts[0],
-      "market voucher bal"
-    );
-    printAndTest(
-      Math.round(Number(marketSol) / LAMPORTS_PER_SOL),
-      initAmounts[1],
-      "market sol bal"
-    );
-    printAndTest(
-      Number(userVoucherBal.amount),
-      mintAmounts[0] - initAmounts[0],
-      "user voucher bal"
-    );
-    printAndTest(
-      Math.round(Number(userSol) / LAMPORTS_PER_SOL),
-      mintAmounts[1] - initAmounts[1],
-      "user sol bal"
-    );
-
-    console.log("ended init market");
+      console.log("ended init market");
+    } catch (error) {
+      console.log("bruh error", error);
+    }
   });
 
   it("Deposited liq", async () => {
     // User1 will first acquire token1 and 2
     // Then user1 will deposit into the pool using the add_liquidity
 
+    let { marketAuth, shopAuthBump, marketTokens, liqMint } =
+      await getShopAccounts(exhibit);
     for (let i = 0; i < 2; i++) {
       userTokens[i][0] = (
         await getOrCreateAssociatedTokenAccount(
@@ -234,7 +236,7 @@ describe("shop", () => {
     console.log("finished minting");
 
     const tx = await Shop.methods
-      .depositLiquidity(new anchor.BN(liqAmounts[0]), authBump)
+      .depositLiquidity(new anchor.BN(liqAmounts[0]), shopAuthBump)
       .accounts({
         exhibit: exhibit,
         marketAuth: marketAuth,
@@ -291,6 +293,8 @@ describe("shop", () => {
   });
 
   it("Swapped: Bought vouchers", async () => {
+    let { marketAuth, shopAuthBump, marketTokens, liqMint } =
+      await getShopAccounts(exhibit);
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[1][1]);
@@ -312,7 +316,7 @@ describe("shop", () => {
 
     try {
       const tx = await Shop.methods
-        .swap(new anchor.BN(swapAmount[0]), true, authBump)
+        .swap(new anchor.BN(swapAmount[0]), true, shopAuthBump)
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
@@ -360,6 +364,8 @@ describe("shop", () => {
   });
 
   it("Swapped: Sold vouchers", async () => {
+    let { marketAuth, shopAuthBump, marketTokens, liqMint } =
+      await getShopAccounts(exhibit);
     let marketVoucherBal = await getAccount(connection, marketTokens[0]);
     let marketSol = await connection.getBalance(marketTokens[1]);
     let userVoucherBal = await getAccount(connection, userTokens[1][1]);
@@ -381,7 +387,7 @@ describe("shop", () => {
 
     try {
       const tx = await Shop.methods
-        .swap(new anchor.BN(swapAmount[1]), false, authBump)
+        .swap(new anchor.BN(swapAmount[1]), false, shopAuthBump)
         .accounts({
           exhibit: exhibit,
           marketAuth: marketAuth,
@@ -426,6 +432,8 @@ describe("shop", () => {
   });
 
   it("withdrew liq", async () => {
+    let { marketAuth, shopAuthBump, marketTokens, liqMint } =
+      await getShopAccounts(exhibit);
     let prevMarketVoucherBal = await getAccount(connection, marketTokens[0]);
     let prevMarketSol = await connection.getBalance(marketTokens[1]);
     let prevUserVoucherBal = await getAccount(connection, userTokens[0][1]);
@@ -449,7 +457,7 @@ describe("shop", () => {
         .withdrawLiquidity(
           new anchor.BN(withdrawAmounts[0]),
           new anchor.BN(withdrawAmounts[1]),
-          authBump
+          shopAuthBump
         )
         .accounts({
           exhibit: exhibit,

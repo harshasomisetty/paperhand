@@ -15,9 +15,8 @@ import { MarketData, UserData, BidInterface } from "@/utils/interfaces";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
 import { Wallet } from "@project-serum/anchor";
 import {
-  getExhibitAccounts,
-  getVoucherAddress,
-  getSwapAccounts,
+  getNftDerivedAddresses,
+  getShopAccounts,
   getCheckoutAccounts,
 } from "@/utils/accountDerivation";
 
@@ -79,7 +78,7 @@ export async function checkIfExhibitExists(
   nft: Nft,
   connection: Connection
 ): Promise<boolean> {
-  let [exhibit] = await getVoucherAddress(nft);
+  let { exhibit } = await getNftDerivedAddresses(nft);
   let exhibitExists = await checkIfAccountExists(exhibit, connection);
   return exhibitExists;
 }
@@ -88,10 +87,7 @@ export async function checkIfSwapExists(
   exhibit: PublicKey,
   connection: Connection
 ): Promise<boolean> {
-  let [marketAuth, authBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_auth"), exhibit.toBuffer()],
-    SHOP_PROGRAM_ID
-  );
+  let { marketAuth } = await getShopAccounts(exhibit);
 
   let swapExists = await checkIfAccountExists(marketAuth, connection);
   return swapExists;
@@ -105,19 +101,13 @@ export async function getExhibitAccountData(
   let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
   return exhibitInfo;
 }
+
 export async function getUserData(
   exhibit: PublicKey,
   publicKey: PublicKey,
   connection: Connection
 ): Promise<UserData> {
-  let [
-    voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ] = await getSwapAccounts(exhibit, publicKey);
+  let { voucherMint, liqMint } = await getShopAccounts(exhibit);
 
   let userVoucherBal = 0;
   let userVoucherWallet = await getAssociatedTokenAddress(
@@ -149,9 +139,7 @@ export async function getMarketData(
   exhibit: PublicKey,
   connection: Connection
 ): Promise<MarketData> {
-  let [marketAuth, authBump, marketTokens, liqMint] = await getExhibitAccounts(
-    exhibit
-  );
+  let { marketTokens, liqMint } = await getShopAccounts(exhibit);
 
   let marketVoucherBal = Number(
     (await getAccount(connection, marketTokens[0])).amount
@@ -168,29 +156,42 @@ export async function getMarketData(
 
 export async function getCheckoutOrderData(
   exhibit: PublicKey,
+  connection: Connection,
   wallet: Wallet
 ): Promise<BidInterface[]> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
-  let [
-    auth,
-    authBump,
-    bidOrders,
-    matchedOrdersAddress,
-    escrowVoucher,
-    escrowSol,
-  ] = await getCheckoutAccounts(exhibit);
-  let account = await Checkout.account.bidOrders.fetch(bidOrders);
-  let bids = [];
 
-  let i = 0;
-  while (account.heap.items[i].bidPrice > 0) {
-    i++;
-    bids.push({
-      sequenceNumber: account.heap.items[i].sequenceNumber,
+  let { bidOrders } = await getCheckoutAccounts(exhibit);
 
-      bidPrice: account.heap.items[i].bidPrice,
-      bidderPubkey: account.heap.items[i].bidderPubkey,
-    });
+  if (await checkIfAccountExists(bidOrders, connection)) {
+    let account = await Checkout.account.bidOrders.fetch(bidOrders);
+    let bids = [];
+
+    let i = 0;
+    while (account.heap.items[i].bidPrice > 0) {
+      i++;
+      bids.push({
+        sequenceNumber: account.heap.items[i].sequenceNumber,
+
+        bidPrice: account.heap.items[i].bidPrice,
+        bidderPubkey: account.heap.items[i].bidderPubkey,
+      });
+    }
+    return bids.sort((a, b) => b.bidPrice - a.bidPrice);
+  } else {
+    return [];
   }
-  return bids.sort((a, b) => b.bidPrice - a.bidPrice);
+}
+
+export async function getMatchedOrdersAccountData(
+  matchedStorage: PublicKey,
+  wallet: Wallet
+) {
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+
+  let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
+    matchedStorage
+  );
+
+  return matchedOrdersInfo;
 }

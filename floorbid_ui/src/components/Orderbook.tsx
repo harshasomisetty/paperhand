@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { getCheckoutOrderData } from "@/utils/retrieveData";
 import { BidInterface } from "@/utils/interfaces";
@@ -18,7 +18,7 @@ const Orderbook = () => {
     async function fetchData() {
       let exhibit = new PublicKey(exhibitAddress!);
 
-      let fetchedData = await getCheckoutOrderData(exhibit, wallet);
+      let fetchedData = await getCheckoutOrderData(exhibit, connection, wallet);
 
       setOrderbook(fetchedData);
     }
@@ -34,7 +34,7 @@ const Orderbook = () => {
   return (
     <div className="flex flex-col items-center place-content-start space-y-4 m-4">
       {orderbook.map((order: BidInterface) => (
-        <p>{Number(order.bidPrice)}</p>
+        <p>{Number(order.bidPrice) / LAMPORTS_PER_SOL}</p>
       ))}
     </div>
   );

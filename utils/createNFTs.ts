@@ -183,10 +183,7 @@ export async function mintNFTs(
       console.log("URI", uriData[i][j]);
 
       nftPromises.push(mintSingleNft(i, j));
-
-      console.log("promise", i, j);
     }
-    console.log("inner loop");
   }
 
   console.log("before nftResults");
