@@ -7,26 +7,61 @@ import {
 } from "@/components/MarketInputs";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
+  instructionAcquireNft,
   instructionBidFloor,
   instructionPlaceBid,
 } from "@/utils/instructions/checkout";
 import router from "next/router";
 import { NftContext } from "@/context/NftContext";
+import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
+import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
+import {
+  checkIfAccountExists,
+  getFilledOrdersList,
+} from "@/utils/retrieveData";
+import { getCheckoutAccounts } from "@/utils/accountDerivation";
 
-const BidCard = ({ bidSide, setBidSide }) => {
+const BidCard = ({
+  bidSide,
+  setBidSide,
+}: {
+  bidSide: boolean;
+  setBidSide: () => {};
+}) => {
   const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
 
   const [bidValue, setBidValue] = useState(0);
   const [userSol, setUserSol] = useState(0);
+  const [userVoucher, setUserVoucher] = useState(0);
   const { exhibitAddress } = router.query;
 
+  let exhibit = new PublicKey(exhibitAddress);
   const { selectedNft, setSelectedNft } = useContext(NftContext);
 
   useEffect(() => {
     async function fetchData() {
       let uSol = Number(await connection.getBalance(publicKey));
       setUserSol(uSol);
+
+      let { voucherMint, matchedStorage } = await getCheckoutAccounts(exhibit);
+
+      let userVoucherWallet = await getAssociatedTokenAddress(
+        voucherMint,
+        publicKey
+      );
+
+      let uVoucher = 0;
+      if (await checkIfAccountExists(userVoucherWallet, connection)) {
+        uVoucher = Number(
+          (await getAccount(connection, userVoucherWallet)).amount
+        );
+      }
+      let orderFilled = await getFilledOrdersList(matchedStorage, wallet);
+      console.log("bid card fetch");
+      console.log(orderFilled);
+
+      setUserVoucher(uVoucher + orderFilled[publicKey]);
     }
     if (wallet && publicKey) {
       fetchData();
@@ -36,7 +71,6 @@ const BidCard = ({ bidSide, setBidSide }) => {
   async function executePlaceBid() {
     console.log("in p[lace ] bid");
     if (exhibitAddress) {
-      let exhibit = new PublicKey(exhibitAddress);
       console.log("placing bid");
       await instructionPlaceBid(
         wallet,
@@ -47,12 +81,11 @@ const BidCard = ({ bidSide, setBidSide }) => {
         connection
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   async function executeBidFloor() {
     if (exhibitAddress) {
-      let exhibit = new PublicKey(exhibitAddress);
       console.log("bid floor");
       await instructionBidFloor(
         wallet,
@@ -64,56 +97,97 @@ const BidCard = ({ bidSide, setBidSide }) => {
         selectedNft
       );
     }
+    router.reload(window.location.pathname);
+  }
+
+  async function executeAcquireNft() {
+    if (exhibitAddress) {
+      console.log("acquire nft");
+      await instructionAcquireNft(
+        wallet,
+        publicKey,
+        exhibit,
+        signTransaction,
+        connection,
+        selectedNft
+      );
+    }
     // router.reload(window.location.pathname);
   }
 
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
-      <div className="card-body">
-        <h2 className="card-title">Swap Vouchers</h2>
-
+      <div className="card-body space-y-7">
         <div className="flex flex-row w-full justify-evenly">
           <button
-            className={`btn btn-success ${!bidSide && "opacity-50"}`}
+            className={`btn btn-outline
+e btn-success ${!bidSide && "opacity-50"}`}
             onClick={() => {
               setBidSide(true);
             }}
           >
-            Bid
+            Buy NFT
           </button>
           <button
-            className={`btn btn-error ${bidSide && "opacity-50"}`}
+            className={`btn btn-outline btn-error ${bidSide && "opacity-50"}`}
             onClick={() => {
               setBidSide(false);
             }}
           >
-            Sell
+            Sell NFT
           </button>
         </div>
 
-        <div className="flex flex-row shadow items-center">
-          <div className="stat place-items-center">
-            {bidSide ? (
-              <div>
-                <input
-                  type="range"
-                  min={0}
-                  max={userSol}
-                  value={bidValue}
-                  className="range range-sm"
-                  onChange={(e) => setBidValue(e.target.value)}
-                />
-                <button onClick={executePlaceBid}>Buy</button>
-                <p>value{bidValue / LAMPORTS_PER_SOL}</p>
+        {bidSide ? (
+          <div className="flex flex-col space-y-7">
+            <input
+              type="range"
+              min={0}
+              max={userSol}
+              value={bidValue}
+              className="range range-sm"
+              onChange={(e) => setBidValue(e.target.value)}
+            />
+            <div className="shadow flex flex-row items-center">
+              <div className="stat">
+                <div className="state-title">Place Bid for</div>
+                <div className="stat-value">
+                  {(bidValue / LAMPORTS_PER_SOL).toFixed(2)} SOL
+                </div>
               </div>
+              <button className="btn btn-success" onClick={executePlaceBid}>
+                Place Bid
+              </button>
+            </div>
+            {userVoucher > 0 ? (
+              <>
+                <button
+                  className="btn btn-outline btn-success"
+                  onClick={executeAcquireNft}
+                >
+                  Pick NFT
+                </button>
+                <p>Your vouchers: {userVoucher}</p>
+              </>
             ) : (
-              <div>
-                <button onClick={executeBidFloor}>Sell</button>
-              </div>
+              <button className="btn" disabled="disabled">
+                Not enough vouchers!
+              </button>
             )}
-            {selectedNft && <p>{selectedNft.name}</p>}
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col space-y-7">
+            {selectedNft ? (
+              <button className="btn btn-error" onClick={executeBidFloor}>
+                Market Sell
+              </button>
+            ) : (
+              <button className="btn" disabled="disabled">
+                Pick NFT To market Sell
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

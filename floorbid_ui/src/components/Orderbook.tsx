@@ -65,7 +65,7 @@ const Orderbook = () => {
       let orderData = {};
       for (let bid of fetchedData) {
         let tempBid = Number(bid.bidPrice);
-        console.log("bid", tempBid);
+        // console.log("bid", tempBid);
         if (tempBid in orderData) {
           orderData[tempBid]++;
         } else {
@@ -73,13 +73,27 @@ const Orderbook = () => {
         }
       }
 
+      // TODO ERROR in sorting bids
+      // TODO Error in first bid, always just inserting 7 sol for some reason
       console.log("modified", orderData);
+
+      let tempLabels1 = Object.keys(orderData);
+      for (let i = 0; i < tempLabels1.length; i++) {
+        tempLabels1[i] = Number(tempLabels1[i]);
+      }
+      // console.log("temp label?", tempLabels1.sort());
+      // console.log(
+      //   "what the fuck?",
+      //   tempLabels1[0],
+      //   tempLabels1[5],
+      //   tempLabels1[0] > tempLabels1[5]
+      // );
 
       let tempLabels = [];
       let tempData = [];
 
-      for (let key of Object.keys(orderData).sort().reverse()) {
-        console.log(key, orderData[key]);
+      for (let key of tempLabels1.reverse()) {
+        // console.log(key, orderData[key]);
         tempLabels.push(Number(key) / LAMPORTS_PER_SOL);
         tempData.push(orderData[key]);
       }

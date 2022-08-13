@@ -195,3 +195,33 @@ export async function getMatchedOrdersAccountData(
 
   return matchedOrdersInfo;
 }
+
+export async function getFilledOrdersList(
+  matchedStorage: PublicKey,
+  wallet: Wallet
+) {
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+
+  let matchedStorageInfo = await getMatchedOrdersAccountData(
+    matchedStorage,
+    wallet
+  );
+  let matchedOrders = matchedStorageInfo.matchedOrders;
+
+  let matchedOrdersInfo = await Checkout.account.matchedOrders.fetch(
+    matchedOrders
+  );
+
+  let orderFilled = {};
+  console.log("in getFilledOrders", matchedOrdersInfo);
+  for (let order of matchedOrdersInfo.trades.orders) {
+    let tempPubkey = order.val;
+    // console.log("bid", tempBid);
+    if (tempPubkey in orderFilled) {
+      orderFilled[tempPubkey]++;
+    } else {
+      orderFilled[tempPubkey] = 1;
+    }
+  }
+  return orderFilled;
+}

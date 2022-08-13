@@ -8,6 +8,7 @@ import {
 import {
   checkIfAccountExists,
   checkIfExhibitExists,
+  getFilledOrdersList,
   getMatchedOrdersAccountData,
 } from "@/utils/retrieveData";
 
@@ -30,6 +31,7 @@ import {
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
+  getAccount,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -142,7 +144,7 @@ export async function instructionBidFloor(
   );
 
   if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-    console.log("creating usre voucher");
+    console.log("creating user voucher");
     let voucher_tx = createAssociatedTokenAccountInstruction(
       publicKey,
       userVoucherWallet,
@@ -221,4 +223,130 @@ export async function instructionBidFloor(
   } catch (error) {
     console.log("initing error", error);
   }
+}
+
+export async function instructionAcquireNft(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  signTransaction: any,
+  connection: Connection,
+  nft: Nft
+) {
+  console.log("in bid floor");
+
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+
+  let {
+    voucherMint,
+    matchedStorage,
+    checkoutAuth,
+    checkoutAuthBump,
+    escrowVoucher,
+  } = await getCheckoutAccounts(exhibit);
+
+  let { nftArtifact } = await getNftDerivedAddresses(nft);
+
+  let transaction = new Transaction();
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  let nftUserTokenAccount = await getAssociatedTokenAddress(
+    nft.mint,
+    publicKey
+  );
+
+  let totalVouchers = 0;
+  let currentVouchers = 0;
+  if (await checkIfAccountExists(userVoucherWallet, connection)) {
+    currentVouchers = Number(
+      (await getAccount(connection, userVoucherWallet)).amount
+    );
+  }
+  let orderFilled = await getFilledOrdersList(matchedStorage, wallet);
+
+  totalVouchers = currentVouchers + orderFilled[publicKey];
+
+  if (totalVouchers == 0) {
+    console.log("not enough vouchers");
+    return;
+  }
+
+  if (currentVouchers == 0) {
+    if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+      let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
+        publicKey,
+        userVoucherWallet,
+        publicKey,
+        voucherMint
+      );
+      transaction = transaction.add(voucher_wallet_tx);
+    } else {
+      console.log("user voucher already created");
+    }
+
+    let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
+      matchedStorage
+    );
+    let matchedOrders = matchedOrdersInfo.matchedOrders;
+
+    const fulfill_tx = await Checkout.methods
+      .fulfillOrder(publicKey, checkoutAuthBump)
+      .accounts({
+        exhibit: exhibit,
+        matchedOrders: matchedOrders,
+        matchedStorage: matchedStorage,
+        checkoutAuth: checkoutAuth,
+        voucherMint: voucherMint,
+        escrowVoucher: escrowVoucher,
+        orderVoucher: userVoucherWallet,
+        orderUser: publicKey,
+        user: publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .transaction();
+    transaction = transaction.add(fulfill_tx);
+  }
+
+  if (!(await checkIfAccountExists(nftUserTokenAccount, connection))) {
+    let nft_token_account_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      nftUserTokenAccount,
+      publicKey,
+      nft.mint
+    );
+    transaction = transaction.add(nft_token_account_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
+  let withdraw_tx = await Exhibition.methods
+    .artifactWithdraw()
+    .accounts({
+      exhibit: exhibit,
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet,
+      nftMint: nft.mint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      nftUserToken: nftUserTokenAccount,
+      nftArtifact: nftArtifact,
+      user: publicKey,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .transaction();
+
+  transaction = transaction.add(withdraw_tx);
+
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
+  console.log("Acquired nft!");
 }

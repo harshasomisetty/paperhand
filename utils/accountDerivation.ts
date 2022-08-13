@@ -11,7 +11,11 @@ import {
 
 export async function getNftDerivedAddresses(
   nft: Nft
-): Promise<{ exhibit: PublicKey; voucherMint: PublicKey }> {
+): Promise<{
+  exhibit: PublicKey;
+  voucherMint: PublicKey;
+  nftArtifact: PublicKey;
+}> {
   // export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
   let seeds: Buffer[] = [];
 
@@ -31,7 +35,12 @@ export async function getNftDerivedAddresses(
     EXHIBITION_PROGRAM_ID
   );
 
-  return { exhibit, voucherMint };
+  let [nftArtifact] = await PublicKey.findProgramAddress(
+    [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
+
+  return { exhibit, voucherMint, nftArtifact };
 }
 
 export async function getShopAccounts(exhibit: PublicKey): Promise<{

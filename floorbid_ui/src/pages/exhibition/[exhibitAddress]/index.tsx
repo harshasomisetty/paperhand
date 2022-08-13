@@ -25,7 +25,8 @@ import BidCard from "@/components/BidCard";
 
 const ExploreProjects = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
-  const [nftList, setNftList] = useState<Nft[]>([]);
+  const [userNftList, setUserNftList] = useState<Nft[]>([]);
+  const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
   const [userData, setUserData] = useState<UserData>(null);
 
   const [bidSide, setBidSide] = useState<boolean>(true);
@@ -48,21 +49,21 @@ const ExploreProjects = () => {
       if (exhibitExists) {
         exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
-        // let allNfts = await getAllExhibitArtifacts(exhibit, connection);
-        // setNftList(allNfts);
+        let allNfts = await getAllExhibitArtifacts(exhibit, connection);
+        setExhibitNftList(allNfts);
         let uData = await getUserData(exhibit, publicKey, connection);
         setUserData(uData);
       }
 
-      const allNftList = await mx.nfts().findAllByOwner(publicKey);
+      const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
 
       const curNfts = [];
-      for (let nft of allNftList!) {
+      for (let nft of allUserNfts!) {
         if (nft.symbol == exhibitInfo.exhibitSymbol) {
           curNfts.push(nft);
         }
       }
-      setNftList(curNfts);
+      setUserNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
@@ -95,7 +96,15 @@ const ExploreProjects = () => {
               )}
               <Orderbook />
             </div>
-            <NftList nftList={nftList} />
+            {bidSide ? (
+              <div>
+                <p>Exhibit NFTs</p> <NftList nftList={exhibitNftList} />
+              </div>
+            ) : (
+              <div>
+                <p>Your NFTs</p> <NftList nftList={userNftList} />
+              </div>
+            )}
           </div>
         </NftProvider>
       )}

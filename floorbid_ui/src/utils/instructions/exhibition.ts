@@ -152,12 +152,7 @@ export async function instructionWithdrawNft(
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
   await nft.metadataTask.run();
 
-  let [exhibit, voucherMint] = await getVoucherAddress(nft);
-
-  let [nftArtifact] = await PublicKey.findProgramAddress(
-    [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-    EXHIBITION_PROGRAM_ID
-  );
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
 
   let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
