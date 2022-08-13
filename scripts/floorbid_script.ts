@@ -208,9 +208,18 @@ export async function makeBids() {
   console.log("pre bal", preHeapBal);
   let bidPromises = [];
   console.log("about to start bids");
-  for (let i = 0; i < 10; i++) {
+
+  // let bids = [...Array(10).keys()].concat(
+  //   [...Array(5).keys()].map((e) => {
+  //     return e;
+  //   })
+  // );
+
+  let bids = [1, 2, 3, 4, 5, 5, 6, 6, 6, 7, 8, 9, 2, 3, 4, 5, 6, 6, 6];
+  console.log("bids", bids);
+  for (let i = 0; i < bids.length; i++) {
     let bid_tx = await Checkout.methods
-      .makeBid(new BN((i + 1) * LAMPORTS_PER_SOL))
+      .makeBid(new BN(bids[i] * LAMPORTS_PER_SOL))
       .accounts({
         exhibit: exhibit,
         bidOrders: bidOrders,
@@ -228,29 +237,7 @@ export async function makeBids() {
 
     bidPromises.push(signature);
 
-    console.log("added bid ", i);
-  }
-  for (let i = 3; i < 7; i++) {
-    let bid_tx = await Checkout.methods
-      .makeBid(new BN((i + 1) * LAMPORTS_PER_SOL))
-      .accounts({
-        exhibit: exhibit,
-        bidOrders: bidOrders,
-        escrowSol: escrowSol,
-        bidder: otherCreators[i % 2].publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
-
-    let transaction = new Transaction().add(bid_tx);
-
-    let signature = sendAndConfirmTransaction(connection, transaction, [
-      otherCreators[i % 2],
-    ]);
-
-    bidPromises.push(signature);
-
-    console.log("added bid ", i);
+    console.log("added bid ", bids[i]);
   }
 
   await Promise.all(bidPromises);
