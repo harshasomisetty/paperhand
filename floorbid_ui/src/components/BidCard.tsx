@@ -9,6 +9,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   instructionAcquireNft,
   instructionBidFloor,
+  instructionCancelBid,
   instructionPlaceBid,
 } from "@/utils/instructions/checkout";
 import router from "next/router";
@@ -91,7 +92,6 @@ const BidCard = ({
         wallet,
         publicKey,
         exhibit,
-        bidValue,
         signTransaction,
         connection,
         selectedNft
@@ -110,6 +110,20 @@ const BidCard = ({
         signTransaction,
         connection,
         selectedNft
+      );
+    }
+    // router.reload(window.location.pathname);
+  }
+
+  async function executeCancelBid() {
+    if (exhibitAddress) {
+      console.log("acquire nft");
+      await instructionCancelBid(
+        wallet,
+        publicKey,
+        exhibit,
+        signTransaction,
+        connection
       );
     }
     // router.reload(window.location.pathname);
@@ -155,9 +169,14 @@ e btn-success ${!bidSide && "opacity-50"}`}
                   {(bidValue / LAMPORTS_PER_SOL).toFixed(2)} SOL
                 </div>
               </div>
-              <button className="btn btn-success" onClick={executePlaceBid}>
-                Place Bid
-              </button>
+              <div className="flex flex-col space-y-2">
+                <button className="btn btn-success" onClick={executePlaceBid}>
+                  Place Bid
+                </button>
+                <button className="btn btn-warning" onClick={executeCancelBid}>
+                  Cancel Bid
+                </button>
+              </div>
             </div>
             {userVoucher > 0 ? (
               <>

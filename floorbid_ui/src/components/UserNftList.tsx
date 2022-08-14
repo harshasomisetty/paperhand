@@ -1,6 +1,7 @@
 import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
-import { instructionDepositNft } from "@/utils/instructions/exhibition";
+import { instructionInitCheckoutExhibit } from "@/utils/instructions/checkout";
+
 import { getAllNftImages } from "@/utils/retrieveData";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -13,16 +14,17 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
   const { wallet, publicKey, signTransaction } = useWallet();
 
   const router = useRouter();
-  async function depositNft() {
-    console.log("depositing", selectedNft.name);
+  async function executeInitCheckoutAndExhibit() {
+    console.log("creating checkout ", selectedNft.name);
 
-    await instructionDepositNft(
+    await instructionInitCheckoutExhibit(
       wallet,
       publicKey,
       signTransaction,
-      selectedNft,
-      connection
+      connection,
+      selectedNft
     );
+
     router.reload(window.location.pathname);
   }
 
@@ -92,7 +94,10 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
                       <div className="btn-group gap-3 justify-end">
                         {selectedNft && (
                           <>
-                            <div className="modal-action" onClick={depositNft}>
+                            <div
+                              className="modal-action"
+                              onClick={executeInitCheckoutAndExhibit}
+                            >
                               <a href="#" className="btn btn-success">
                                 Deposit {selectedNft.name}
                               </a>

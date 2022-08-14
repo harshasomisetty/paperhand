@@ -1,28 +1,9 @@
-import {
-  SHOP_PROGRAM_ID,
-  EXHIBITION_PROGRAM_ID,
-  getShopProgramAndProvider,
-  getExhibitProgramAndProvider,
-  getCheckoutProgramAndProvider,
-} from "@/utils/constants";
-import {
-  checkIfAccountExists,
-  checkIfExhibitExists,
-  getFilledOrdersList,
-  getMatchedOrdersAccountData,
-} from "@/utils/retrieveData";
-
-import {
-  getNftDerivedAddresses,
-  getShopAccounts,
-  getCheckoutAccounts,
-} from "@/utils/accountDerivation";
-
 import { BN, Wallet } from "@project-serum/anchor";
 import {
   Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
+  Keypair,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   Transaction,
@@ -35,7 +16,22 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { Nft } from "@metaplex-foundation/js";
+import { Nft, Signer } from "@metaplex-foundation/js";
+
+import {
+  EXHIBITION_PROGRAM_ID,
+  getExhibitProgramAndProvider,
+  getCheckoutProgramAndProvider,
+} from "@/utils/constants";
+import {
+  checkIfAccountExists,
+  getFilledOrdersList,
+  getMatchedOrdersAccountData,
+} from "@/utils/retrieveData";
+import {
+  getNftDerivedAddresses,
+  getCheckoutAccounts,
+} from "@/utils/accountDerivation";
 
 async function manualSendTransaction(
   transaction: Transaction,
@@ -48,7 +44,6 @@ async function manualSendTransaction(
   transaction.recentBlockhash = (
     await connection.getRecentBlockhash("finalized")
   ).blockhash;
-
   transaction = await signTransaction(transaction);
 
   const rawTransaction = transaction.serialize();
@@ -56,6 +51,110 @@ async function manualSendTransaction(
   console.log("sent raw, waiting");
   await connection.confirmTransaction(signature, "confirmed");
   console.log("sent tx!!!");
+}
+
+export async function instructionInitCheckoutExhibit(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  signTransaction: any,
+  connection: Connection,
+  nft: Nft
+) {
+  console.log("in make mids");
+
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+
+  await nft.metadataTask.run();
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint!,
+    publicKey
+  );
+
+  let transaction = new Transaction();
+
+  if (!(await checkIfAccountExists(exhibit, connection))) {
+    const init_tx = await Exhibition.methods
+      .initializeExhibit()
+      .accounts({
+        exhibit: exhibit,
+        voucherMint: voucherMint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        creator: publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(init_tx);
+
+    console.log("initing exhibit");
+  }
+
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
+  let { matchedStorage, bidOrders, checkoutAuth, escrowSol, escrowVoucher } =
+    await getCheckoutAccounts(exhibit);
+
+  let matchedOrdersPair: Keypair = Keypair.generate();
+  let matchedOrders = matchedOrdersPair.publicKey;
+
+  const init_create_tx = await SystemProgram.createAccount({
+    fromPubkey: publicKey,
+    newAccountPubkey: matchedOrders,
+    space: 3610,
+    lamports: await connection.getMinimumBalanceForRentExemption(3610),
+    programId: Checkout.programId,
+  });
+
+  const init_checkout_tx = await Checkout.methods
+    .initialize()
+    .accounts({
+      exhibit: exhibit,
+      matchedStorage: matchedStorage,
+      matchedOrders: matchedOrders,
+      bidOrders: bidOrders,
+      checkoutAuth: checkoutAuth,
+      voucherMint: voucherMint,
+      escrowVoucher: escrowVoucher,
+      escrowSol: escrowSol,
+      user: publicKey,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      exhibitionProgram: Exhibition.programId,
+    })
+    .transaction();
+
+  transaction = transaction.add(init_create_tx);
+  transaction = transaction.add(init_checkout_tx);
+
+  transaction.sign([matchedOrdersPair]);
+  // transaction.addSignature(matchedOrders, tempSig);
+
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
+  console.log("Created Checkout!");
 }
 
 export async function instructionPlaceBid(
@@ -110,15 +209,14 @@ export async function instructionBidFloor(
   wallet: Wallet,
   publicKey: PublicKey,
   exhibit: PublicKey,
-  bidCount: number,
   signTransaction: any,
   connection: Connection,
   nft?: Nft
 ) {
   console.log("in bid floor");
 
-  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
   let {
     voucherMint,
@@ -349,4 +447,46 @@ export async function instructionAcquireNft(
     signTransaction
   );
   console.log("Acquired nft!");
+}
+
+export async function instructionCancelBid(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  signTransaction: any,
+  connection: Connection
+) {
+  console.log("in bid floor");
+
+  let { Checkout } = await getCheckoutProgramAndProvider(wallet);
+
+  let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
+
+  let transaction = new Transaction();
+
+  const cancel_tx = await Checkout.methods
+    .cancelBid()
+    .accounts({
+      exhibit: exhibit,
+      bidOrders: bidOrders,
+      escrowSol: escrowSol,
+      bidder: publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  transaction = transaction.add(cancel_tx);
+
+  try {
+    console.log("before manual send");
+
+    await manualSendTransaction(
+      transaction,
+      publicKey,
+      connection,
+      signTransaction
+    );
+  } catch (error) {
+    console.log("initing error", error);
+  }
 }
