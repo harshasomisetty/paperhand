@@ -4,7 +4,7 @@ import {
   getMint,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 import {
   SHOP_PROGRAM_ID,
@@ -154,33 +154,64 @@ export async function getMarketData(
   };
 }
 
-export async function getCheckoutOrderData(
+export async function getBidOrderData(
   exhibit: PublicKey,
   connection: Connection,
   wallet: Wallet
-): Promise<BidInterface[]> {
+): Promise<{
+  labels: number[];
+  values: number[];
+  bids: { [key: string]: number[] };
+}> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
   let { bidOrders } = await getCheckoutAccounts(exhibit);
 
+  let labels: number[] = [];
+  let values: number[] = [];
+
+  let bids: { [key: string]: number[] } = {};
+
   if (await checkIfAccountExists(bidOrders, connection)) {
     let account = await Checkout.account.bidOrders.fetch(bidOrders);
-    let bids = [];
 
     let i = 0;
     while (account.heap.items[i].bidPrice > 0) {
+      let curItem: BidInterface = account!.heap!.items![i];
+      let curBid = Number(curItem.bidPrice) / LAMPORTS_PER_SOL;
+      if (bids[curItem.bidderPubkey.toString()]) {
+        bids[curItem.bidderPubkey.toString()].push(curBid);
+      } else {
+        bids[curItem.bidderPubkey.toString()] = [curBid];
+      }
       i++;
-      bids.push({
-        sequenceNumber: account.heap.items[i].sequenceNumber,
-
-        bidPrice: account.heap.items[i].bidPrice,
-        bidderPubkey: account.heap.items[i].bidderPubkey,
-      });
     }
-    return bids.sort((a, b) => b.bidPrice - a.bidPrice);
-  } else {
-    return [];
+
+    let orderbookData = {};
+
+    for (let pubkey of Object.keys(bids)) {
+      for (let bid of bids[pubkey]) {
+        if (orderbookData[bid]) {
+          orderbookData[bid]++;
+        } else {
+          orderbookData[bid] = 1;
+        }
+      }
+    }
+
+    let tempLabels = Object.keys(orderbookData);
+
+    for (let i = 0; i < tempLabels.length; i++) {
+      labels.push(Number(tempLabels[i]));
+    }
+
+    labels = labels.sort((a, b) => b - a);
+
+    for (let lab of labels) {
+      values.push(orderbookData[lab]);
+    }
   }
+  return { labels, values, bids };
 }
 
 export async function getMatchedOrdersAccountData(
@@ -213,7 +244,6 @@ export async function getFilledOrdersList(
   );
 
   let orderFilled = {};
-  console.log("in getFilledOrders", matchedOrdersInfo);
   for (let order of matchedOrdersInfo.trades.orders) {
     let tempPubkey = order.val;
     // console.log("bid", tempBid);

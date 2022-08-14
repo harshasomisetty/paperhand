@@ -1,7 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import { getCheckoutOrderData } from "@/utils/retrieveData";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 
@@ -15,6 +14,8 @@ import {
   Tooltip,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import { getBidOrderData } from "@/utils/retrieveData";
+import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
 
 ChartJS.register(
   CategoryScale,
@@ -51,8 +52,9 @@ export const options = {
 const Orderbook = () => {
   const [orderbook, setOrderbook] = useState();
   const [labels, setLabels] = useState();
+  const [labelColors, setLabelColors] = useState();
   const { connection } = useConnection();
-  const { wallet } = useWallet();
+  const { publicKey, wallet } = useWallet();
   const router = useRouter();
   const { exhibitAddress } = router.query;
 
@@ -60,46 +62,30 @@ const Orderbook = () => {
     async function fetchData() {
       let exhibit = new PublicKey(exhibitAddress!);
 
-      let fetchedData = await getCheckoutOrderData(exhibit, connection, wallet);
+      let { labels, values, bids } = await getBidOrderData(
+        exhibit,
+        connection,
+        wallet
+      );
 
-      let orderData = {};
-      for (let bid of fetchedData) {
-        let tempBid = Number(bid.bidPrice);
-        // console.log("bid", tempBid);
-        if (tempBid in orderData) {
-          orderData[tempBid]++;
-        } else {
-          orderData[tempBid] = 1;
+      setLabels(labels);
+      setOrderbook(values);
+
+      if (publicKey && bids[publicKey.toString()]) {
+        let labColors = [];
+
+        let userOrders = bids[publicKey.toString()];
+        let normalColor = "rgba(75, 192, 192, .5)"; // green
+        let userColor = "rgba(54, 162, 235, .5)"; // Blue
+        for (let i = 0; i < labels.length; i++) {
+          if (userOrders.includes(labels[i])) {
+            labColors.push(userColor);
+          } else {
+            labColors.push(normalColor);
+          }
         }
+        setLabelColors(labColors);
       }
-
-      // TODO ERROR in sorting bids
-      // TODO Error in first bid, always just inserting 7 sol for some reason
-      console.log("modified", orderData);
-
-      let tempLabels1 = Object.keys(orderData);
-      for (let i = 0; i < tempLabels1.length; i++) {
-        tempLabels1[i] = Number(tempLabels1[i]);
-      }
-      // console.log("temp label?", tempLabels1.sort());
-      // console.log(
-      //   "what the fuck?",
-      //   tempLabels1[0],
-      //   tempLabels1[5],
-      //   tempLabels1[0] > tempLabels1[5]
-      // );
-
-      let tempLabels = [];
-      let tempData = [];
-
-      for (let key of tempLabels1.reverse()) {
-        // console.log(key, orderData[key]);
-        tempLabels.push(Number(key) / LAMPORTS_PER_SOL);
-        tempData.push(orderData[key]);
-      }
-
-      setLabels(tempLabels);
-      setOrderbook(tempData);
     }
 
     if (!orderbook) {
@@ -120,7 +106,7 @@ const Orderbook = () => {
             datasets: [
               {
                 data: orderbook,
-                backgroundColor: "rgba(75, 192, 192, .5)",
+                backgroundColor: labelColors,
                 barPercentage: 1.0,
                 categoryPercentage: 1.0,
               },

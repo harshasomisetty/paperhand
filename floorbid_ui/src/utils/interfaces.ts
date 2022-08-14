@@ -14,7 +14,7 @@ export interface UserData {
 export interface BidInterface {
   sequenceNumber: number;
   bidPrice: number;
-  bidderPubkey: number;
+  bidderPubkey: PublicKey;
 }
 
 export interface MarketData {

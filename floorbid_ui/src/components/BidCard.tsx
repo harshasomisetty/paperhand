@@ -59,8 +59,6 @@ const BidCard = ({
         );
       }
       let orderFilled = await getFilledOrdersList(matchedStorage, wallet);
-      console.log("bid card fetch");
-      console.log(orderFilled);
 
       setUserVoucher(uVoucher + orderFilled[publicKey]);
     }
@@ -70,9 +68,8 @@ const BidCard = ({
   }, [wallet, publicKey]);
 
   async function executePlaceBid() {
-    console.log("in p[lace ] bid");
+    console.log("placing bid");
     if (exhibitAddress) {
-      console.log("placing bid");
       await instructionPlaceBid(
         wallet,
         publicKey,
@@ -86,8 +83,8 @@ const BidCard = ({
   }
 
   async function executeBidFloor() {
+    console.log("bid floor");
     if (exhibitAddress) {
-      console.log("bid floor");
       await instructionBidFloor(
         wallet,
         publicKey,
