@@ -37,13 +37,18 @@ async function manualSendTransaction(
   transaction: Transaction,
   publicKey: PublicKey,
   connection: Connection,
-  signTransaction: any
+  signTransaction: any,
+  otherSigner?: Keypair
 ) {
   console.log("in man send tx");
   transaction.feePayer = publicKey;
   transaction.recentBlockhash = (
     await connection.getRecentBlockhash("finalized")
   ).blockhash;
+  console.log("abt to send trans", transaction);
+  transaction.sign(otherSigner);
+  console.log("netxt abt to send trans", transaction);
+
   transaction = await signTransaction(transaction);
 
   const rawTransaction = transaction.serialize();
@@ -145,14 +150,12 @@ export async function instructionInitCheckoutExhibit(
   transaction = transaction.add(init_create_tx);
   transaction = transaction.add(init_checkout_tx);
 
-  transaction.sign([matchedOrdersPair]);
-  // transaction.addSignature(matchedOrders, tempSig);
-
   await manualSendTransaction(
     transaction,
     publicKey,
     connection,
-    signTransaction
+    signTransaction,
+    matchedOrdersPair
   );
   console.log("Created Checkout!");
 }
@@ -169,14 +172,7 @@ export async function instructionPlaceBid(
 
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
-  let {
-    matchedStorage,
-    bidOrders,
-    checkoutAuth,
-    checkoutAuthBump,
-    escrowSol,
-    escrowVoucher,
-  } = await getCheckoutAccounts(exhibit);
+  let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
 
   let place_bid_tx = await Checkout.methods
     .makeBid(new BN(bidSize))
