@@ -71,12 +71,13 @@ const Orderbook = () => {
       setLabels(labels);
       setOrderbook(values);
 
-      if (publicKey && bids[publicKey.toString()]) {
-        let labColors = [];
+      let labColors = [];
+      let normalColor = "rgba(75, 192, 192, .5)"; // green
+      let userColor = "rgba(54, 162, 235, .5)"; // Blue
 
+      if (publicKey && bids[publicKey.toString()]) {
         let userOrders = bids[publicKey.toString()];
-        let normalColor = "rgba(75, 192, 192, .5)"; // green
-        let userColor = "rgba(54, 162, 235, .5)"; // Blue
+
         for (let i = 0; i < labels.length; i++) {
           if (userOrders.includes(labels[i])) {
             labColors.push(userColor);
@@ -84,8 +85,13 @@ const Orderbook = () => {
             labColors.push(normalColor);
           }
         }
-        setLabelColors(labColors);
+        console.log("colors", labColors);
+      } else {
+        for (let i = 0; i < labels.length; i++) {
+          labColors.push(normalColor);
+        }
       }
+      setLabelColors(labColors);
     }
 
     if (!orderbook) {
