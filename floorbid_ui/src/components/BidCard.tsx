@@ -79,7 +79,7 @@ const BidCard = ({
         connection
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   async function executeBidFloor() {
@@ -94,7 +94,7 @@ const BidCard = ({
         selectedNft
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   async function executeAcquireNft() {

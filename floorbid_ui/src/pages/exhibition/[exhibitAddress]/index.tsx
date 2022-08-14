@@ -97,13 +97,9 @@ const ExploreProjects = () => {
               <Orderbook />
             </div>
             {bidSide ? (
-              <div>
-                <p>Exhibit NFTs</p> <NftList nftList={exhibitNftList} />
-              </div>
+              <NftList nftList={exhibitNftList} title={"Exhibit NFTs"} />
             ) : (
-              <div>
-                <p>Your NFTs</p> <NftList nftList={userNftList} />
-              </div>
+              <NftList nftList={userNftList} title={"Your NFTs"} />
             )}
           </div>
         </NftProvider>

@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 export default function NftList({
   nftList,
   exhibitKey,
+  title,
 }: {
   nftList: Nft[] | null;
   exhibitKey?: string;
+  title?: string;
 }) {
   const [nftImages, setNftImages] = useState<string[]>();
 
@@ -21,18 +23,26 @@ export default function NftList({
     fetchData();
   }, [nftList]);
   return (
-    <div className="flex flex-row flex-wrap gap-4 justify-items-center auto-cols-max">
-      {nftList &&
-        nftImages &&
-        nftList.map((nft: Nft, ind) => (
-          <NftCard
-            nft={nft}
-            nftImage={nftImages[ind]}
-            exhibitKey={exhibitKey}
-            key={ind}
-            index={ind}
-          />
-        ))}
+    <div className="flex flex-col border rounded-md p-4 m-2">
+      {title && <h1 className="p-2">{title}</h1>}
+      <div className="flex flex-row flex-wrap gap-4 justify-items-center auto-cols-max">
+        {nftList.length > 0 ? (
+          <>
+            {nftImages &&
+              nftList.map((nft: Nft, ind) => (
+                <NftCard
+                  nft={nft}
+                  nftImage={nftImages[ind]}
+                  exhibitKey={exhibitKey}
+                  key={ind}
+                  index={ind}
+                />
+              ))}
+          </>
+        ) : (
+          <p>No nfts</p>
+        )}
+      </div>
     </div>
   );
 }

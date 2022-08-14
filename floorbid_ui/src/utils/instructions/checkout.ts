@@ -45,9 +45,10 @@ async function manualSendTransaction(
   transaction.recentBlockhash = (
     await connection.getRecentBlockhash("finalized")
   ).blockhash;
-  console.log("abt to send trans", transaction);
-  transaction.sign(otherSigner);
-  console.log("netxt abt to send trans", transaction);
+
+  if (otherSigner) {
+    transaction.sign(otherSigner);
+  }
 
   transaction = await signTransaction(transaction);
 
@@ -210,6 +211,8 @@ export async function instructionBidFloor(
   nft?: Nft
 ) {
   console.log("in bid floor");
+
+  console.log("pubkey? ", publicKey);
 
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
