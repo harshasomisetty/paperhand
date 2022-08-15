@@ -1,0 +1,84 @@
+#+title: Carnival Design Doc
+
+* Overview
+The goal is to make the NFT trading experience more liquid and easy to use
+
+Want to replicate as much of the Sudoswap AMM design as possible
+
+Sudoswap works by displaying a single marketplace for all nfts that belong to a collection. The marketplace is an aggregation of several, user-created pools (linear, exponential, and potentially AMM curves) that dictate how trading takes place. Users can provide both NFTs and SOL to allow for LP benefits, or just NFTs and SOL to provide one way trading.
+* Functionality
+** Get NFT
+*** OFFER (Floorbid) (make collection Offer in sudo)
+**** allow user to make order for x NFTs for y ETH
+*** BUY (sweep in sudo and magic)
+**** Buy NFTs with Tokens
+**** just choose x number of NFTs and buy
+** SELL NFT
+*** LIST
+**** list all NFT into market place
+*** Market SELL
+**** sell NFTs into existing bids
+** Liquidity
+*** Allow people to post both sides of market, and collect trade fees
+** Search across collection
+* Architecture
+** Carnival Functions
+*** initialize_carnival
+**** inits the pool list datastructure
+*** List Pool
+**** insert sol, insert nfts
+**** record pool parameters
+**** calculate bid and asks, insert into lists
+**** insert into pool objects list
+**** Transfer user sol and nft to carnival
+*** SolToNFT
+**** pops askside array to see cheapest prices people are asking for nft
+**** transfers sol from user to carnival
+**** transfer nft from carnival to user
+**** recalcualtes bid and asks
+**** and reinserts into bid/ask arrays
+***** robust swaps so that can only buy if within range
+*** NftToSol
+**** iterates through bid side array to see best prices people are willing to buy for nft
+**** transfers sol and nft, recalcualtes bid and asks, and reinserts into bid/ask arrays
+*** Withdraw Funds
+**** withdraw funds to pool owner
+**** if both ask and buy are empty, delete pool object from list
+**** update bid and ask arrays
+** Carnival Account
+*** list of Pool Objects
+*** Array of best bids
+*** Array of best asks
+*** auth
+**** exhibit pubkey
+** Pair Object
+*** Pool owner
+*** Amount of Sol
+*** amount of NFTs and which nfts
+*** curve type
+**** auto calculate prices after insertion of funds
+*** delta
+*** fee
+*** spot price
+** Bid/Ask array node
+*** position in Pool list
+*** actual quote
+** Curve
+*** Types
+[[https://medium.com/linum-labs/intro-to-bonding-curves-and-shapes-bf326bc4e11a][curve details]]
+**** exponenetial
+**** linear
+**** sigmoid
+**** taxation
+*** function that can be plugged into, provided details of cur inventory, delta, fee, etc that can calculate next bid/ask
+
+* Tasks
+
+** prototype out contract
+*** function outline
+*** struct outline
+*** pool object
+*** pool list
+*** bid/ask array
+
+** write out bonding curves
