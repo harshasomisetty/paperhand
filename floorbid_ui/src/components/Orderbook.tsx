@@ -85,7 +85,6 @@ const Orderbook = () => {
             labColors.push(normalColor);
           }
         }
-        console.log("colors", labColors);
       } else {
         for (let i = 0; i < labels.length; i++) {
           labColors.push(normalColor);
@@ -105,6 +104,7 @@ const Orderbook = () => {
   return (
     <>
       <div className="flex flex-col items-center place-content-start space-y-4 m-4">
+        <p className="text-lg font-bold">Orderbook</p>
         <Bar
           options={options}
           data={{

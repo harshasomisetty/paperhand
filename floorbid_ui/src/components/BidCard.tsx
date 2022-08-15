@@ -18,6 +18,7 @@ import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
 import {
   checkIfAccountExists,
+  getBidOrderData,
   getFilledOrdersList,
 } from "@/utils/retrieveData";
 import { getCheckoutAccounts } from "@/utils/accountDerivation";
@@ -36,6 +37,7 @@ const BidCard = ({
   const [userSol, setUserSol] = useState(0);
   const [userVoucher, setUserVoucher] = useState(0);
   const { exhibitAddress } = router.query;
+  const [floorBid, setFloorBid] = useState(0);
 
   let exhibit = new PublicKey(exhibitAddress);
   const { selectedNft, setSelectedNft } = useContext(NftContext);
@@ -51,6 +53,12 @@ const BidCard = ({
         voucherMint,
         publicKey
       );
+
+      let { labels } = await getBidOrderData(exhibit, connection, wallet);
+
+      if (labels[0]) {
+        setFloorBid(labels[0]);
+      }
 
       let uVoucher = 0;
       if (await checkIfAccountExists(userVoucherWallet, connection)) {
@@ -79,7 +87,7 @@ const BidCard = ({
         connection
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   async function executeBidFloor() {
@@ -94,7 +102,7 @@ const BidCard = ({
         selectedNft
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   async function executeAcquireNft() {
@@ -109,7 +117,7 @@ const BidCard = ({
         selectedNft
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   async function executeCancelBid() {
@@ -123,7 +131,7 @@ const BidCard = ({
         connection
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   return (
@@ -161,7 +169,7 @@ e btn-success ${!bidSide && "opacity-50"}`}
             />
             <div className="shadow flex flex-row items-center">
               <div className="stat">
-                <div className="state-title">Place Bid for</div>
+                <div className="stat-title">Place Bid for</div>
                 <div className="stat-value">
                   {(bidValue / LAMPORTS_PER_SOL).toFixed(2)} SOL
                 </div>
@@ -193,6 +201,13 @@ e btn-success ${!bidSide && "opacity-50"}`}
           </div>
         ) : (
           <div className="flex flex-col space-y-7">
+            <div className="shadow flex flex-row items-center">
+              <div className="stat">
+                <div className="stat-title">Floor Bid Price</div>
+                <div className="stat-value">{floorBid} SOL</div>
+                <div className="stat-desc">Sol Received for Market Selling</div>
+              </div>
+            </div>
             {selectedNft ? (
               <button className="btn btn-error" onClick={executeBidFloor}>
                 Market Sell

@@ -23,8 +23,8 @@ export default function NftList({
     fetchData();
   }, [nftList]);
   return (
-    <div className="flex flex-col border rounded-md p-4 m-2">
-      {title && <h1 className="p-2">{title}</h1>}
+    <div className="flex flex-col border border-base-300 rounded-md p-4 m-2">
+      {title && <h1 className="text-xl font-extrabold p-2">{title}</h1>}
       <div className="flex flex-row flex-wrap gap-4 justify-items-center auto-cols-max">
         {nftList.length > 0 ? (
           <>
@@ -40,7 +40,7 @@ export default function NftList({
               ))}
           </>
         ) : (
-          <p>No nfts</p>
+          <p>No NFTs!</p>
         )}
       </div>
     </div>

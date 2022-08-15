@@ -178,7 +178,9 @@ export async function getBidOrderData(
     let i = 0;
     while (account.heap.items[i].bidPrice > 0) {
       let curItem: BidInterface = account!.heap!.items![i];
-      let curBid = Number(curItem.bidPrice) / LAMPORTS_PER_SOL;
+      let curBid = Number(
+        (Number(curItem.bidPrice) / LAMPORTS_PER_SOL).toFixed(3)
+      );
       if (bids[curItem.bidderPubkey.toString()]) {
         bids[curItem.bidderPubkey.toString()].push(curBid);
       } else {
