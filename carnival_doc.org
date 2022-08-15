@@ -1,4 +1,7 @@
 #+title: Carnival Design Doc
+
+* Questions
+how to store each person's nfts?
 * Overview
 The goal is to make the NFT trading experience more liquid and easy to use
 
@@ -50,6 +53,17 @@ Sudoswap works by displaying a single marketplace for all nfts that belong to a 
 *** Array of best asks
 *** auth
 **** exhibit pubkey
+*** stores
+**** sol
+***** just escrow sol account
+**** TODO nfts
+***** can make multiple smaller accounts (with seeds of pool owner pubkey)
+****** create token accounts for smaller accounts
+****** can allow carnival to own all
+***** Question: how can you tell which LPer owns which NFT
+****** can add delegates, carnival marks owner as delegate but allows them 0 amount, but can keep track
+***** Question: once the potential trades are calulated, how do you pass in the right NFTs
+****** floorbid Heap DLL esque structure, once trade is settled, write to DLL, next transaction actually moves the NFTs
 ** Pair Object
 *** Pool owner
 *** Amount of Sol
