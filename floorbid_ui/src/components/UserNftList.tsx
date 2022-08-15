@@ -99,7 +99,7 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
                               onClick={executeInitCheckoutAndExhibit}
                             >
                               <a href="#" className="btn btn-success">
-                                Deposit {selectedNft.name}
+                                Market Sell {selectedNft.name}
                               </a>
                             </div>
                           </>
