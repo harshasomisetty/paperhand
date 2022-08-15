@@ -24,7 +24,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
     async function fetchData() {
       let fetchedData = await getExhibitAccountData(exhibit, wallet);
       setExhibitData(fetchedData);
-      let allNfts = await getAllExhibitArtifacts(exhibit, connection);
+      let nfts = await getAllExhibitArtifacts(exhibit, connection);
 
       if (await checkIfSwapExists(exhibit, connection)) {
         let mdata = await getMarketData(exhibit, connection);

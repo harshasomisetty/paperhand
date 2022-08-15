@@ -7,7 +7,8 @@
         "@metaplex-foundation/js": "^0.11.1",
         "@project-serum/anchor": "^0.24.2",
         "@solana/spl-token": "^0.2.0",
-        "lodash": "^4.17.21"
+        "lodash": "^4.17.21",
+        "typescript-language-server": "^1.0.0"
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.0",

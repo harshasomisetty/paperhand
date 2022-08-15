@@ -9,7 +9,7 @@ const Navbar = () => {
   return (
     <div className="navbar flex flex-row justify-between border-b border-neutral ">
       <div className="navbar-start">
-        <Link href="/home">
+        <Link href="/">
           <div className="btn btn-ghost normal-case font-bold text-3xl">
             FLOORBID
           </div>

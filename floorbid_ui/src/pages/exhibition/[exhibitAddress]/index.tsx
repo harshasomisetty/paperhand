@@ -2,7 +2,13 @@ import { PublicKey } from "@solana/web3.js";
 import { useState, useEffect, useContext } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import { Metaplex, Nft } from "@metaplex-foundation/js";
+import {
+  bundlrStorage,
+  keypairIdentity,
+  Metaplex,
+  Nft,
+} from "@metaplex-foundation/js";
+
 import {
   TOKEN_PROGRAM_ID,
   getAccount,
@@ -22,6 +28,7 @@ import { UserData } from "@/utils/interfaces";
 import Orderbook from "@/components/Orderbook";
 import NftList from "@/components/NftList";
 import BidCard from "@/components/BidCard";
+import { instructionWithdrawNft } from "@/utils/instructions/exhibition";
 
 const ExploreProjects = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");

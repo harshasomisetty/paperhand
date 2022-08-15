@@ -7,7 +7,7 @@ This allows for an easily determinable floor for people to use.
 *** Exhibition
 Exhibition is vault system that allows NFT owners to deposit their NFTs into an exhibit (an account that relates to a single collection).
 
-Every time a user deposits their NFT, they get a voucher token they can then trade for SOL in the Bazaar
+Every time a user deposits their NFT, they get a voucher token they can then trade for SOL in the Carnival
 *** Shop
 Shop is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 
@@ -18,5 +18,5 @@ The next stage of the project was to implement a floor bid system, where bidders
 This involved storing using commited SOL for buy orders in a heap data structure, allowing functionallity for a seller to come market sell to a buyer, and the buyer being able to come redeem their newly acquired nft.
 
 Checkout thus manages a heap to store user bids, and a DLL to store fulfilled orders
-*** Bazaar
-Bazaar is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
+*** Carnival
+Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap

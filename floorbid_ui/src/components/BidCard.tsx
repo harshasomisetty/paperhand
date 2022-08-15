@@ -114,7 +114,7 @@ const BidCard = ({
 
   async function executeCancelBid() {
     if (exhibitAddress) {
-      console.log("acquire nft");
+      console.log("cancel bid");
       await instructionCancelBid(
         wallet,
         publicKey,
