@@ -52,11 +52,6 @@ pub mod exhibition {
             MyError::ExhibitConstraintViolated
         );
 
-        require!(
-            ctx.accounts.nft_user_token.amount > 0,
-            MyError::UserLacksNFT
-        );
-
         let (_pubkey, bump_seed) = exhibit_pubkey_gen(
             ctx.accounts.nft_metadata.data.creators.as_ref().unwrap(),
             &ctx.accounts.exhibit.exhibit_symbol,
@@ -69,7 +64,7 @@ pub mod exhibition {
             &ctx.accounts.exhibit.exhibit_symbol,
             borrowed_bump,
         );
-        // msg!("pda")
+
         anchor_spl::token::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),

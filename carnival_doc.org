@@ -1,11 +1,62 @@
 #+title: Carnival Design Doc
+* 2 ways of organizing pools
+** can have pdas for each pool
 
+just have incrementing number, have vault for each,, can have indexers later on that make client side much better
+
+jsut have a websocket that listnes to that pool for changes, when chncages, update account info
+** can have all pools in single contract
+
+alright so carnival contract stores 2 arrays of best asks and best bids.
+
+both these offer nodes objects in carnival will just include index, bid/ask price, volume, and other variables needed to calculatue curve costs
+bids and asks will be sorted
+
+There will also be a pda associated with that index, which will include creator pubkey, and more detailed stuff.
+
+
+when people want to trade with a pool, they pass in which account they want to buy or sell from. The account will then resort the buy and sells (by removing and re-adding the offer node in the lists
+
+to evict, the person must pass in all the right accounts associated with the last index (the constraint will be that the last index in the bid/ask array must correspond to the index in the pda account. then the owner int he pda account's ))
+
+
+the benefits is super easy client side, can reconstruct market palces eaiser, etc, essentially orderbook on chain
 * Questions
-how to store each person's nfts?
-* Overview
-The goal is to make the NFT trading experience more liquid and easy to use
+if trying to buy multiple nfts, what if one nft gets bought before? just confused on currency and how other rotocols do it i gess, sudoswap just has slippage essentially buy idk how they did it for specific
+-
 
-Want to replicate as much of the Sudoswap AMM design as possible
+really don't understand the cpi paradigm vs how i'm intereacting with exhbiiton seperately,
+* Flow
+exhibition, has carnival pda
+
+people interact with carnival pda to manage pool state
+pass in list of pools to trade from
+
+after that is done, need to transfer nfts to DLL
+
+then need to have a cron job or autocrank that sends out the transferred nfts properly
+* thots
+exhibiton contract istop of pyramid
+next level, carnival data and exhibit data is simultaneously modified in multiple instructions, instead of a single transaction with a cpi
+
+what are the actual benefits of cpi vs this kind fo splitting up interaction wiht 2 programs in different instructions
+
+How does the frontendf talk to data, hwo does the user get wehre to sne the data
+
+how does sudoswap frontend different and show user hte answer of what hte user wants to get (like is it different when the user just selects his nfts, and if t6he user jsut says swep floor)
+* Next steps
+** think of exhibition carnival and nft ownership model
+** figure out pool mgmt
+* Issues
+** allow multiple pools from people, and distinguish between which pool an nft belongs to
+** how nft collection authentication will work
+*** do i store nfts with exhibition?
+**** if nfts are stored with exhibition, then how does the withdrawing nfts and stuff work?
+*** does carnival rely on exhibition, or does exhibition rely on carnival?
+** have recalculate as a simple function I can call every where
+** How to deposit multiple nfts in single transaction? (or single approval from UI)
+* Overview
+The goal is to make the NFT trading experience more liquid and easy to use, like Sudoswap
 
 Sudoswap works by displaying a single marketplace for all nfts that belong to a collection. The marketplace is an aggregation of several, user-created pools (linear, exponential, and potentially AMM curves) that dictate how trading takes place. Users can provide both NFTs and SOL to allow for LP benefits, or just NFTs and SOL to provide one way trading.
 * Functionality
@@ -24,71 +75,340 @@ Sudoswap works by displaying a single marketplace for all nfts that belong to a 
 *** Allow people to post both sides of market, and collect trade fees
 ** Search across collection
 * Architecture
-** Carnival Functions
-*** initialize_carnival
-**** inits the pool list datastructure
-*** List Pool
-**** insert sol, insert nfts
-**** record pool parameters
-**** calculate bid and asks, insert into lists
-**** insert into pool objects list
-**** Transfer user sol and nft to carnival
-*** SolToNFT
-**** pops askside array to see cheapest prices people are asking for nft
-**** transfers sol from user to carnival
-**** transfer nft from carnival to user
-**** recalcualtes bid and asks
-**** and reinserts into bid/ask arrays
-***** robust swaps so that can only buy if within range
-*** NftToSol
-**** iterates through bid side array to see best prices people are willing to buy for nft
-**** transfers sol and nft, recalcualtes bid and asks, and reinserts into bid/ask arrays
-*** Withdraw Funds
-**** withdraw funds to pool owner
-**** if both ask and buy are empty, delete pool object from list
-**** update bid and ask arrays
 ** Carnival Account
-*** list of Pool Objects
-*** Array of best bids
-*** Array of best asks
-*** auth
-**** exhibit pubkey
-*** stores
-**** sol
-***** just escrow sol account
-**** TODO nfts
+**** nfts
 ***** can make multiple smaller accounts (with seeds of pool owner pubkey)
 ****** create token accounts for smaller accounts
 ****** can allow carnival to own all
-***** Question: how can you tell which LPer owns which NFT
-****** can add delegates, carnival marks owner as delegate but allows them 0 amount, but can keep track
-***** Question: once the potential trades are calulated, how do you pass in the right NFTs
-****** floorbid Heap DLL esque structure, once trade is settled, write to DLL, next transaction actually moves the NFTs
-** Pair Object
-*** Pool owner
-*** Amount of Sol
-*** amount of NFTs and which nfts
-*** curve type
-**** auto calculate prices after insertion of funds
-*** delta
-*** fee
-*** spot price
-** Bid/Ask array node
-*** position in Pool list
-*** actual quote
-** Curve
-*** Types
-[[https://medium.com/linum-labs/intro-to-bonding-curves-and-shapes-bf326bc4e11a][curve details]]
-**** exponenetial
-**** linear
-**** sigmoid
-**** taxation
-*** function that can be plugged into, provided details of cur inventory, delta, fee, etc that can calculate next bid/ask
-* Tasks
-** prototype out contract
-*** function outline
-*** struct outline
-*** pool object
-*** pool list
-*** bid/ask array
-** write out bonding curves
+****** mark nft depoistor as delegates (revoke delgation to make sure delagate value is 0)
+****** After trade is completed, mark trades on DLL structure, once trade is settled, write to DLL, next transaction actually moves the NFTs
+
+* Sudoswap
+
+#+begin_src rust
+
+
+        pair1 = this.setupPair{value: modifyInputAmount(10 ether)}(
+            factory,
+            test721,
+            bondingCurve,
+            payable(address(0)),
+            LSSVMPair.PoolType.TRADE,
+            modifyDelta(0),
+            0,
+            0.1 ether,
+            empty,
+            10 ether,
+            address(router)
+        );
+        for (uint256 j = 0; j < 10; j++) {
+            test721.mint(address(this), nftIndex);
+            test721.safeTransferFrom(address(this), address(pair1), nftIndex);
+            nftIndex++;
+        }
+
+
+#+end_src
+
+#+begin_src rust
+
+    // Test where pair 1 and pair 2 swap tokens for NFT succeed but pair 3 fails
+    function test_robustSwapTokenForAny2NFTs() public {
+        LSSVMRouter.RobustPairSwapAny[]
+            memory swapList = new LSSVMRouter.RobustPairSwapAny[](3);
+        swapList[0] = LSSVMRouter.RobustPairSwapAny({
+            swapInfo: LSSVMRouter.PairSwapAny({pair: pair1, numItems: 2}),
+            maxCost: 0.44 ether
+        });
+        swapList[1] = LSSVMRouter.RobustPairSwapAny({
+            swapInfo: LSSVMRouter.PairSwapAny({pair: pair2, numItems: 2}),
+            maxCost: 0.44 ether
+        });
+        swapList[2] = LSSVMRouter.RobustPairSwapAny({
+            swapInfo: LSSVMRouter.PairSwapAny({pair: pair3, numItems: 2}),
+            maxCost: 0.44 ether
+        });
+
+        uint256 beforeNFTBalance = test721.balanceOf(address(this));
+
+        // Expect to have the first two swapPairs succeed, and the last one silently fail
+        // with 10% protocol fee:
+        // the first swapPair costs 0.22 tokens
+        // the second swapPair costs 0.44 tokens
+        // the third swapPair costs 0.66 tokens
+        uint256 remainingValue = this.robustSwapTokenForAnyNFTs{
+            value: modifyInputAmount(1.32 ether)
+        }(
+            router,
+            swapList,
+            payable(address(this)),
+            address(this),
+            block.timestamp,
+            1.32 ether
+        );
+
+        uint256 afterNFTBalance = test721.balanceOf(address(this));
+
+        // If the first two swap pairs succeed, we pay 0.6 tokens and gain 4 NFTs
+        require(
+            (afterNFTBalance - beforeNFTBalance) == 4,
+            "Incorrect NFT swap"
+        );
+        require(remainingValue == 0.66 ether, "Incorrect refund");
+    }
+
+    // Test where pair 1 and pair 2 swap tokens for NFT succeed but pair 3 fails
+    function test_robustSwapTokenFor2SpecificNFTs() public {
+        uint256[] memory nftIds1 = new uint256[](2);
+        nftIds1[0] = 0;
+        nftIds1[1] = 1;
+
+        uint256[] memory nftIds2 = new uint256[](2);
+        nftIds2[0] = 10;
+        nftIds2[1] = 11;
+
+        uint256[] memory nftIds3 = new uint256[](2);
+        nftIds3[0] = 20;
+        nftIds3[1] = 21;
+
+        LSSVMRouter.RobustPairSwapSpecific[]
+            memory swapList = new LSSVMRouter.RobustPairSwapSpecific[](3);
+        swapList[0] = LSSVMRouter.RobustPairSwapSpecific({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: pair1,
+                nftIds: nftIds1
+            }),
+            maxCost: 0.44 ether
+        });
+        swapList[1] = LSSVMRouter.RobustPairSwapSpecific({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: pair2,
+                nftIds: nftIds2
+            }),
+            maxCost: 0.44 ether
+        });
+        swapList[2] = LSSVMRouter.RobustPairSwapSpecific({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: pair3,
+                nftIds: nftIds3
+            }),
+            maxCost: 0.44 ether
+        });
+
+        uint256 beforeNFTBalance = test721.balanceOf(address(this));
+
+        uint256 remainingValue = this.robustSwapTokenForSpecificNFTs{
+            value: modifyInputAmount(1.32 ether)
+        }(
+            router,
+            swapList,
+            payable(address(this)),
+            address(this),
+            block.timestamp,
+            1.32 ether
+        );
+
+        uint256 afterNFTBalance = test721.balanceOf(address(this));
+
+        // If the first two swap pairs succeed, we pay 0.6 eth and gain 4 NFTs
+        require(
+            (afterNFTBalance - beforeNFTBalance) == 4,
+            "Incorrect NFT swap"
+        );
+        require(remainingValue == 0.66 ether, "Incorrect ETH refund");
+    }
+
+#+end_src
+
+#+begin_src rust
+    function swapTokenForAnyNFTs(
+        uint256 numNFTs,
+        uint256 maxExpectedTokenInput,
+        address nftRecipient,
+        bool isRouter,
+        address routerCaller
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
+        // Store locally to remove extra calls
+        ILSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+        IERC721 _nft = nft();
+
+        // Input validation
+        {
+            PoolType _poolType = poolType();
+            require(
+                _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+            require(
+                (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
+                "Ask for > 0 and <= balanceOf NFTs"
+            );
+        }
+
+        // Call bonding curve for pricing information
+        uint256 protocolFee;
+        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(
+            numNFTs,
+            maxExpectedTokenInput,
+            _bondingCurve,
+            _factory
+        );
+
+        _pullTokenInputAndPayProtocolFee(
+            inputAmount,
+            isRouter,
+            routerCaller,
+            _factory,
+            protocolFee
+        );
+
+        _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
+
+        _refundTokenToSender(inputAmount);
+
+        emit SwapNFTOutPair();
+    }
+
+    function swapTokenForSpecificNFTs(
+        uint256[] calldata nftIds,
+        uint256 maxExpectedTokenInput,
+        address nftRecipient,
+        bool isRouter,
+        address routerCaller
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
+        // Store locally to remove extra calls
+        ILSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+
+        // Input validation
+        {
+            PoolType _poolType = poolType();
+            require(
+                _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+            require((nftIds.length > 0), "Must ask for > 0 NFTs");
+        }
+
+        // Call bonding curve for pricing information
+        uint256 protocolFee;
+        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(
+            nftIds.length,
+            maxExpectedTokenInput,
+            _bondingCurve,
+            _factory
+        );
+
+        _pullTokenInputAndPayProtocolFee(
+            inputAmount,
+            isRouter,
+            routerCaller,
+            _factory,
+            protocolFee
+        );
+
+        _sendSpecificNFTsToRecipient(nft(), nftRecipient, nftIds);
+
+        _refundTokenToSender(inputAmount);
+
+        emit SwapNFTOutPair();
+    }
+
+
+#+end_src
+
+
+#+begin_src rust
+    function _swapETHForAnyNFTs(
+        PairSwapAny[] calldata swapList,
+        uint256 inputAmount,
+        address payable ethRecipient,
+        address nftRecipient
+    ) internal returns (uint256 remainingValue) {
+        remainingValue = inputAmount;
+
+        uint256 pairCost;
+        CurveErrorCodes.Error error;
+
+        // Do swaps
+        uint256 numSwaps = swapList.length;
+        for (uint256 i; i < numSwaps; ) {
+            // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
+            (error, , , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+                swapList[i].numItems
+            );
+
+            // Require no error
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Total ETH taken from sender cannot exceed inputAmount
+            // because otherwise the deduction from remainingValue will fail
+            remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
+                value: pairCost
+            }(
+                swapList[i].numItems,
+                remainingValue,
+                nftRecipient,
+                true,
+                msg.sender
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Return remaining value to sender
+        if (remainingValue > 0) {
+            ethRecipient.safeTransferETH(remainingValue);
+        }
+    }
+
+    function _swapETHForSpecificNFTs(
+        PairSwapSpecific[] calldata swapList,
+        uint256 inputAmount,
+        address payable ethRecipient,
+        address nftRecipient
+    ) internal returns (uint256 remainingValue) {
+        remainingValue = inputAmount;
+
+        uint256 pairCost;
+        CurveErrorCodes.Error error;
+
+        // Do swaps
+        uint256 numSwaps = swapList.length;
+        for (uint256 i; i < numSwaps; ) {
+            // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
+            (error, , , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+                swapList[i].nftIds.length
+            );
+
+            // Require no errors
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Total ETH taken from sender cannot exceed inputAmount
+            // because otherwise the deduction from remainingValue will fail
+            remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
+                value: pairCost
+            }(
+                swapList[i].nftIds,
+                remainingValue,
+                nftRecipient,
+                true,
+                msg.sender
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Return remaining value to sender
+        if (remainingValue > 0) {
+            ethRecipient.safeTransferETH(remainingValue);
+        }
+    }
+
+
+#+end_src

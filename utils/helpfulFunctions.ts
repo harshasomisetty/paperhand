@@ -27,3 +27,11 @@ export async function airdropAll(
     );
   }
 }
+
+export async function tryCatchWrap(fn) {
+  try {
+    return await fn;
+  } catch (err) {
+    console.log("Error", err);
+  }
+}
