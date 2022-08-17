@@ -62,6 +62,9 @@ export let SHOP_PROGRAM_ID = new PublicKey(Shop["metadata"]["address"]);
 const Checkout = require("../target/idl/checkout.json");
 export let CHECKOUT_PROGRAM_ID = new PublicKey(Checkout["metadata"]["address"]);
 
+const Carnival = require("../target/idl/carnival.json");
+export let CARNIVAL_PROGRAM_ID = new PublicKey(Carnival["metadata"]["address"]);
+
 export let APE_URLS: string[] = [
   "https://arweave.net/cDIEJDoklWxqjgGxpO0_usU6EYl3ZhFhS9lr2LRJz3I",
   "https://arweave.net/yqsiQlGL8p5TZu8hUI370TMMBtjBjgnGArH1SqkLfXo",

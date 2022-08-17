@@ -79,7 +79,7 @@ describe("exhibition", () => {
         exhibit: exhibit,
         voucherMint: voucherMint,
         nftMetadata: nft.metadataAccount.publicKey,
-        creator: creator.publicKey,
+        signer: creator.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
@@ -102,7 +102,7 @@ describe("exhibition", () => {
         exhibit: exhibit,
         voucherMint: voucherMint,
         nftMetadata: nft.metadataAccount.publicKey,
-        creator: creator.publicKey,
+        signer: creator.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
@@ -153,7 +153,7 @@ describe("exhibition", () => {
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
-        user: users[0].publicKey,
+        signer: users[0].publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -173,6 +173,12 @@ describe("exhibition", () => {
     );
 
     let postNftArtifactBal = await getAccount(provider.connection, nftArtifact);
+
+    printAndTest(
+      users[0].publicKey.toString(),
+      postNftArtifactBal.delegate.toString(),
+      "delegates test"
+    );
 
     let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
 
@@ -217,7 +223,7 @@ describe("exhibition", () => {
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount.address,
         nftArtifact: nftArtifact,
-        user: users[1].publicKey,
+        signer: users[1].publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -256,7 +262,7 @@ describe("exhibition", () => {
           nftMetadata: nft.metadataAccount.publicKey,
           nftUserToken: nftUserTokenAccount.address,
           nftArtifact: nftArtifact,
-          user: users[0].publicKey,
+          signer: users[0].publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
         })

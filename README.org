@@ -5,9 +5,11 @@ NFTAMM is a system that allows people to fungitize their NFTs, and trade these v
 This allows for an easily determinable floor for people to use.
 * Architecture
 *** Exhibition
-Exhibition is vault system that allows NFT owners to deposit their NFTs into an exhibit (an account that relates to a single collection).
+Exhibition is a Collection identification system. It creates PDAs hashed from the verified creators of a nft, and associates all other NFTs with the same identification system as the same collection.
 
-Every time a user deposits their NFT, they get a voucher token they can then trade for SOL in the Carnival
+In the future, the collection identification can happen through (Hyperspace way, and one other way)
+
+Exhibition also ties in a vault accounting system that allows users to deposit NFTs of the same collection, and receive a "voucher" token back (each representing an NFT)
 *** Shop
 Shop is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 

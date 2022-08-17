@@ -7,11 +7,10 @@ import {
   SHOP_PROGRAM_ID,
   EXHIBITION_PROGRAM_ID,
   CHECKOUT_PROGRAM_ID,
+  CARNIVAL_PROGRAM_ID,
 } from "../utils/constants";
 
-export async function getNftDerivedAddresses(
-  nft: Nft
-): Promise<{
+export async function getNftDerivedAddresses(nft: Nft): Promise<{
   exhibit: PublicKey;
   voucherMint: PublicKey;
   nftArtifact: PublicKey;
@@ -134,4 +133,28 @@ export async function getCheckoutAccounts(exhibit: PublicKey): Promise<{
     escrowSol,
     escrowVoucher,
   };
+}
+
+export async function getCarnivalAccounts(exhibit: PublicKey): Promise<{
+  carnival: PublicKey;
+  carnivalAuth: PublicKey;
+  carnivalAuthBump: number;
+  escrowSol: PublicKey;
+}> {
+  let [carnival] = await PublicKey.findProgramAddress(
+    [Buffer.from("carnival"), exhibit.toBuffer()],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  let [carnivalAuth, carnivalAuthBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("carnival_auth"), carnival.toBuffer()],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  let [escrowSol] = await PublicKey.findProgramAddress(
+    [Buffer.from("escrow_sol"), carnival.toBuffer()],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  return { carnival, carnivalAuth, carnivalAuthBump, escrowSol };
 }
