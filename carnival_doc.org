@@ -1,4 +1,8 @@
 #+title: Carnival Design Doc
+* 2.5 hours
+fucking finish contract and tests tn
+
+first steps is propertly defining functions
 
 * Next steps
 ** Pool NFT mgmt

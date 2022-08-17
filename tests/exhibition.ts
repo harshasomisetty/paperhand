@@ -296,10 +296,6 @@ describe("exhibition", () => {
     let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
     // ALL initialized exhibits
-    let allExhibitAccounts = await connection.getProgramAccounts(
-      EXHIBITION_PROGRAM_ID
-    );
-
     let allArtifactAccounts = await connection.getTokenAccountsByOwner(
       exhibit,
       {

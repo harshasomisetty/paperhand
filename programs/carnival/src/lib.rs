@@ -13,20 +13,16 @@ pub mod state;
 use state::curve::CurveType;
 
 pub mod utils;
-// use crate::utils::{
-//     creator_single_seed, exhibit_pubkey_gen, exhibit_pubkey_seeds, exhibit_pubkey_verify,
-// };
+// use crate::utils::{ creator_single_seed };
 
 declare_id!("4mSuHN8AW1z7Y4NFpS4jDc6DvNxur6qH8mbPMz5oHLiS");
 
 #[program]
 pub mod carnival {
+
     use super::*;
 
     pub fn initialize_carnival(ctx: Context<InitializeCarnival>) -> Result<()> {
-        // Init pool structure
-        // Init bid structure
-        // Init ask structure
         Ok(())
     }
 
@@ -55,8 +51,6 @@ pub mod carnival {
         sol_to_deposit: u64,
         carnival_auth_bump: u8,
     ) -> Result<()> {
-        // Pop node from array
-
         invoke(
             &system_instruction::transfer(
                 ctx.accounts.signer.to_account_info().key,
@@ -70,17 +64,10 @@ pub mod carnival {
             ],
         );
 
-        // recalculate pool offers and type
-
-        // insert pool into correct array
-
         Ok(())
     }
 
     pub fn deposit_nft(ctx: Context<DepositNft>, carnival_auth_bump: u8) -> Result<()> {
-        // pop node from array
-
-        // 2) Deposit NFT through exhibit
         anchor_spl::token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -93,9 +80,6 @@ pub mod carnival {
             1,
         )?;
 
-        // 3) Update pool object value
-        // 4) Insert Pool into correct Array
-
         Ok(())
     }
 
@@ -103,12 +87,40 @@ pub mod carnival {
         // If specific, find pools nft belongs to
         // If any, loop through pools to find cheapest price
 
-        // transfer sol from user to carnival
+        // invoke(
+        //     &system_instruction::transfer(
+        //         ctx.accounts.signer.to_account_info().key,
+        //         ctx.accounts.escrow_sol.to_account_info().key,
+        //         sol_to_deposit,
+        //     ),
+        //     &[
+        //         ctx.accounts.signer.to_account_info(),
+        //         ctx.accounts.escrow_sol.to_account_info(),
+        //         ctx.accounts.system_program.to_account_info(),
+        //     ],
+        // );
+
         // transfer nft from carnival to user (or to escrow dll structure?)
+
+        // anchor_spl::token::transfer(
+        //     CpiContext::new_with_signer(
+        //         ctx.accounts.token_program.to_account_info(),
+        //         anchor_spl::token::Transfer {
+        //             from: ctx.accounts.escrow_voucher.to_account_info(),
+        //             to: ctx.accounts.order_voucher.to_account_info(),
+        //             authority: ctx.accounts.checkout_auth.to_account_info(),
+        //         },
+        //         &[&[
+        //             b"checkout_auth",
+        //             ctx.accounts.exhibit.to_account_info().key.as_ref(),
+        //             &[checkout_auth_bump],
+        //         ]],
+        //     ),
+        //     1,
+        // )?;
 
         // recalculate bids and asks
 
-        // TODO consider if I need an generic function
         // TODO robust swaps so that trade only happens if enough sol?
         Ok(())
     }

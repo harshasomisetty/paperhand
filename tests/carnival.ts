@@ -28,6 +28,7 @@ import {
 } from "../utils/accountDerivation";
 // import { getCheckoutAccounts } from "../utils/accountDerivation";
 import { checkIfAccountExists } from "../utils/actions";
+import { carnivalDepositNft } from "../utils/carnival_actions";
 import { otherCreators, creator, users } from "../utils/constants";
 import { mintNFTs } from "../utils/createNFTs";
 import {
@@ -110,7 +111,7 @@ describe("carnival", () => {
     );
   });
 
-  it("Made 2 sided market", async () => {
+  it("Made all markets", async () => {
     // console.log("nft list", nftList);
     let solAmt = 2 * LAMPORTS_PER_SOL;
 
@@ -143,47 +144,19 @@ describe("carnival", () => {
     }
 
     for (let nft of nftTransferList) {
-      let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-
-      let [nftArtifact] = await PublicKey.findProgramAddress(
-        [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-        Carnival.programId
-      );
-
-      let { carnival, carnivalAuth, carnivalAuthBump } =
-        await getCarnivalAccounts(exhibit);
-
-      let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        users[0],
-        nft.mint,
-        users[0].publicKey
-      );
-
       transaction = transaction.add(
-        Carnival.methods.depositNft(carnivalAuthBump).accounts({
-          exhibit: exhibit,
-          carnival: carnival,
-          carnivalAuth: carnivalAuth,
-          nftMint: nft.mint,
-          nftMetadata: nft.metadataAccount.publicKey,
-          nftUserToken: nftUserTokenAccount.address,
-          nftArtifact: nftArtifact,
-          signer: users[0].publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        })
+        await carnivalDepositNft(connection, nft, users[0].publicKey)
       );
-      let postNftArtifact = await getAccount(provider.connection, nftArtifact);
-      printAndTest(Number(postNftArtifact.amount), 1);
     }
+
+    let signature = await sendAndConfirmTransaction(connection, transaction, [
+      users[0],
+    ]);
+    await connection.confirmTransaction(signature, "confirmed");
+
+    let postNftArtifact = await getAccount(provider.connection, nftArtifact);
+    printAndTest(Number(postNftArtifact.amount), 1);
   });
-
-  // it("Made bid side market (only Sol)", async () => {});
-
-  // it("Made ask side market (only nfts)", async () => {});
 
   // it("Buy Specific NFTs", async () => {});
 

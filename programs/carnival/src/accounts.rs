@@ -30,8 +30,5 @@ pub struct Quote {
 #[derive(Default)]
 #[repr(C)]
 pub struct CarnivalAccount {
-    pub pairs: [Quote; MAX_ARRAY_SIZE as usize],
-    pub bids: [Quote; MAX_ARRAY_SIZE as usize],
-    pub asks: [Quote; MAX_ARRAY_SIZE as usize],
     pub pool_id_count: u8,
 }
