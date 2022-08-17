@@ -22,7 +22,10 @@ import {
 } from "@solana/web3.js";
 import { Carnival } from "../target/types/carnival";
 import { Exhibition } from "../target/types/exhibition";
-import { getNftDerivedAddresses } from "../utils/accountDerivation";
+import {
+  getCarnivalAccounts,
+  getNftDerivedAddresses,
+} from "../utils/accountDerivation";
 // import { getCheckoutAccounts } from "../utils/accountDerivation";
 import { checkIfAccountExists } from "../utils/actions";
 import { otherCreators, creator, users } from "../utils/constants";
@@ -45,15 +48,13 @@ const metaplex = Metaplex.make(provider.connection).use(
 );
 
 describe("carnival", () => {
-  let airdropVal = 20 * LAMPORTS_PER_SOL;
+  let airdropVal = 60 * LAMPORTS_PER_SOL;
 
   let mintCollectionCount = 1;
   let mintNftCount = 10;
 
   let nftList: Nft[][] = Array(mintNftCount);
 
-  let carnivalKeypair: Keypair = Keypair.generate();
-  let carnival: PublicKey = carnivalKeypair.publicKey;
   before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, ...otherCreators, ...users];
 
@@ -77,21 +78,21 @@ describe("carnival", () => {
       Carnival.programId
     );
 
-    let [carnivalAuth, carnivalAuthBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("carnival_auth"), carnival.toBuffer()],
-      Carnival.programId
-    );
-
-    let [escrowSol] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow_sol"), exhibit.toBuffer()],
-      Carnival.programId
-    );
+    let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+      await getCarnivalAccounts(exhibit);
 
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
       users[0],
       nft.mint,
       users[0].publicKey
+    );
+    console.log(
+      exhibit.toString(),
+      carnival.toString(),
+      carnivalAuth.toString(),
+      escrowSol.toString(),
+      users[0].publicKey.toString()
     );
     await tryCatchWrap(
       Carnival.methods
@@ -109,38 +110,61 @@ describe("carnival", () => {
     );
   });
 
-  it("Change NFT auth", async () => {
-    console.log("nft list", nftList);
-    let nft = nftList[0][0];
+  it("Made 2 sided market", async () => {
+    // console.log("nft list", nftList);
+    let solAmt = 2 * LAMPORTS_PER_SOL;
 
-    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+    let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
 
-    let [nftArtifact] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-      Carnival.programId
-    );
+    let transaction = new Transaction();
 
-    let [carnivalAuth, carnivalAuthBump] = await PublicKey.findProgramAddress(
-      [Buffer.from("carnival_auth"), carnival.toBuffer()],
-      Carnival.programId
-    );
+    if (solAmt > 0) {
+      let nft = nftTransferList[0];
+      let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
-    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      users[0],
-      nft.mint,
-      users[0].publicKey
-    );
+      let [nftArtifact] = await PublicKey.findProgramAddress(
+        [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
+        Carnival.programId
+      );
 
-    await tryCatchWrap(
-      Carnival.methods
-        .depositNft(carnivalAuthBump)
-        .accounts({
+      let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+        await getCarnivalAccounts(exhibit);
+
+      transaction = transaction.add(
+        Carnival.methods.depositSol(carnivalAuthBump).accounts({
           exhibit: exhibit,
           carnival: carnival,
           carnivalAuth: carnivalAuth,
-          // voucherMint: voucherMint,
-          // userVoucherWallet: userVoucherWallet[0],
+          escrowSol: escrowSol,
+          signer: users[0].publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+      );
+    }
+
+    for (let nft of nftTransferList) {
+      let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+
+      let [nftArtifact] = await PublicKey.findProgramAddress(
+        [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
+        Carnival.programId
+      );
+
+      let { carnival, carnivalAuth, carnivalAuthBump } =
+        await getCarnivalAccounts(exhibit);
+
+      let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        users[0],
+        nft.mint,
+        users[0].publicKey
+      );
+
+      transaction = transaction.add(
+        Carnival.methods.depositNft(carnivalAuthBump).accounts({
+          exhibit: exhibit,
+          carnival: carnival,
+          carnivalAuth: carnivalAuth,
           nftMint: nft.mint,
           nftMetadata: nft.metadataAccount.publicKey,
           nftUserToken: nftUserTokenAccount.address,
@@ -151,21 +175,11 @@ describe("carnival", () => {
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .signers([users[0]])
-        .rpc()
-    );
-
-    let postNftArtifact = await getAccount(provider.connection, nftArtifact);
-    printAndTest(Number(postNftArtifact.amount), 1);
-    printAndTest(
-      users[0].publicKey.toString(),
-      postNftArtifact.delegate.toString()
-    );
+      );
+      let postNftArtifact = await getAccount(provider.connection, nftArtifact);
+      printAndTest(Number(postNftArtifact.amount), 1);
+    }
   });
-
-  // it("Made 2 sided market", async () => {
-  //   // check delegates
-  // });
 
   // it("Made bid side market (only Sol)", async () => {});
 
