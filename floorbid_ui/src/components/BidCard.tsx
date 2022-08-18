@@ -139,8 +139,8 @@ const BidCard = ({
       <div className="card-body space-y-7">
         <div className="flex flex-row w-full justify-evenly">
           <button
-            className={`btn btn-outline
-e btn-success ${!bidSide && "opacity-50"}`}
+            className={`btn
+e btn-success ${!bidSide && "btn-outline"}`}
             onClick={() => {
               setBidSide(true);
             }}
@@ -148,7 +148,7 @@ e btn-success ${!bidSide && "opacity-50"}`}
             Buy NFT
           </button>
           <button
-            className={`btn btn-outline btn-error ${bidSide && "opacity-50"}`}
+            className={`btn btn-error ${bidSide && "btn-outline"}`}
             onClick={() => {
               setBidSide(false);
             }}
