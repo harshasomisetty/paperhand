@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 
 use solana_program;
-use solana_program::{account_info::AccountInfo, program::invoke, system_instruction};
+use solana_program::{account_info::AccountInfo, program::{invoke, invoke_signed}, system_instruction};
 
 use exhibition::program::Exhibition;
 use exhibition::{self, Exhibit};
@@ -70,13 +70,13 @@ pub mod checkout {
         Ok(())
     }
 
-    pub fn cancel_bid(ctx: Context<CancelBid>) -> Result<()> {
+    pub fn cancel_bid(ctx: Context<CancelBid>, order_id: u64) -> Result<()> {
         let bidder = &ctx.accounts.bidder;
 
         let mut heap = ctx.accounts.bid_orders.load_mut()?;
 
         // Need a clever way to somehow know the bid price after the let mut heap declaration
-        let bid_price_sol = heap.heap.cancel_bid(bidder.key());
+        let bid_price_sol = heap.heap.cancel_bid(bidder.key(), order_id);
 
         **ctx
             .accounts
@@ -90,7 +90,7 @@ pub mod checkout {
         Ok(())
     }
 
-    pub fn bid_floor(ctx: Context<BidFloor>) -> Result<()> {
+    pub fn sell_to_floor(ctx: Context<BidFloor>) -> Result<()> {
         msg!("in set_data pubkey");
 
         let mut heap = ctx.accounts.bid_orders.load_mut()?;
@@ -389,4 +389,6 @@ pub struct BidOrders {
 
 #[account]
 #[derive(Default)]
-pub struct SolWallet {}
+pub struct SolWallet {
+    pub bump: u8,
+}

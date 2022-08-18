@@ -211,7 +211,7 @@ describe("checkout", () => {
     let preUserBal = await connection.getBalance(users[0].publicKey);
 
     let tx = await Checkout.methods
-      .bidFloor()
+      .sellToFloor()
       .accounts({
         exhibit: exhibit,
         matchedOrders: matchedOrders,
@@ -299,7 +299,7 @@ describe("checkout", () => {
     console.log("user 1", users[1].publicKey.toString());
 
     const cancel_tx = await Checkout.methods
-      .cancelBid()
+      .cancelBid(new BN(0))
       .accounts({
         exhibit: exhibit,
         bidOrders: bidOrders,
