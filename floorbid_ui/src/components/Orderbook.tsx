@@ -117,9 +117,9 @@ const Orderbook = () => {
     return <p>Loading data</p>;
   }
   return (
-    <>
-      <div className="flex flex-col items-center place-content-start space-y m-4">
-        <p className="text-lg font-bold">Bids</p>
+    <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
+      <div className="card-body space-y-7 items-center">
+        <h2 className="card-title">Bids</h2>
         <div className="relative h-80 w-40">
           <Bar
             options={options}
@@ -138,7 +138,7 @@ const Orderbook = () => {
           />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
