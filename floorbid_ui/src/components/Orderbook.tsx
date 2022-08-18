@@ -75,15 +75,15 @@ const Orderbook = () => {
     async function fetchData() {
       let exhibit = new PublicKey(exhibitAddress!);
 
-      let { labels, values, bids } = await getBidOrderData(
+      let { prices, size, bids } = await getBidOrderData(
         exhibit,
         connection,
         wallet
       );
 
       // let formattedLabels = labels.map((element) => "$" + element.toString());
-      setLabels(labels);
-      setOrderbook(values);
+      setLabels(prices);
+      setOrderbook(size);
 
       let labColors = [];
       let normalColor = "rgba(75, 192, 192, .2)"; // green
@@ -93,15 +93,15 @@ const Orderbook = () => {
       if (publicKey && bids[publicKey.toString()]) {
         let userOrders = bids[publicKey.toString()];
 
-        for (let i = 0; i < labels.length; i++) {
-          if (userOrders.includes(labels[i])) {
+        for (let i = 0; i < prices.length; i++) {
+          if (userOrders.includes(prices[i])) {
             labColors.push(userColor);
           } else {
             labColors.push(normalColor);
           }
         }
       } else {
-        for (let i = 0; i < labels.length; i++) {
+        for (let i = 0; i < prices.length; i++) {
           labColors.push(normalColor);
         }
       }

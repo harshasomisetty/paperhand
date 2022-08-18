@@ -98,7 +98,11 @@ const ExploreProjects = () => {
           <div className="grid grid-cols-2">
             <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
               {userData ? (
-                <BidCard bidSide={bidSide} setBidSide={setBidSide} />
+                <BidCard
+                  bidSide={bidSide}
+                  setBidSide={setBidSide}
+                  userNftList={userNftList}
+                />
               ) : (
                 <p>Loading market data</p>
               )}

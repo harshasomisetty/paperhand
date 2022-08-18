@@ -160,16 +160,16 @@ export async function getBidOrderData(
   connection: Connection,
   wallet: Wallet
 ): Promise<{
-  labels: number[];
-  values: number[];
+  prices: number[];
+  size: number[];
   bids: { [key: string]: number[] };
 }> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
   let { bidOrders } = await getCheckoutAccounts(exhibit);
 
-  let labels: number[] = [];
-  let values: number[] = [];
+  let prices: number[] = [];
+  let size: number[] = [];
 
   let bids: { [key: string]: number[] } = {};
 
@@ -205,18 +205,19 @@ export async function getBidOrderData(
     let tempLabels = Object.keys(orderbookData);
 
     for (let i = 0; i < tempLabels.length; i++) {
-      labels.push(Number(tempLabels[i]));
+      prices.push(Number(tempLabels[i]));
     }
 
-    labels = labels.sort((a, b) => b - a);
+    prices = prices.sort((a, b) => b - a);
 
     let curVal = 0;
-    for (let lab of labels) {
+    for (let lab of prices) {
       curVal += orderbookData[lab];
-      values.push(curVal);
+      size.push(curVal);
     }
   }
-  return { labels, values, bids };
+  // labels are prices, values are size, bids are bids by user
+  return { prices, size, bids };
 }
 
 export async function getMatchedOrdersAccountData(
@@ -235,7 +236,7 @@ export async function getMatchedOrdersAccountData(
 export async function getFilledOrdersList(
   matchedStorage: PublicKey,
   wallet: Wallet
-) {
+): Promise<Record<string, number>> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
   let matchedStorageInfo = await getMatchedOrdersAccountData(
@@ -248,10 +249,9 @@ export async function getFilledOrdersList(
     matchedOrders
   );
 
-  let orderFilled = {};
+  let orderFilled: Record<string, number> = {};
   for (let order of matchedOrdersInfo.trades.orders) {
-    let tempPubkey = order.val;
-    // console.log("bid", tempBid);
+    let tempPubkey: string = order.val.toString();
     if (tempPubkey in orderFilled) {
       orderFilled[tempPubkey]++;
     } else {

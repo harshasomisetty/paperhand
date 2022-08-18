@@ -26,21 +26,25 @@ import { getCheckoutAccounts } from "@/utils/accountDerivation";
 const BidCard = ({
   bidSide,
   setBidSide,
+  userNftList,
 }: {
   bidSide: boolean;
   setBidSide: () => {};
+  userNftList: Nft[];
 }) => {
-  const { wallet, publicKey, signTransaction, sendTransaction } = useWallet();
+  const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
 
   const [bidValue, setBidValue] = useState(0);
   const [userSol, setUserSol] = useState(0);
   const [userVoucher, setUserVoucher] = useState(0);
   const { exhibitAddress } = router.query;
-  const [floorBid, setFloorBid] = useState(0);
+  const [sellSlider, setSellSlider] = useState(0);
+  const [allPrices, setAllPrices] = useState<number[]>([]);
 
   let exhibit = new PublicKey(exhibitAddress);
-  const { chosenNfts, chooseNft, setChosenNfts } = useContext(NftContext);
+  const { chosenNfts, chooseNft, clearNfts, addNft, removeNft } =
+    useContext(NftContext);
 
   useEffect(() => {
     async function fetchData() {
@@ -54,11 +58,9 @@ const BidCard = ({
         publicKey
       );
 
-      let { labels } = await getBidOrderData(exhibit, connection, wallet);
+      let { prices } = await getBidOrderData(exhibit, connection, wallet);
 
-      if (labels[0]) {
-        setFloorBid(labels[0]);
-      }
+      setAllPrices(prices);
 
       let uVoucher = 0;
       if (await checkIfAccountExists(userVoucherWallet, connection)) {
@@ -66,9 +68,13 @@ const BidCard = ({
           (await getAccount(connection, userVoucherWallet)).amount
         );
       }
-      let orderFilled = await getFilledOrdersList(matchedStorage, wallet);
+      let orderFilled: Record<string, number> = await getFilledOrdersList(
+        matchedStorage,
+        wallet
+      );
 
-      setUserVoucher(uVoucher + orderFilled[publicKey]);
+      // console.log("order filled", orderFilled);
+      setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
     }
     if (wallet && publicKey) {
       fetchData();
@@ -139,7 +145,7 @@ const BidCard = ({
             }`}
             onClick={() => {
               setBidSide(true);
-              setChosenNfts({});
+              clearNfts();
             }}
           >
             Buy NFT
@@ -148,7 +154,7 @@ const BidCard = ({
             className={`btn btn-ghost ${!bidSide && "border-error text-error"}`}
             onClick={() => {
               setBidSide(false);
-              setChosenNfts({});
+              clearNfts();
             }}
           >
             Sell NFT
@@ -204,11 +210,48 @@ const BidCard = ({
           <div className="flex flex-col space-y-7">
             <div className="shadow flex flex-row items-center">
               <div className="stat">
-                <div className="stat-title">Floor Bid Price</div>
-                <div className="stat-value">{floorBid} SOL</div>
-                <div className="stat-desc">Sol Received for Market Selling</div>
+                <div className="stat-title">
+                  Market Sell {Object.keys(chosenNfts).length} NFTs
+                </div>
+                <div className="stat-value text-success">
+                  +{" "}
+                  {allPrices
+                    .slice(0, Object.keys(chosenNfts).length)
+                    .reduce((a, b) => a + b, 0)}{" "}
+                  SOL
+                </div>
               </div>
             </div>
+            <input
+              type="range"
+              min={0}
+              max={userNftList.length}
+              value={sellSlider}
+              className="range range-sm"
+              onChange={(e) => {
+                let eNum = Number(e.target.value);
+
+                if (eNum > sellSlider) {
+                  eNum = sellSlider + 1;
+                } else if (eNum < sellSlider) {
+                  eNum = sellSlider - 1;
+                } else {
+                  return;
+                }
+
+                if (eNum > sellSlider) {
+                  if (!chosenNfts[userNftList[eNum - 1].mint.toString()]) {
+                    addNft(userNftList[eNum - 1]);
+                  }
+                  setSellSlider(eNum);
+                } else if (eNum < sellSlider) {
+                  if (chosenNfts[userNftList[eNum].mint.toString()]) {
+                    removeNft(userNftList[eNum]);
+                  }
+                  setSellSlider(eNum);
+                }
+              }}
+            />
             {chosenNfts ? (
               <button className="btn btn-error" onClick={executeBidFloor}>
                 Market Sell

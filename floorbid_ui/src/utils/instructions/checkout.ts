@@ -372,9 +372,12 @@ export async function instructionAcquireNft(
         (await getAccount(connection, userVoucherWallet)).amount
       );
     }
-    let orderFilled = await getFilledOrdersList(matchedStorage, wallet);
+    let orderFilled: Record<string, number> = await getFilledOrdersList(
+      matchedStorage,
+      wallet
+    );
 
-    totalVouchers = currentVouchers + orderFilled[publicKey];
+    totalVouchers = currentVouchers + orderFilled[publicKey.toString()];
 
     if (totalVouchers == 0) {
       console.log("not enough vouchers");
