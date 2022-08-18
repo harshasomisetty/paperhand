@@ -39,7 +39,9 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full space-y-4 ">
       <div className="grid m-4">
-        <h2 className="text-2xl font-extrabold m-2 mb-4">Explore Exhibits</h2>
+        <h2 className="text-2xl font-extrabold m-2 mb-4">
+          Explore Collections
+        </h2>
         {publicKey ? (
           <div>
             {exhibits.length > 0 ? (
@@ -56,7 +58,7 @@ export default function Home() {
       <div className="divider divide-neutral"></div>
 
       <div className="grid m-4">
-        <h2 className="text-2xl font-extrabold m-2 mb-4">Deposit NFTs</h2>
+        <h2 className="text-2xl font-extrabold m-2 mb-4">Your NFTs</h2>
         {publicKey ? (
           <>
             <NftProvider>

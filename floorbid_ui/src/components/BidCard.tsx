@@ -30,7 +30,7 @@ const BidCard = ({
   bidSide: boolean;
   setBidSide: () => {};
 }) => {
-  const { wallet, publicKey, signTransaction } = useWallet();
+  const { wallet, publicKey, signTransaction, sendTransaction } = useWallet();
   const { connection } = useConnection();
 
   const [bidValue, setBidValue] = useState(0);
@@ -75,6 +75,7 @@ const BidCard = ({
     }
   }, [wallet, publicKey]);
 
+  // TODO place multiple bids
   async function executePlaceBid() {
     console.log("placing bid");
     if (exhibitAddress) {
@@ -87,7 +88,7 @@ const BidCard = ({
         connection
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   async function executeBidFloor() {
@@ -102,7 +103,7 @@ const BidCard = ({
         chosenNfts
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   async function executeAcquireNft() {
@@ -123,13 +124,7 @@ const BidCard = ({
   async function executeCancelBid() {
     if (exhibitAddress) {
       console.log("cancel bid");
-      await instructionCancelBid(
-        wallet,
-        publicKey,
-        exhibit,
-        signTransaction,
-        connection
-      );
+      await instructionCancelBid(wallet, publicKey, exhibit, connection);
     }
     router.reload(window.location.pathname);
   }

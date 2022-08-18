@@ -8,6 +8,7 @@ import {
   getExhibitAccountData,
 } from "@/utils/retrieveData";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import DisplayImages from "./DisplayImages";
 
 export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitData, setExhibitData] = useState();
@@ -24,7 +25,6 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
       let images = await getAllNftImages(nfts);
       setExhibitImages(images);
     }
-
     fetchData();
   }, [wallet]);
 
@@ -32,13 +32,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
     <div className="card card-compact w-60 bg-base-300 shadow-xl">
       {exhibitData && (
         <div className="card-body">
-          {exhibitImages && (
-            <div className="stack">
-              {exhibitImages.map((image: string, ind) => (
-                <img src={image} key={ind} />
-              ))}
-            </div>
-          )}
+          <DisplayImages images={exhibitImages} />
           <div className="card-title">{exhibitData.exhibitSymbol} Exhibit</div>
           <Link href={"/exhibition/" + exhibit.toString()}>
             <button className="btn btn-primary">View Exhibit</button>

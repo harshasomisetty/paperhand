@@ -7,6 +7,7 @@ import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
+import DisplayImages from "./DisplayImages";
 
 export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
   const { selectedNft } = useContext(NftContext);
@@ -67,13 +68,7 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
                 className="card card-compact w-52 shadow-xl h-fit bg-base-300"
                 key={ind}
               >
-                {nftColPics && (
-                  <div className="stack ">
-                    {nftColPics[nftSymbol].map((image: string) => (
-                      <img src={image} alt={nftSymbol} key={image} />
-                    ))}
-                  </div>
-                )}
+                {nftColPics && <DisplayImages images={nftColPics[nftSymbol]} />}
                 <div className="card-body">
                   <button
                     className="btn btn-primary"

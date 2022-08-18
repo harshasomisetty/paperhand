@@ -17,6 +17,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [nftList, setNftList] = useState<Nft[]>([]);
   const [marketData, setMarketData] = useState<MarketData>();
   const [exhibitImages, setExhibitImages] = useState([]);
+  const [displayImage, setDisplayImage] = useState(0);
   const { connection } = useConnection();
   const { wallet } = useWallet();
 
@@ -38,6 +39,14 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
 
     fetchData();
   }, [wallet]);
+
+  setInterval(() => {
+    if (displayImage < exhibitImages.length - 1) {
+      setDisplayImage(displayImage + 1);
+    } else {
+      setDisplayImage(0);
+    }
+  }, 1000);
 
   return (
     <div className="card card-compact w-60 bg-base-300 shadow-xl">
