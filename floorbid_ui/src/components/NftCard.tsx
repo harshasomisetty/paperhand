@@ -15,18 +15,20 @@ export default function NftCard({
   exhibitKey,
   index,
 }: NftCardProps) {
-  const { selectedNft, setSelectedNft } = useContext(NftContext);
+  const { chosenNfts, chooseNft, setChosenNfts } = useContext(NftContext);
 
   return (
     <div
       className={`card card-compact w-40 bg-base-300 cursor-pointer shadow-xl border-transparent hover:border-4 ${
-        selectedNft && selectedNft.mint.toString() === nft.mint.toString()
-          ? "border-4 border-primary-focus "
+        chosenNfts[nft.mint.toString()]
+          ? "border-4 border-primary-focus"
           : "opacity-75"
-      }`}
+      }
+
+`}
       onClick={() => {
         console.log("nft index: ", index);
-        setSelectedNft(nft);
+        chooseNft(nft);
       }}
     >
       {nftImage ? (

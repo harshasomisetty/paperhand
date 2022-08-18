@@ -40,7 +40,7 @@ const BidCard = ({
   const [floorBid, setFloorBid] = useState(0);
 
   let exhibit = new PublicKey(exhibitAddress);
-  const { selectedNft, setSelectedNft } = useContext(NftContext);
+  const { chosenNfts, chooseNft, setChosenNfts } = useContext(NftContext);
 
   useEffect(() => {
     async function fetchData() {
@@ -99,7 +99,7 @@ const BidCard = ({
         exhibit,
         signTransaction,
         connection,
-        selectedNft
+        chosenNfts
       );
     }
     router.reload(window.location.pathname);
@@ -114,7 +114,7 @@ const BidCard = ({
         exhibit,
         signTransaction,
         connection,
-        selectedNft
+        chosenNfts
       );
     }
     router.reload(window.location.pathname);
@@ -143,6 +143,7 @@ const BidCard = ({
 e btn-success ${!bidSide && "btn-outline"}`}
             onClick={() => {
               setBidSide(true);
+              setChosenNfts({});
             }}
           >
             Buy NFT
@@ -151,6 +152,7 @@ e btn-success ${!bidSide && "btn-outline"}`}
             className={`btn btn-error ${bidSide && "btn-outline"}`}
             onClick={() => {
               setBidSide(false);
+              setChosenNfts({});
             }}
           >
             Sell NFT
@@ -208,7 +210,7 @@ e btn-success ${!bidSide && "btn-outline"}`}
                 <div className="stat-desc">Sol Received for Market Selling</div>
               </div>
             </div>
-            {selectedNft ? (
+            {chosenNfts ? (
               <button className="btn btn-error" onClick={executeBidFloor}>
                 Market Sell
               </button>

@@ -1,49 +1,43 @@
 import { Nft } from "@metaplex-foundation/js";
 import { PublicKey } from "@solana/web3.js";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 interface NftContextInterface {
-  selectedNft: Nft | null;
-  setSelectedNftPubkey: () => void;
+  chosenNfts: Record<string, Nft>;
+  chooseNft: (pickedNft: Nft) => void;
 }
+
 export const NftContext = createContext<NftContextInterface>({
-  // nftPubkey: PublicKey | null,
-  selectedNft: null,
-  setSelectedNft: () => {},
+  chosenNfts: {},
+  chooseNft: (pickedNft: Nft) => {},
 });
 
 export const useNftContext = () => useContext(NftContext);
 
 export const NftProvider = ({ children }) => {
-  const [selectedNft, setSelectedNft] = useState<Nft>();
+  const [chosenNfts, setChosenNfts] = useState<Record<string, Nft>>({});
 
-  const value = useMemo(() => ({ selectedNft, setSelectedNft }), [selectedNft]);
+  function chooseNft(pickedNft: Nft) {
+    let oldChosen = { ...chosenNfts };
+    if (oldChosen[pickedNft.mint.toString()]) {
+      delete oldChosen[pickedNft.mint.toString()];
+    } else {
+      oldChosen[pickedNft.mint.toString()] = pickedNft;
+    }
+    setChosenNfts(oldChosen);
+  }
 
-  return <NftContext.Provider value={value}>{children}</NftContext.Provider>;
+  return (
+    <NftContext.Provider value={{ chosenNfts, chooseNft, setChosenNfts }}>
+      {children}
+    </NftContext.Provider>
+  );
 };
-
-// import { Nft } from "@metaplex-foundation/js";
-// import { PublicKey } from "@solana/web3.js";
-
-// import { createContext, useContext, useMemo, useState } from "react";
-
-// interface NftContextInterface {
-//   selectedNft: Record<string, Nft> | null;
-//   setSelectedNftPubkey: () => void;
-// }
-// export const NftContext = createContext<NftContextInterface>({
-//   // nftPubkey: PublicKey | null,
-//   selectedNft: null,
-//   setSelectedNft: () => {},
-// });
-
-// export const useNftContext = () => useContext(NftContext);
-
-// export const NftProvider = ({ children }) => {
-//   const [selectedNft, setSelectedNft] = useState<Record<string, Nft>>();
-
-//   const value = useMemo(() => ({ selectedNft, setSelectedNft }), [selectedNft]);
-
-//   return <NftContext.Provider value={value}>{children}</NftContext.Provider>;
-// };
