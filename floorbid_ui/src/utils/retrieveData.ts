@@ -64,8 +64,9 @@ export async function getAllNftImages(nfts: Nft[]): Promise<string[]> {
 
 export async function checkIfAccountExists(
   account: PublicKey,
-  connection: Connection
+  connection
 ): Promise<boolean> {
+  // console.log("connection print", connection);
   let bal = await connection.getBalance(account);
   if (bal > 0) {
     return true;

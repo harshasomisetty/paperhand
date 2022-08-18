@@ -132,10 +132,11 @@ const BidCard = ({
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <div className="card-body space-y-7">
-        <div className="flex flex-row w-full justify-evenly">
+        <div className="btn-group justify-center">
           <button
-            className={`btn
-e btn-success ${!bidSide && "btn-outline"}`}
+            className={`btn btn-ghost ${
+              bidSide && "border-success text-success"
+            }`}
             onClick={() => {
               setBidSide(true);
               setChosenNfts({});
@@ -144,7 +145,7 @@ e btn-success ${!bidSide && "btn-outline"}`}
             Buy NFT
           </button>
           <button
-            className={`btn btn-error ${bidSide && "btn-outline"}`}
+            className={`btn btn-ghost ${!bidSide && "border-error text-error"}`}
             onClick={() => {
               setBidSide(false);
               setChosenNfts({});
@@ -156,19 +157,14 @@ e btn-success ${!bidSide && "btn-outline"}`}
 
         {bidSide ? (
           <div className="flex flex-col space-y-7">
-            <input
-              type="range"
-              min={0}
-              max={userSol}
-              value={bidValue}
-              className="range range-sm"
-              onChange={(e) => setBidValue(e.target.value)}
-            />
             <div className="shadow flex flex-row items-center">
               <div className="stat">
-                <div className="stat-title">Place Bid for</div>
+                <div className="stat-title">Price</div>
                 <div className="stat-value">
                   {(bidValue / LAMPORTS_PER_SOL).toFixed(2)} SOL
+                </div>
+                <div className="stat-desc">
+                  Sol Balance: {(userSol / LAMPORTS_PER_SOL).toFixed(2)}
                 </div>
               </div>
               <div className="flex flex-col space-y-2">
@@ -180,6 +176,14 @@ e btn-success ${!bidSide && "btn-outline"}`}
                 </button>
               </div>
             </div>
+            <input
+              type="range"
+              min={0}
+              max={userSol}
+              value={bidValue}
+              className="range range-sm"
+              onChange={(e) => setBidValue(e.target.value)}
+            />
             {userVoucher > 0 ? (
               <>
                 <button

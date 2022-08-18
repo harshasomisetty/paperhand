@@ -46,15 +46,11 @@ async function manualSendTransaction(
     await connection.getRecentBlockhash("finalized")
   ).blockhash;
 
-  // let simulate = await connection.simulateTransaction(transaction);
-  // console.log("siulate", simulate);
-
   if (otherSigner) {
     transaction.sign(otherSigner);
   }
 
   transaction = await signTransaction(transaction);
-
   const rawTransaction = transaction.serialize();
 
   let signature = await connection.sendRawTransaction(rawTransaction);
@@ -92,7 +88,7 @@ export async function instructionInitCheckoutExhibit(
         exhibit: exhibit,
         voucherMint: voucherMint,
         nftMetadata: nft.metadataAccount.publicKey,
-        user: publicKey,
+        signer: publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
@@ -222,6 +218,7 @@ export async function instructionBidFloor(
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
+  console.log("chosen nfts", chosenNfts);
   let {
     voucherMint,
     matchedStorage,
