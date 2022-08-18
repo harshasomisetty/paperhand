@@ -25,12 +25,16 @@ import { getAllExhibitArtifacts } from "../floorbid_ui/src/utils/retrieveData";
 
 export async function getPoolNfts(
   connection: Connection,
-  nft: Nft,
-  publicKey: PublicKey
+  exhibit: PublicKey,
+  poolKey: PublicKey
 ): Promise<Nft[]> {
-  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+  let allArtifactAccounts = (
+    await connection.getTokenAccountsByOwner(exhibit, {
+      programId: TOKEN_PROGRAM_ID,
+    })
+  ).value;
 
-  getAllExhibitArtifacts(exhibit, connection);
+  let poolNfts = [];
 
   return;
 }

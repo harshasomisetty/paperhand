@@ -256,7 +256,6 @@ export async function instructionBidFloor(
   }
 
   if (nft) {
-    console.log("in nft adding");
     let [nftArtifact] = await PublicKey.findProgramAddress(
       [Buffer.from("nft_artifact"), exhibit!.toBuffer(), nft.mint.toBuffer()],
       EXHIBITION_PROGRAM_ID
@@ -288,6 +287,7 @@ export async function instructionBidFloor(
     transaction = transaction.add(insert_nft_tx);
   }
 
+  console.log("bid floor");
   let bid_floor_tx = await Checkout.methods
     .bidFloor()
     .accounts({

@@ -6,8 +6,8 @@ use exhibition::state::metaplex_anchor::TokenMetadata;
 use solana_program;
 use solana_program::{account_info::AccountInfo, program::invoke, system_instruction};
 
-mod accounts;
-use accounts::{CarnivalAccount, Pool};
+// mod accounts;
+// use accounts::{CarnivalAccount, Pool};
 
 pub mod state;
 use state::curve::CurveType;
@@ -198,6 +198,7 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
 }
 
 #[derive(Accounts)]
+#[instruction(pool_id: u8, carnival_auth_bump: u8)]
 pub struct InitializePool<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -335,4 +336,34 @@ pub struct EvictSol<'info> {
 pub struct EvictNfts<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
+}
+
+#[constant]
+pub const MAX_ARRAY_SIZE: u64 = 32;
+
+#[account]
+#[derive(Default)]
+#[repr(C)]
+pub struct Pool {
+    pub pool_id: u8,
+    pub creator: Pubkey,
+    pub sol: u64,
+    pub nfts: u64,
+    pub curve: CurveType,
+    pub delta: u8,
+    pub fee: u8,
+}
+
+#[derive(Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
+pub struct Quote {
+    pool_id: u8,
+    bid: u64,
+    ask: u64,
+}
+
+#[account]
+#[derive(Default)]
+#[repr(C)]
+pub struct CarnivalAccount {
+    pub pool_id_count: u8,
 }

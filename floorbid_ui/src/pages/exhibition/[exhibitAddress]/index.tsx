@@ -57,6 +57,7 @@ const ExploreProjects = () => {
         exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
         let allNfts = await getAllExhibitArtifacts(exhibit, connection);
+        console.log("getting nfts", allNfts);
         setExhibitNftList(allNfts);
         let uData = await getUserData(exhibit, publicKey, connection);
         setUserData(uData);

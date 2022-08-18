@@ -209,8 +209,10 @@ export async function getBidOrderData(
 
     labels = labels.sort((a, b) => b - a);
 
+    let curVal = 0;
     for (let lab of labels) {
-      values.push(orderbookData[lab]);
+      curVal += orderbookData[lab];
+      values.push(curVal);
     }
   }
   return { labels, values, bids };

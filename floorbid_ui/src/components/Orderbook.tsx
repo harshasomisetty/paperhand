@@ -38,12 +38,23 @@ export const options = {
   scales: {
     x: {
       grid: {
+        display: false,
+      },
+      title: {
         display: true,
+        text: "Size",
+        maxRotation: 90,
+        minRotation: 90,
       },
     },
     y: {
       grid: {
         display: false,
+        color: "rgba(75, 192, 192, 1)",
+      },
+      ticks: {
+        mirror: true,
+        color: "rgba(2, 199, 122, 1)",
       },
     },
   },
@@ -68,12 +79,14 @@ const Orderbook = () => {
         wallet
       );
 
+      // let formattedLabels = labels.map((element) => "$" + element.toString());
       setLabels(labels);
       setOrderbook(values);
 
       let labColors = [];
-      let normalColor = "rgba(75, 192, 192, .5)"; // green
-      let userColor = "rgba(54, 162, 235, .5)"; // Blue
+      let normalColor = "rgba(75, 192, 192, .2)"; // green
+      let userColor = "rgba(75, 192, 192, .2)"; // green
+      // let userColor = "rgba(54, 162, 235, .3)"; // Blue
 
       if (publicKey && bids[publicKey.toString()]) {
         let userOrders = bids[publicKey.toString()];
@@ -114,7 +127,8 @@ const Orderbook = () => {
                 data: orderbook,
                 backgroundColor: labelColors,
                 barPercentage: 1.0,
-                categoryPercentage: 1.0,
+                minBarLength: 10,
+                categoryPercentage: 1,
               },
             ],
           }}
