@@ -29,7 +29,8 @@ ChartJS.register(
 export const options = {
   indexAxis: "y" as const,
   elements: {},
-  responsive: true,
+  // responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       display: false,
@@ -42,7 +43,7 @@ export const options = {
       },
       title: {
         display: true,
-        text: "Size",
+        text: "Bid Size(NFT)",
         maxRotation: 90,
         minRotation: 90,
       },
@@ -60,6 +61,7 @@ export const options = {
   },
 };
 
+// TODO Update orderbook to table
 const Orderbook = () => {
   const [orderbook, setOrderbook] = useState();
   const [labels, setLabels] = useState();
@@ -116,26 +118,25 @@ const Orderbook = () => {
   }
   return (
     <>
-      <div className="flex flex-col items-center place-content-start space-y-4 m-4">
-        <p className="text-lg font-bold">Orderbook</p>
-        <Bar
-          options={options}
-          data={{
-            labels,
-            datasets: [
-              {
-                data: orderbook,
-                backgroundColor: labelColors,
-                barPercentage: 1.0,
-                minBarLength: 10,
-                categoryPercentage: 1,
-              },
-            ],
-          }}
-        />
-        {/* {orderbook.map((order: BidInterface) => ( */}
-        {/*   <p>{Number(order.bidPrice) / LAMPORTS_PER_SOL}</p> */}
-        {/* ))} */}
+      <div className="flex flex-col items-center place-content-start space-y m-4">
+        <p className="text-lg font-bold">Bids</p>
+        <div className="relative h-80 w-40">
+          <Bar
+            options={options}
+            data={{
+              labels,
+              datasets: [
+                {
+                  data: orderbook,
+                  backgroundColor: labelColors,
+                  barPercentage: 1.0,
+                  minBarLength: 10,
+                  categoryPercentage: 1,
+                },
+              ],
+            }}
+          />
+        </div>
       </div>
     </>
   );
