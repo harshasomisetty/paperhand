@@ -1,6 +1,7 @@
 import { Nft } from "@metaplex-foundation/js";
 import { Program } from "@project-serum/anchor";
 import {
+  AccountInfo,
   Connection,
   PublicKey,
   SystemProgram,
@@ -16,6 +17,7 @@ import { CARNIVAL_PROGRAM_ID } from "./constants";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
 import { otherCreators, creator, users } from "../utils/constants";
 import {
+  Account,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
@@ -23,10 +25,10 @@ import {
 } from "@solana/spl-token";
 import { getAllExhibitArtifacts } from "../floorbid_ui/src/utils/retrieveData";
 
-export async function getPoolNfts(
+export async function getMarketNfts(
   connection: Connection,
   exhibit: PublicKey,
-  poolKey: PublicKey
+  marketKey: PublicKey
 ): Promise<Nft[]> {
   let allArtifactAccounts = (
     await connection.getTokenAccountsByOwner(exhibit, {
@@ -34,7 +36,26 @@ export async function getPoolNfts(
     })
   ).value;
 
-  let poolNfts = [];
+  let marketNfts = [];
 
   return;
+}
+
+export async function getAllMarkets(
+  connection: Connection,
+  exhibit: PublicKey
+): Promise<
+  Array<{
+    pubkey: PublicKey;
+    account: AccountInfo<Buffer>;
+  }>
+> {
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+    await getCarnivalAccounts(exhibit);
+
+  let allMarketAccounts = await connection.getTokenAccountsByOwner(carnival, {
+    programId: TOKEN_PROGRAM_ID,
+  });
+
+  return allMarketAccounts;
 }

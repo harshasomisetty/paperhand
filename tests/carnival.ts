@@ -28,8 +28,17 @@ import {
 } from "../utils/accountDerivation";
 // import { getCheckoutAccounts } from "../utils/accountDerivation";
 import { checkIfAccountExists } from "../utils/actions";
-import { carnivalDepositNft } from "../utils/carnival_actions";
-import { otherCreators, creator, users } from "../utils/constants";
+import {
+  carnivalDepositNft,
+  createCarnival,
+  createCarnivalMarket,
+} from "../utils/carnival_actions";
+import {
+  otherCreators,
+  creator,
+  users,
+  CARNIVAL_PROGRAM_ID,
+} from "../utils/constants";
 import { mintNFTs } from "../utils/createNFTs";
 import {
   airdropAll,
@@ -73,41 +82,27 @@ describe("carnival", () => {
     let nft = nftList[0][0];
 
     let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+    let { carnival } = await getCarnivalAccounts(exhibit);
 
-    let [nftArtifact] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-      Carnival.programId
-    );
+    tryCatchWrap(await createCarnival(connection, exhibit, users[0].publicKey));
 
-    let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
-      await getCarnivalAccounts(exhibit);
-
-    let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
+    let transaction = await createCarnival(
       connection,
-      users[0],
-      nft.mint,
+      exhibit,
       users[0].publicKey
     );
-    console.log(
-      exhibit.toString(),
-      carnival.toString(),
-      carnivalAuth.toString(),
-      escrowSol.toString(),
-      users[0].publicKey.toString()
+
+    tryCatchWrap(
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+        "confirmed"
+      )
     );
-    await tryCatchWrap(
-      Carnival.methods
-        .initializeCarnival()
-        .accounts({
-          exhibit: exhibit,
-          carnival: carnival,
-          carnivalAuth: carnivalAuth,
-          escrowSol: escrowSol,
-          signer: users[0].publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([users[0]])
-        .rpc()
+
+    printAndTest(
+      await checkIfAccountExists(carnival, connection),
+      true,
+      "check carnival exists"
     );
   });
 
@@ -115,47 +110,62 @@ describe("carnival", () => {
     // console.log("nft list", nftList);
     let solAmt = 2 * LAMPORTS_PER_SOL;
 
-    let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
+    let nftTransferList = [];
+    // let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nftList[0][0]);
 
-    let transaction = new Transaction();
+    let marketId = 0;
+    let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
 
-    if (solAmt > 0) {
-      let nft = nftTransferList[0];
-      let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+    let [market] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("market"),
+        carnival.toBuffer(),
+        new BN(marketId).toArrayLike(Buffer, "le", 8),
+      ],
+      CARNIVAL_PROGRAM_ID
+    );
 
-      let [nftArtifact] = await PublicKey.findProgramAddress(
-        [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-        Carnival.programId
+    let transaction = await createCarnivalMarket(
+      connection,
+      users[0].publicKey,
+      exhibit,
+      nftTransferList,
+      solAmt
+    );
+
+    console.log("got back transaction", transaction);
+
+    try {
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+        "confirmed"
       );
-
-      let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
-        await getCarnivalAccounts(exhibit);
-
-      transaction = transaction.add(
-        Carnival.methods.depositSol(carnivalAuthBump).accounts({
-          exhibit: exhibit,
-          carnival: carnival,
-          carnivalAuth: carnivalAuth,
-          escrowSol: escrowSol,
-          signer: users[0].publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-      );
+    } catch (error) {
+      console.log("creating carnival", error);
     }
 
-    for (let nft of nftTransferList) {
-      transaction = transaction.add(
-        await carnivalDepositNft(connection, nft, users[0].publicKey)
-      );
-    }
+    printAndTest(
+      await checkIfAccountExists(market, connection),
+      true,
+      "market created"
+    );
 
-    let signature = await sendAndConfirmTransaction(connection, transaction, [
-      users[0],
-    ]);
-    await connection.confirmTransaction(signature, "confirmed");
+    let escrowBal = await connection.getBalance(escrowSol);
 
-    let postNftArtifact = await getAccount(provider.connection, nftArtifact);
-    printAndTest(Number(postNftArtifact.amount), 1);
+    printAndTest(regSol(escrowBal), regSol(solAmt), "Escrow Bal");
+
+    // let [nftArtifact] = await PublicKey.findProgramAddress(
+    //   [
+    //     Buffer.from("nft_artifact"),
+    //     exhibit.toBuffer(),
+    //     nftTransferList[0].mint.toBuffer(),
+    //   ],
+    //   Carnival.programId
+    // );
+
+    // let postNftArtifact = await getAccount(provider.connection, nftArtifact);
+    // printAndTest(Number(postNftArtifact.amount), 1);
   });
 
   // it("Buy Specific NFTs", async () => {});
@@ -164,5 +174,8 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  // it("Withdraw Funds (close pool)", async () => {});
+  // it("Withdraw Funds (close market)", async () => {});
+  Carnival.provider.connection.onLogs("all", ({ logs }) => {
+    console.log(logs);
+  });
 });

@@ -1,22 +1,12 @@
 #+title: Carnival Design Doc
-* 2.5 hours
-fucking finish contract and tests tn
-
-first steps is propertly defining functions
-
 * Next steps
-** Pool NFT mgmt
-*** allow users to start a pool, insert in 5 nfts at once, some sol
-*** make sure only the pool can withdraw these nfts (during trade, evict, etc)
-*** need to be able to easily query which nfts belong to which pool,
-*** need to be able to query what pools are all available, and what pools a person has
-** which pools own which nfts
-*** pools are defined by person, can choose to make new pool or add to existing pool
-can define restriction that only when signed by a program, can an nft be withdrawn. like if true, then change delgate (probably to carnival auth, so then onlywhent he program interacts from carnival and does cpi, nft can be removed from pool), if false don't change delegate
+** which markets own which nfts
+*** markets are defined by person, can choose to make new market or add to existing market
+can define restriction that only when signed by a program, can an nft be withdrawn. like if true, then change delgate (probably to carnival auth, so then onlywhent he program interacts from carnival and does cpi, nft can be removed from market), if false don't change delegate
 
 in withdraw function specifically, need to add a program signer option, such that users  can't trade in their voucher for a delegate locked nft.
-** implement pool mgmt
-*** can have all pools in single contract
+** implement market mgmt
+*** can have all markets in single contract
 alright so carnival contract stores 2 arrays of best asks and best bids.
 
 both these offer nodes objects in carnival will just include index, bid/ask price, volume, and other variables needed to calculatue curve costs
@@ -25,25 +15,25 @@ bids and asks will be sorted
 There will also be a pda associated with that index, which will include creator pubkey, and more detailed stuff.
 
 
-when people want to trade with a pool, they pass in which account they want to buy or sell from. The account will then resort the buy and sells (by removing and re-adding the offer node in the lists
+when people want to trade with a market, they pass in which account they want to buy or sell from. The account will then resort the buy and sells (by removing and re-adding the offer node in the lists
 
 to evict, the person must pass in all the right accounts associated with the last index (the constraint will be that the last index in the bid/ask array must correspond to the index in the pda account. then the owner int he pda account's ))
 
 
 the benefits is super easy client side, can reconstruct market palces eaiser, etc, essentially orderbook on chain
-*** make pool objects, and the lists that keep track of sorted
+*** make market objects, and the lists that keep track of sorted
 **** if too many then evict first
-***** evict is first call evict_sol, then bunch of evict_nfts, then try to delete pool from quote lists
+***** evict is first call evict_sol, then bunch of evict_nfts, then try to delete market from quote lists
 * abilities
-** to see all existing pools, can look thoguh carnival pool list, and pda using pool index into pool metadata (creator, seeds to sign as pda, etc)
-** to see all a pools a user has created, still do get multiple accounts, filter by owner
-** to see all the nfts in a pool, can query all the accounts owned by exhibition, then look though delegates, if delegates exist, then a pool owns
-** to withdraw nfts from the pool, the nft's deleate is checed with the pool's pubkey, if the pool has singed, only then be able to withdraw
+** to see all existing markets, can look thoguh carnival market list, and pda using market index into market metadata (creator, seeds to sign as pda, etc)
+** to see all a markets a user has created, still do get multiple accounts, filter by owner
+** to see all the nfts in a market, can query all the accounts owned by exhibition, then look though delegates, if delegates exist, then a market owns
+** to withdraw nfts from the market, the nft's deleate is checed with the market's pubkey, if the market has singed, only then be able to withdraw
 
 * Overview
 The goal is to make the NFT trading experience more liquid and easy to use, like Sudoswap
 
-Sudoswap works by displaying a single marketplace for all nfts that belong to a collection. The marketplace is an aggregation of several, user-created pools (linear, exponential, and potentially AMM curves) that dictate how trading takes place. Users can provide both NFTs and SOL to allow for LP benefits, or just NFTs and SOL to provide one way trading.
+Sudoswap works by displaying a single marketplace for all nfts that belong to a collection. The marketplace is an aggregation of several, user-created markets (linear, exponential, and potentially AMM curves) that dictate how trading takes place. Users can provide both NFTs and SOL to allow for LP benefits, or just NFTs and SOL to provide one way trading.
 * Functionality
 ** Get NFT
 *** OFFER (Floorbid) (make collection Offer in sudo)
@@ -62,7 +52,7 @@ Sudoswap works by displaying a single marketplace for all nfts that belong to a 
 * Architecture
 ** Carnival Account
 **** nfts
-***** can make multiple smaller accounts (with seeds of pool owner pubkey)
+***** can make multiple smaller accounts (with seeds of market owner pubkey)
 ****** create token accounts for smaller accounts
 ****** can allow carnival to own all
 ****** mark nft depoistor as delegates (revoke delgation to make sure delagate value is 0)

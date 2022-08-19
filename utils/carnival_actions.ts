@@ -1,5 +1,5 @@
 import { Nft } from "@metaplex-foundation/js";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import {
   Connection,
   PublicKey,
@@ -21,6 +21,44 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+
+export async function createCarnival(
+  connection: Connection,
+  exhibit: PublicKey,
+  publicKey: PublicKey
+): Promise<Transaction> {
+  let provider = await getProvider("http://localhost:8899", creator);
+  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+
+  let transaction = new Transaction();
+
+  console.log("after start tx");
+
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+    await getCarnivalAccounts(exhibit);
+  console.log("after carnival account");
+
+  if (!(await checkIfAccountExists(carnival, connection))) {
+    console.log(" carnival no exist");
+    let initCarnTx = await Carnival.methods
+      .initializeCarnival()
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        escrowSol: escrowSol,
+        signer: users[0].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(initCarnTx);
+
+    console.log("added tx");
+  }
+
+  return transaction;
+}
 
 export async function carnivalDepositNft(
   connection: Connection,
@@ -80,4 +118,88 @@ export async function carnivalDepositNft(
     .transaction();
 
   return transaction.add(depositTx);
+}
+
+export async function createCarnivalMarket(
+  connection: Connection,
+  publicKey: PublicKey,
+  exhibit: PublicKey,
+  nfts: Nft[],
+  solAmt: number
+): Promise<Transaction> {
+  let provider = await getProvider("http://localhost:8899", creator);
+  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+
+  let transaction = new Transaction();
+
+  console.log("exhibit", exhibit.toString());
+  let marketId = 0;
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+    await getCarnivalAccounts(exhibit, marketId);
+
+  // make market
+
+  console.log(
+    "trying to prit market",
+    new BN(marketId).toArrayLike(Buffer, "le", 8)
+  );
+  let [market] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("market"),
+      carnival.toBuffer(),
+      new BN(marketId).toArrayLike(Buffer, "le", 8),
+    ],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  if (!(await checkIfAccountExists(market, connection))) {
+    console.log("market no exist");
+    let initMarketTx = await Carnival.methods
+      .initializeMarket(users[0].publicKey, new BN(marketId), 0, 1, 1)
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        market: market,
+        signer: users[0].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(initMarketTx);
+
+    console.log("added tx");
+  } else {
+    console.log("market exists");
+  }
+
+  // deposit sol
+  if (solAmt > 0) {
+    console.log("in depo sol section");
+    console.log("market", market.toString());
+    let depoSolTx = await Carnival.methods
+      .depositSol(new BN(marketId), new BN(solAmt), carnivalAuthBump)
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        market: market,
+        escrowSol: escrowSol,
+        signer: users[0].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(depoSolTx);
+    console.log("added depo tx");
+  }
+
+  // deposit NFTs
+  // for (let nft of nfts) {
+  //   transaction = transaction.add(
+  //     await carnivalDepositNft(connection, nft, users[0].publicKey)
+  //   );
+  // }
+
+  return transaction;
 }

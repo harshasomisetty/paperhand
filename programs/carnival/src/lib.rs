@@ -7,13 +7,12 @@ use solana_program;
 use solana_program::{account_info::AccountInfo, program::invoke, system_instruction};
 
 // mod accounts;
-// use accounts::{CarnivalAccount, Pool};
+// use accounts::{CarnivalAccount, Market};
 
 pub mod state;
 use state::curve::CurveType;
 
 pub mod utils;
-// use crate::utils::{ creator_single_seed };
 
 declare_id!("4mSuHN8AW1z7Y4NFpS4jDc6DvNxur6qH8mbPMz5oHLiS");
 
@@ -26,31 +25,41 @@ pub mod carnival {
         Ok(())
     }
 
-    pub fn initialize_pool(
-        ctx: Context<InitializePool>,
-        creator: Pubkey,
-        curve: CurveType,
+    pub fn initialize_market(
+        ctx: Context<InitializeMarket>,
+        market_owner: Pubkey,
+        market_id: u64,
+        curve: u8,
         delta: u8,
         fee: u8,
     ) -> Result<()> {
-        let mut pool = &mut ctx.accounts.pool;
+        let mut market = &mut ctx.accounts.market;
 
-        pool.pool_id = ctx.accounts.carnival.pool_id_count;
-        pool.creator = creator;
-        pool.curve = curve;
-        pool.delta = delta;
-        pool.fee = fee;
+        msg!("in init market");
+        assert_eq!(market_id, ctx.accounts.carnival.market_id_count);
+        msg!("asserted eq ");
 
-        ctx.accounts.carnival.pool_id_count = ctx.accounts.carnival.pool_id_count + 1;
+        // market.market_id = ctx.accounts.carnival.market_id_count;
+        // market.market_owner = market_owner;
+        // market.curve = match curve {
+        //     0 => CurveType::Linear,
+        //     _ => CurveType::Exponential,
+        // };
+
+        // market.delta = delta;
+        // market.fee = fee;
+
+        // ctx.accounts.carnival.market_id_count = ctx.accounts.carnival.market_id_count + 1;
         Ok(())
     }
 
     pub fn deposit_sol(
         ctx: Context<DepositSol>,
-        pool_id: u8,
+        market_id: u64,
         sol_to_deposit: u64,
         carnival_auth_bump: u8,
     ) -> Result<()> {
+        msg!("in dpepo sol");
         invoke(
             &system_instruction::transfer(
                 ctx.accounts.signer.to_account_info().key,
@@ -67,7 +76,11 @@ pub mod carnival {
         Ok(())
     }
 
-    pub fn deposit_nft(ctx: Context<DepositNft>, carnival_auth_bump: u8) -> Result<()> {
+    pub fn deposit_nft(
+        ctx: Context<DepositNft>,
+        market_id: u64,
+        carnival_auth_bump: u8,
+    ) -> Result<()> {
         anchor_spl::token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -80,12 +93,14 @@ pub mod carnival {
             1,
         )?;
 
+        // TODO cpi into exhibition
+
         Ok(())
     }
 
     pub fn trade_sol(ctx: Context<TradeSol>) -> Result<()> {
-        // If specific, find pools nft belongs to
-        // If any, loop through pools to find cheapest price
+        // If specific, find markets nft belongs to
+        // If any, loop through markets to find cheapest price
 
         // invoke(
         //     &system_instruction::transfer(
@@ -131,32 +146,32 @@ pub mod carnival {
 
     pub fn withdraw_sol(ctx: Context<WithdrawSol>) -> Result<()> {
         // Withdraw sol to user
-        // If both sides are empty of assets, delete pool objects
+        // If both sides are empty of assets, delete market objects
         // Update quote structures
         Ok(())
     }
 
     pub fn withdraw_nfts(ctx: Context<WithdrawNfts>) -> Result<()> {
         // Withdraw sol to user
-        // If both sides are empty of assets, delete pool objects
+        // If both sides are empty of assets, delete market objects
         // Update quote structures
         Ok(())
     }
 
-    // Eviction policy. can only insert new pool.s if the total pool lenght is less than the max. if over the max, need to make srue that the worst pool on the bid side or ask side is
-    // should mark the pool as evicted so no one can add to it anymore. Then move out all the NFTs and sol in one transaction. In loop so all the nfts are moved.
+    // Eviction policy. can only insert new market.s if the total market lenght is less than the max. if over the max, need to make srue that the worst market on the bid side or ask side is
+    // should mark the market as evicted so no one can add to it anymore. Then move out all the NFTs and sol in one transaction. In loop so all the nfts are moved.
     //
     // then in the offer arrays, need to pop
     pub fn evict_sol(ctx: Context<EvictSol>) -> Result<()> {
         // Evict sol to user
-        // If both sides are empty of assets, delete pool objects
+        // If both sides are empty of assets, delete market objects
         // Update quote structures
         Ok(())
     }
 
     pub fn evict_nfts(ctx: Context<EvictNfts>) -> Result<()> {
         // Evict sol to user
-        // If both sides are empty of assets, delete pool objects
+        // If both sides are empty of assets, delete market objects
         // Update quote structures
         Ok(())
     }
@@ -198,8 +213,8 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
 }
 
 #[derive(Accounts)]
-#[instruction(pool_id: u8, carnival_auth_bump: u8)]
-pub struct InitializePool<'info> {
+#[instruction(market_owner: Pubkey, market_id: u64, curve: u8, delta: u8, fee: u8)]
+pub struct InitializeMarket<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 
@@ -217,11 +232,11 @@ pub struct InitializePool<'info> {
     #[account(
         init,
         payer = signer,
-        space = std::mem::size_of::<CarnivalAccount>() + 8,
-        seeds = [b"carnival", carnival.key().as_ref(), &[pool_id]],
+        space = std::mem::size_of::<Market>() + 8,
+        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub pool: Account<'info, Pool>,
+    pub market: Account<'info, Market>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -230,7 +245,7 @@ pub struct InitializePool<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(pool_id: u8, carnival_auth_bump: u8)]
+#[instruction(market_id: u64, sol_to_deposit: u64, carnival_auth_bump: u8)]
 pub struct DepositSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -239,15 +254,15 @@ pub struct DepositSol<'info> {
     pub carnival: Account<'info, CarnivalAccount>,
 
     /// CHECK: auth only needs to sign for stuff, no metadata
-    #[account(mut, seeds = [b"carnival_auth", carnival.key().as_ref()], bump=carnival_auth_bump)]
+    #[account(mut, seeds = [b"carnival_auth", carnival.key().as_ref()], bump)]
     pub carnival_auth: AccountInfo<'info>,
 
     #[account(
         mut,
-        seeds = [b"carnival", carnival.key().as_ref(), &[pool_id]],
+        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub pool: Account<'info, Pool>,
+    pub market: Account<'info, Market>,
 
     /// CHECK: escrow only purpose is to store sol
     #[account(
@@ -264,7 +279,7 @@ pub struct DepositSol<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(pool_id: u8, carnival_auth_bump: u8)]
+#[instruction(market_id: u64, carnival_auth_bump: u8)]
 pub struct DepositNft<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -344,9 +359,9 @@ pub const MAX_ARRAY_SIZE: u64 = 32;
 #[account]
 #[derive(Default)]
 #[repr(C)]
-pub struct Pool {
-    pub pool_id: u8,
-    pub creator: Pubkey,
+pub struct Market {
+    pub market_id: u64,
+    pub market_owner: Pubkey,
     pub sol: u64,
     pub nfts: u64,
     pub curve: CurveType,
@@ -356,7 +371,7 @@ pub struct Pool {
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct Quote {
-    pool_id: u8,
+    market_id: u64,
     bid: u64,
     ask: u64,
 }
@@ -365,5 +380,5 @@ pub struct Quote {
 #[derive(Default)]
 #[repr(C)]
 pub struct CarnivalAccount {
-    pub pool_id_count: u8,
+    pub market_id_count: u64,
 }
