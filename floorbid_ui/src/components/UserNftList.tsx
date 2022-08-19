@@ -2,31 +2,50 @@ import NftList from "@/components/NftList";
 import { NftContext } from "@/context/NftContext";
 import { instructionInitCheckoutExhibit } from "@/utils/instructions/checkout";
 
-import { getAllNftImages } from "@/utils/retrieveData";
+import { getAllNftImages, getBidOrderData } from "@/utils/retrieveData";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 import DisplayImages from "./DisplayImages";
+import { instructionBidFloor } from "@/utils/instructions/checkout";
+import { getNftDerivedAddresses } from "@/utils/accountDerivation";
 
 export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
-  const { selectedNft } = useContext(NftContext);
+  const { chosenNfts, chooseNft, clearNfts, addNft, removeNft } =
+    useContext(NftContext);
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
+  const [allPrices, setAllPrices] = useState<number[]>([]);
 
   const router = useRouter();
   async function executeInitCheckoutAndExhibit() {
-    console.log("creating checkout ", selectedNft.name);
+    // console.log("creating checkout ", selectedNft.name);
+    // await instructionInitCheckoutExhibit(
+    //   wallet,
+    //   publicKey,
+    //   signTransaction,
+    //   connection,
+    //   selectedNft
+    // );
+  }
 
-    await instructionInitCheckoutExhibit(
+  async function executeBidFloor() {
+    console.log("bid floor");
+    let nft = chosenNfts[Object.keys(chosenNfts)[0]];
+
+    let { exhibit } = await getNftDerivedAddresses(nft);
+
+    await instructionBidFloor(
       wallet,
       publicKey,
+      exhibit,
       signTransaction,
       connection,
-      selectedNft
+      chosenNfts
     );
 
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   const [nftColLists, setNftColLists] = useState();
@@ -52,6 +71,15 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
         colImages[nftSymbol] = images;
       }
       setNftColPics(colImages);
+
+      let nft = chosenNfts[Object.keys(chosenNfts)[0]];
+      let { exhibit } = await getNftDerivedAddresses(nft);
+
+      console.log("ehxibit", exhibit.toString());
+      let { prices } = await getBidOrderData(exhibit, connection, wallet);
+      console.log("prices", prices);
+
+      setAllPrices(prices);
     }
     if (nftList) {
       fetchData();
@@ -81,26 +109,48 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
                   </button>
                   <div className="modal" id={`${nftSymbol}-modal`}>
                     <div className="modal-box relative">
-                      <h3 className="font-bold text-lg p-2 pb-4">
-                        {nftSymbol} Exhibit
-                      </h3>
+                      <div className="sticky top-0 p-2 pb-4 z-20 bg-base-100 border-b border-accent rounded-sm mb-4">
+                        <h3 className="font-bold text-lg ">
+                          {nftSymbol} Exhibit
+                        </h3>
+                      </div>
                       <NftList nftList={nftColLists[nftSymbol]} />
 
-                      <div className="btn-group gap-3 justify-end">
-                        {selectedNft && (
+                      <div className="sticky bottom-0 left-0 right-0 p-2 pt-4 mt-4 z-20 bg-base-100 border-t border-accent btn-group gap-3 flex flex-row items-end justify-end space-x-6">
+                        {Object.keys(chosenNfts).length > 0 && (
                           <>
+                            <div className="shadow shadow-base-300 ">
+                              <div className="stat-title">
+                                {" "}
+                                Market Sell {0} {nftSymbol}s
+                              </div>
+                              <div className="stat-value text-success">
+                                +{" "}
+                                {allPrices
+                                  .slice(0, Object.keys(chosenNfts).length)
+                                  .reduce((a, b) => a + b, 0)}{" "}
+                                SOL
+                              </div>
+                            </div>
+
                             <div
                               className="modal-action"
-                              onClick={executeInitCheckoutAndExhibit}
+                              onClick={() => {
+                                executeBidFloor();
+                                clearNfts();
+                              }}
                             >
-                              <a href="#" className="btn btn-success">
-                                Market Sell {selectedNft.name}
+                              <a
+                                href="#"
+                                className="btn btn-success btn-outline"
+                              >
+                                Sell
                               </a>
                             </div>
                           </>
                         )}
-                        <div className="modal-action">
-                          <a href="#" className="btn btn-error">
+                        <div className="modal-action" onClick={clearNfts}>
+                          <a href="#" className="btn btn-error btn-outline">
                             Cancel
                           </a>
                         </div>

@@ -19,7 +19,7 @@ export default function NftCard({
 
   return (
     <div
-      className={`card card-compact w-40 bg-base-300 cursor-pointer shadow-xl border-transparent border-2 hover:border-0 ${
+      className={`card card-compact w-40 bg-base-300 cursor-pointer shadow-xl border-transparent border hover:border-2 ${
         chosenNfts[nft.mint.toString()] ? "border-primary-focus" : "opacity-75"
       }
 `}

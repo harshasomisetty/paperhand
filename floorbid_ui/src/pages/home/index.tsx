@@ -39,35 +39,39 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full space-y-4 ">
       <div className="grid m-4">
-        <h2 className="text-2xl font-extrabold m-2 mb-4">
-          Explore Collections
-        </h2>
-        {publicKey ? (
-          <div>
-            {exhibits.length > 0 ? (
-              <ExhibitList exhibits={exhibits} />
-            ) : (
-              <p>No projects created yet! </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-center">Please connect wallet</p>
-        )}
+        <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 p-4">
+          <h2 className="text-2xl font-extrabold m-2 mb-4">
+            Explore Collections
+          </h2>
+          {publicKey ? (
+            <div>
+              {exhibits.length > 0 ? (
+                <ExhibitList exhibits={exhibits} />
+              ) : (
+                <p>No projects created yet! </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-center">Please connect wallet</p>
+          )}
+        </div>
       </div>
 
       <div className="divider divide-neutral"></div>
 
-      <div className="grid m-4">
-        <h2 className="text-2xl font-extrabold m-2 mb-4">Your NFTs</h2>
-        {publicKey ? (
-          <>
-            <NftProvider>
-              <UserNftList nftList={nftList} />
-            </NftProvider>
-          </>
-        ) : (
-          <p>Connect your Wallet to view your NFTs</p>
-        )}
+      <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 p-4">
+        <div className="grid m-4">
+          <h2 className="text-2xl font-extrabold m-2 mb-4">Your NFTs</h2>
+          {publicKey ? (
+            <>
+              <NftProvider>
+                <UserNftList nftList={nftList} />
+              </NftProvider>
+            </>
+          ) : (
+            <p>Connect your Wallet to view your NFTs</p>
+          )}
+        </div>
       </div>
     </div>
   );
