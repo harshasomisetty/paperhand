@@ -71,7 +71,14 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
         colImages[nftSymbol] = images;
       }
       setNftColPics(colImages);
+    }
+    if (nftList) {
+      fetchData();
+    }
+  }, [nftList]);
 
+  useEffect(() => {
+    async function fetchData() {
       let nft = chosenNfts[Object.keys(chosenNfts)[0]];
       let { exhibit } = await getNftDerivedAddresses(nft);
 
@@ -81,10 +88,10 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
 
       setAllPrices(prices);
     }
-    if (nftList) {
+    if (Object.keys(chosenNfts).length > 0) {
       fetchData();
     }
-  }, [nftList]);
+  }, [chosenNfts]);
 
   return (
     <>
