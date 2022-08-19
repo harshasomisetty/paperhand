@@ -4,7 +4,9 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use exhibition::state::metaplex_anchor::TokenMetadata;
 use solana_program;
-use solana_program::{account_info::AccountInfo, program::invoke, system_instruction};
+use solana_program::{
+    account_info::AccountInfo, program::invoke, program::invoke_signed, system_instruction,
+};
 
 // mod accounts;
 // use accounts::{CarnivalAccount, Market};
@@ -12,7 +14,7 @@ use solana_program::{account_info::AccountInfo, program::invoke, system_instruct
 pub mod state;
 use state::curve::CurveType;
 
-pub mod utils;
+// pub mod utils;
 
 declare_id!("4mSuHN8AW1z7Y4NFpS4jDc6DvNxur6qH8mbPMz5oHLiS");
 
@@ -25,7 +27,7 @@ pub mod carnival {
         Ok(())
     }
 
-    pub fn initialize_market(
+    pub fn create_market(
         ctx: Context<InitializeMarket>,
         market_owner: Pubkey,
         market_id: u64,
@@ -35,28 +37,28 @@ pub mod carnival {
     ) -> Result<()> {
         let mut market = &mut ctx.accounts.market;
 
-        msg!("in init market");
         assert_eq!(market_id, ctx.accounts.carnival.market_id_count);
-        msg!("asserted eq ");
 
-        // market.market_id = ctx.accounts.carnival.market_id_count;
-        // market.market_owner = market_owner;
-        // market.curve = match curve {
-        //     0 => CurveType::Linear,
-        //     _ => CurveType::Exponential,
-        // };
+        // TODO create escrow here
 
-        // market.delta = delta;
-        // market.fee = fee;
+        market.market_id = ctx.accounts.carnival.market_id_count;
+        market.market_owner = market_owner;
+        market.curve = match curve {
+            0 => CurveType::Linear,
+            _ => CurveType::Exponential,
+        };
 
-        // ctx.accounts.carnival.market_id_count = ctx.accounts.carnival.market_id_count + 1;
+        market.delta = delta;
+        market.fee = fee;
+
+        ctx.accounts.carnival.market_id_count = ctx.accounts.carnival.market_id_count + 1;
         Ok(())
     }
 
     pub fn deposit_sol(
         ctx: Context<DepositSol>,
         market_id: u64,
-        sol_to_deposit: u64,
+        sol_amt: u64,
         carnival_auth_bump: u8,
     ) -> Result<()> {
         msg!("in dpepo sol");
@@ -64,7 +66,7 @@ pub mod carnival {
             &system_instruction::transfer(
                 ctx.accounts.signer.to_account_info().key,
                 ctx.accounts.escrow_sol.to_account_info().key,
-                sol_to_deposit,
+                sol_amt,
             ),
             &[
                 ctx.accounts.signer.to_account_info(),
@@ -106,7 +108,7 @@ pub mod carnival {
         //     &system_instruction::transfer(
         //         ctx.accounts.signer.to_account_info().key,
         //         ctx.accounts.escrow_sol.to_account_info().key,
-        //         sol_to_deposit,
+        //         sol_amt,
         //     ),
         //     &[
         //         ctx.accounts.signer.to_account_info(),
@@ -144,10 +146,38 @@ pub mod carnival {
         Ok(())
     }
 
-    pub fn withdraw_sol(ctx: Context<WithdrawSol>) -> Result<()> {
-        // Withdraw sol to user
-        // If both sides are empty of assets, delete market objects
-        // Update quote structures
+    pub fn withdraw_sol(
+        ctx: Context<WithdrawSol>,
+        market_id: u64,
+        sol_amt: u64,
+        carnival_auth_bump: u8,
+        escrow_auth_bump: u8,
+    ) -> Result<()> {
+        msg!("in withdraw sol");
+
+        // TODO check to make sure right person is withdrawing
+
+        // TODO sign for being able to move sol from escrow to user
+        // TODO check to make sure user is correct
+
+        invoke_signed(
+            &system_instruction::transfer(
+                ctx.accounts.escrow_sol.to_account_info().key,
+                ctx.accounts.signer.to_account_info().key,
+                sol_amt,
+            ),
+            &[
+                ctx.accounts.escrow_sol.to_account_info(),
+                ctx.accounts.signer.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+            &[&[
+                b"escrow_sol".as_ref(),
+                ctx.accounts.carnival.to_account_info().key.as_ref(),
+                &[escrow_auth_bump],
+            ]],
+        )?;
+
         Ok(())
     }
 
@@ -158,21 +188,27 @@ pub mod carnival {
         Ok(())
     }
 
-    // Eviction policy. can only insert new market.s if the total market lenght is less than the max. if over the max, need to make srue that the worst market on the bid side or ask side is
-    // should mark the market as evicted so no one can add to it anymore. Then move out all the NFTs and sol in one transaction. In loop so all the nfts are moved.
-    //
-    // then in the offer arrays, need to pop
-    pub fn evict_sol(ctx: Context<EvictSol>) -> Result<()> {
-        // Evict sol to user
-        // If both sides are empty of assets, delete market objects
-        // Update quote structures
-        Ok(())
-    }
+    pub fn close_market(
+        ctx: Context<InitializeMarket>,
+        market_owner: Pubkey,
+        market_id: u64,
+        curve: u8,
+        delta: u8,
+        fee: u8,
+    ) -> Result<()> {
+        msg!("in close market");
 
-    pub fn evict_nfts(ctx: Context<EvictNfts>) -> Result<()> {
-        // Evict sol to user
-        // If both sides are empty of assets, delete market objects
-        // Update quote structures
+        // // 3) close pda nft artifact
+        // anchor_spl::token::close_account(CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info().clone(),
+        //     anchor_spl::token::CloseAccount {
+        //         account: ctx.accounts.nft_artifact.to_account_info(),
+        //         destination: ctx.accounts.exhibit.to_account_info(),
+        //         authority: ctx.accounts.exhibit.to_account_info(),
+        //     },
+        //     &[&seeds],
+        // ))?;
+
         Ok(())
     }
 }
@@ -198,10 +234,8 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
 
     /// CHECK: escrow only purpose is to store sol
     #[account(
-        init,
-        payer = signer,
-        space = 8,
         seeds = [b"escrow_sol", carnival.key().as_ref()],
+        owner = system_program.key(),
         bump
     )]
     pub escrow_sol: AccountInfo<'info>,
@@ -245,7 +279,7 @@ pub struct InitializeMarket<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(market_id: u64, sol_to_deposit: u64, carnival_auth_bump: u8)]
+#[instruction(market_id: u64, sol_amt: u64, carnival_auth_bump: u8)]
 pub struct DepositSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -330,9 +364,37 @@ pub struct TradeNft<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(market_id: u64, sol_amt: u64, carnival_auth_bump: u8, escrow_auth_bump: u8)]
 pub struct WithdrawSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
+
+    #[account(mut, seeds = [b"carnival", exhibit.key().as_ref()], bump)]
+    pub carnival: Account<'info, CarnivalAccount>,
+
+    /// CHECK: auth only needs to sign for stuff, no metadata
+    #[account(mut, seeds = [b"carnival_auth", carnival.key().as_ref()], bump)]
+    pub carnival_auth: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub market: Account<'info, Market>,
+
+    /// CHECK: escrow only purpose is to store sol
+    #[account(
+        mut,
+        seeds = [b"escrow_sol", carnival.key().as_ref()],
+        bump
+    )]
+    pub escrow_sol: AccountInfo<'info>,
+
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -342,17 +404,10 @@ pub struct WithdrawNfts<'info> {
 }
 
 #[derive(Accounts)]
-pub struct EvictSol<'info> {
+pub struct CloseMarket<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 }
-
-#[derive(Accounts)]
-pub struct EvictNfts<'info> {
-    /// CHECK: just reading pubkey
-    pub exhibit: AccountInfo<'info>,
-}
-
 #[constant]
 pub const MAX_ARRAY_SIZE: u64 = 32;
 

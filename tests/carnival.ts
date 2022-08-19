@@ -30,6 +30,7 @@ import {
 import { checkIfAccountExists } from "../utils/actions";
 import {
   carnivalDepositNft,
+  closeCarnivalMarket,
   createCarnival,
   createCarnivalMarket,
 } from "../utils/carnival_actions";
@@ -110,8 +111,7 @@ describe("carnival", () => {
     // console.log("nft list", nftList);
     let solAmt = 2 * LAMPORTS_PER_SOL;
 
-    let nftTransferList = [];
-    // let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
+    let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
     let { exhibit, voucherMint } = await getNftDerivedAddresses(nftList[0][0]);
 
     let marketId = 0;
@@ -133,8 +133,6 @@ describe("carnival", () => {
       nftTransferList,
       solAmt
     );
-
-    console.log("got back transaction", transaction);
 
     try {
       connection.confirmTransaction(
@@ -161,7 +159,7 @@ describe("carnival", () => {
     //     exhibit.toBuffer(),
     //     nftTransferList[0].mint.toBuffer(),
     //   ],
-    //   Carnival.programId
+    //   Exhibition.programId
     // );
 
     // let postNftArtifact = await getAccount(provider.connection, nftArtifact);
@@ -174,7 +172,50 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  // it("Withdraw Funds (close market)", async () => {});
+  it("Withdraw Funds (close market)", async () => {
+    let solAmt = 1.5 * LAMPORTS_PER_SOL;
+
+    let { exhibit, voucherMint } = await getNftDerivedAddresses(nftList[0][0]);
+
+    let marketId = 0;
+    let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
+
+    let [market] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("market"),
+        carnival.toBuffer(),
+        new BN(marketId).toArrayLike(Buffer, "le", 8),
+      ],
+      CARNIVAL_PROGRAM_ID
+    );
+
+    let transaction = await closeCarnivalMarket(
+      connection,
+      users[0].publicKey,
+      exhibit,
+      solAmt
+    );
+
+    try {
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+        "confirmed"
+      );
+    } catch (error) {
+      console.log("creating carnival", error);
+    }
+
+    // printAndTest(
+    //   await checkIfAccountExists(market, connection),
+    //   true,
+    //   "market created"
+    // );
+
+    let escrowBal = await connection.getBalance(escrowSol);
+
+    printAndTest(escrowBal, 0.5 * LAMPORTS_PER_SOL, "Escrow Bal");
+  });
+
   Carnival.provider.connection.onLogs("all", ({ logs }) => {
     console.log(logs);
   });

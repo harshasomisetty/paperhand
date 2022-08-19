@@ -140,6 +140,7 @@ export async function getCarnivalAccounts(exhibit: PublicKey): Promise<{
   carnivalAuth: PublicKey;
   carnivalAuthBump: number;
   escrowSol: PublicKey;
+  escrowSolBump: number;
 }> {
   let [carnival] = await PublicKey.findProgramAddress(
     [Buffer.from("carnival"), exhibit.toBuffer()],
@@ -151,10 +152,10 @@ export async function getCarnivalAccounts(exhibit: PublicKey): Promise<{
     CARNIVAL_PROGRAM_ID
   );
 
-  let [escrowSol] = await PublicKey.findProgramAddress(
+  let [escrowSol, escrowSolBump] = await PublicKey.findProgramAddress(
     [Buffer.from("escrow_sol"), carnival.toBuffer()],
     CARNIVAL_PROGRAM_ID
   );
 
-  return { carnival, carnivalAuth, carnivalAuthBump, escrowSol };
+  return { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump };
 }

@@ -5,25 +5,6 @@
 can define restriction that only when signed by a program, can an nft be withdrawn. like if true, then change delgate (probably to carnival auth, so then onlywhent he program interacts from carnival and does cpi, nft can be removed from market), if false don't change delegate
 
 in withdraw function specifically, need to add a program signer option, such that users  can't trade in their voucher for a delegate locked nft.
-** implement market mgmt
-*** can have all markets in single contract
-alright so carnival contract stores 2 arrays of best asks and best bids.
-
-both these offer nodes objects in carnival will just include index, bid/ask price, volume, and other variables needed to calculatue curve costs
-bids and asks will be sorted
-
-There will also be a pda associated with that index, which will include creator pubkey, and more detailed stuff.
-
-
-when people want to trade with a market, they pass in which account they want to buy or sell from. The account will then resort the buy and sells (by removing and re-adding the offer node in the lists
-
-to evict, the person must pass in all the right accounts associated with the last index (the constraint will be that the last index in the bid/ask array must correspond to the index in the pda account. then the owner int he pda account's ))
-
-
-the benefits is super easy client side, can reconstruct market palces eaiser, etc, essentially orderbook on chain
-*** make market objects, and the lists that keep track of sorted
-**** if too many then evict first
-***** evict is first call evict_sol, then bunch of evict_nfts, then try to delete market from quote lists
 * abilities
 ** to see all existing markets, can look thoguh carnival market list, and pda using market index into market metadata (creator, seeds to sign as pda, etc)
 ** to see all a markets a user has created, still do get multiple accounts, filter by owner

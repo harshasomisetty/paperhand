@@ -9,8 +9,11 @@ Exhibition is a Collection identification system. It creates PDAs hashed from th
 
 In the future, the collection identification can happen through (Hyperspace way, and one other way)
 
+ expand exhibition to be ultimate filtering contract, make subset filtering, solving many-to-some-to-one problem
+
 Exhibition also ties in a vault accounting system that allows users to deposit NFTs of the same collection, and receive a "voucher" token back (each representing an NFT)
 *** Shop
+
 Shop is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 
 The Shop has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
@@ -22,3 +25,6 @@ This involved storing using commited SOL for buy orders in a heap data structure
 Checkout thus manages a heap to store user bids, and a DLL to store fulfilled orders
 *** Carnival
 Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
+
+** FUture work
+*** check token account pubkeys to see if they are owned properly by the user
