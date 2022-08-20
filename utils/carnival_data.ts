@@ -13,7 +13,7 @@ import {
   getNftDerivedAddresses,
 } from "./accountDerivation";
 import { checkIfAccountExists, getProvider } from "./actions";
-import { CARNIVAL_PROGRAM_ID } from "./constants";
+import { CARNIVAL_PROGRAM_ID, EXHIBITION_PROGRAM_ID } from "./constants";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
 import { otherCreators, creator, users } from "../utils/constants";
 import {
@@ -24,22 +24,6 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { getAllExhibitArtifacts } from "../floorbid_ui/src/utils/retrieveData";
-
-export async function getMarketNfts(
-  connection: Connection,
-  exhibit: PublicKey,
-  marketKey: PublicKey
-): Promise<Nft[]> {
-  let allArtifactAccounts = (
-    await connection.getTokenAccountsByOwner(exhibit, {
-      programId: TOKEN_PROGRAM_ID,
-    })
-  ).value;
-
-  let marketNfts = [];
-
-  return;
-}
 
 export async function getAllMarkets(
   connection: Connection,
@@ -58,4 +42,24 @@ export async function getAllMarkets(
   });
 
   return allMarketAccounts;
+}
+
+export async function getMarketNfts(
+  connection: Connection,
+  exhibit: PublicKey,
+  marketKey: PublicKey
+): Promise<PublicKey[]> {
+  let allArtifactAccounts = (
+    await connection.getParsedTokenAccountsByOwner(exhibit, {
+      programId: TOKEN_PROGRAM_ID,
+    })
+  ).value;
+
+  let marketNfts = [];
+
+  for (let account of allArtifactAccounts) {
+    marketNfts.push(new PublicKey(account.account.data.parsed.info.delegate));
+  }
+
+  return marketNfts;
 }

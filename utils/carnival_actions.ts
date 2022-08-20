@@ -39,21 +39,6 @@ export async function createCarnival(
 
   let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
-  // let init_exhibit_tx = await Exhibition.methods
-  //   .initializeExhibit()
-  //   .accounts({
-  //     exhibit: exhibit,
-  //     voucherMint: voucherMint,
-  //     nftMetadata: nft.metadataAccount.publicKey,
-  //     signer: users[0].publicKey,
-  //     rent: SYSVAR_RENT_PUBKEY,
-  //     tokenProgram: TOKEN_PROGRAM_ID,
-  //     systemProgram: SystemProgram.programId,
-  //   })
-  //   .transaction();
-
-  // transaction = transaction.add(init_exhibit_tx);
-
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
   console.log("after carnival account");
@@ -167,10 +152,6 @@ export async function createCarnivalMarket(
 
   // make market
 
-  console.log(
-    "trying to prit market",
-    new BN(marketId).toArrayLike(Buffer, "le", 8)
-  );
   let [market] = await PublicKey.findProgramAddress(
     [
       Buffer.from("market"),

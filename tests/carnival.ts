@@ -34,6 +34,7 @@ import {
   createCarnival,
   createCarnivalMarket,
 } from "../utils/carnival_actions";
+import { getMarketNfts } from "../utils/carnival_data";
 import {
   otherCreators,
   creator,
@@ -166,6 +167,18 @@ describe("carnival", () => {
 
     let postNftArtifact = await getAccount(provider.connection, nftArtifact);
     printAndTest(Number(postNftArtifact.amount), 1, "nft transferred");
+
+    // check delegates
+
+    console.log(
+      "pubkey info",
+      users[0].publicKey.toString(),
+      market.toString()
+    );
+
+    let mDeles = await getMarketNfts(connection, exhibit, market);
+
+    printAndTest(market.toString(), mDeles[0].toString());
   });
 
   // it("Buy Specific NFTs", async () => {});

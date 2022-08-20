@@ -316,7 +316,6 @@ describe("exhibition", () => {
     let artifactMints = [];
     artifactKeys.forEach(async (key, i) => {
       let tokenAccount = await getAccount(connection, key);
-      // console.log("TOKEN ACCOUNT", tokenAccount.mint.toString());
       artifactMints.push(tokenAccount.mint);
     });
   });
