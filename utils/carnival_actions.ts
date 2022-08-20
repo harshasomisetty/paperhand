@@ -13,8 +13,9 @@ import {
   getNftDerivedAddresses,
 } from "./accountDerivation";
 import { checkIfAccountExists, getProvider } from "./actions";
-import { CARNIVAL_PROGRAM_ID } from "./constants";
+import { CARNIVAL_PROGRAM_ID, EXHIBITION_PROGRAM_ID } from "./constants";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
+import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
 import { otherCreators, creator, users } from "../utils/constants";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -25,15 +26,33 @@ import {
 
 export async function createCarnival(
   connection: Connection,
-  exhibit: PublicKey,
+  nft: Nft,
   publicKey: PublicKey
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
 
   let transaction = new Transaction();
 
   console.log("after start tx");
+
+  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+
+  // let init_exhibit_tx = await Exhibition.methods
+  //   .initializeExhibit()
+  //   .accounts({
+  //     exhibit: exhibit,
+  //     voucherMint: voucherMint,
+  //     nftMetadata: nft.metadataAccount.publicKey,
+  //     signer: users[0].publicKey,
+  //     rent: SYSVAR_RENT_PUBKEY,
+  //     tokenProgram: TOKEN_PROGRAM_ID,
+  //     systemProgram: SystemProgram.programId,
+  //   })
+  //   .transaction();
+
+  // transaction = transaction.add(init_exhibit_tx);
 
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
@@ -47,9 +66,14 @@ export async function createCarnival(
         exhibit: exhibit,
         carnival: carnival,
         carnivalAuth: carnivalAuth,
+        voucherMint: voucherMint,
+        nftMetadata: nft.metadataAccount.publicKey,
         escrowSol: escrowSol,
         signer: users[0].publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId,
+        exhibitionProgram: Exhibition.programId,
       })
       .transaction();
 
@@ -69,15 +93,11 @@ export async function carnivalDepositNft(
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
 
   let transaction = new Transaction();
 
-  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-
-  let [nftArtifact] = await PublicKey.findProgramAddress(
-    [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-    Carnival.programId
-  );
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
 
   let { carnival, carnivalAuth, carnivalAuthBump } = await getCarnivalAccounts(
     exhibit
@@ -100,6 +120,8 @@ export async function carnivalDepositNft(
   } else {
     console.log("user voucher already created");
   }
+
+  console.log("nft arti in actions", nftArtifact.toString());
 
   let depositTx = await Carnival.methods
     .depositNft(new BN(marketId), carnivalAuthBump)
@@ -125,16 +147,20 @@ export async function carnivalDepositNft(
 export async function createCarnivalMarket(
   connection: Connection,
   publicKey: PublicKey,
-  exhibit: PublicKey,
   nfts: Nft[],
   solAmt: number
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
 
   let transaction = new Transaction();
 
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+    nfts[0]
+  );
   console.log("exhibit", exhibit.toString());
+
   let marketId = 0;
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
@@ -196,27 +222,57 @@ export async function createCarnivalMarket(
     console.log("added depo tx");
   }
 
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
   // deposit NFTs
   // for (let nft of nfts) {
-  //   let depositTx = await Carnival.methods
-  //     .depositNft(new BN(marketId), carnivalAuthBump)
-  //     .accounts({
-  //       exhibit: exhibit,
-  //       carnival: carnival,
-  //       carnivalAuth: carnivalAuth,
-  //       nftMint: nft.mint,
-  //       nftMetadata: nft.metadataAccount.publicKey,
-  //       nftUserToken: nftUserTokenAddress,
-  //       nftArtifact: nftArtifact,
-  //       signer: publicKey,
-  //       systemProgram: SystemProgram.programId,
-  //       tokenProgram: TOKEN_PROGRAM_ID,
-  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-  //       rent: SYSVAR_RENT_PUBKEY,
-  //     })
-  //     .transaction();
+  let nft = nfts[0];
+  let nftUserTokenAddress = await getAssociatedTokenAddress(
+    nft.mint,
+    publicKey
+  );
 
-  //   transaction = transaction.add();
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    console.log("creating user voucher");
+    let userVoucherTx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(userVoucherTx);
+  } else {
+    console.log("user voucher already created");
+  }
+
+  let depositNftTx = await Carnival.methods
+    .depositNft(new BN(marketId), carnivalAuthBump)
+    .accounts({
+      exhibit: exhibit,
+      carnival: carnival,
+      carnivalAuth: carnivalAuth,
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet,
+      nftMint: nft.mint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      nftUserToken: nftUserTokenAddress,
+      nftArtifact: nftArtifact,
+      signer: publicKey,
+      systemProgram: SystemProgram.programId,
+      rent: SYSVAR_RENT_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      exhibitionProgram: Exhibition.programId,
+    })
+    .transaction();
+
+  transaction = transaction.add(depositNftTx);
+  console.log("added depo nft tx");
   // }
 
   return transaction;

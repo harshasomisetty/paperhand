@@ -11,6 +11,8 @@ in withdraw function specifically, need to add a program signer option, such tha
 ** to see all the nfts in a market, can query all the accounts owned by exhibition, then look though delegates, if delegates exist, then a market owns
 ** to withdraw nfts from the market, the nft's deleate is checed with the market's pubkey, if the market has singed, only then be able to withdraw
 
+* FUTURE
+honor creator royalities
 * Overview
 The goal is to make the NFT trading experience more liquid and easy to use, like Sudoswap
 

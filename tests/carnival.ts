@@ -77,6 +77,7 @@ describe("carnival", () => {
       metaplex,
       connection
     );
+    await new Promise((r) => setTimeout(r, 2000));
   });
 
   it("Initialized Carnival", async () => {
@@ -85,19 +86,23 @@ describe("carnival", () => {
     let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
     let { carnival } = await getCarnivalAccounts(exhibit);
 
-    tryCatchWrap(await createCarnival(connection, exhibit, users[0].publicKey));
+    let transaction = await createCarnival(connection, nft, users[0].publicKey);
 
-    let transaction = await createCarnival(
-      connection,
-      exhibit,
-      users[0].publicKey
-    );
+    console.log("about to send create carnival tx", transaction);
 
-    tryCatchWrap(
+    try {
       connection.confirmTransaction(
         await sendAndConfirmTransaction(connection, transaction, [users[0]]),
         "confirmed"
-      )
+      );
+    } catch (error) {
+      console.log("creating carnival", error);
+    }
+
+    printAndTest(
+      await checkIfAccountExists(exhibit, connection),
+      true,
+      "market created"
     );
 
     printAndTest(
@@ -112,7 +117,9 @@ describe("carnival", () => {
     let solAmt = 2 * LAMPORTS_PER_SOL;
 
     let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
-    let { exhibit, voucherMint } = await getNftDerivedAddresses(nftList[0][0]);
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nftTransferList[0]
+    );
 
     let marketId = 0;
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
@@ -126,10 +133,14 @@ describe("carnival", () => {
       CARNIVAL_PROGRAM_ID
     );
 
+    console.log(
+      "exhibit exists?",
+      await checkIfAccountExists(exhibit, connection)
+    );
+
     let transaction = await createCarnivalMarket(
       connection,
       users[0].publicKey,
-      exhibit,
       nftTransferList,
       solAmt
     );
@@ -153,17 +164,8 @@ describe("carnival", () => {
 
     printAndTest(regSol(escrowBal), regSol(solAmt), "Escrow Bal");
 
-    // let [nftArtifact] = await PublicKey.findProgramAddress(
-    //   [
-    //     Buffer.from("nft_artifact"),
-    //     exhibit.toBuffer(),
-    //     nftTransferList[0].mint.toBuffer(),
-    //   ],
-    //   Exhibition.programId
-    // );
-
-    // let postNftArtifact = await getAccount(provider.connection, nftArtifact);
-    // printAndTest(Number(postNftArtifact.amount), 1);
+    let postNftArtifact = await getAccount(provider.connection, nftArtifact);
+    printAndTest(Number(postNftArtifact.amount), 1, "nft transferred");
   });
 
   // it("Buy Specific NFTs", async () => {});
@@ -172,7 +174,7 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  it("Withdraw Funds (close market)", async () => {
+  it.skip("Withdraw Funds (close market)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
     let { exhibit, voucherMint } = await getNftDerivedAddresses(nftList[0][0]);

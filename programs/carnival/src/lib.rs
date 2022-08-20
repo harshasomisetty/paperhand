@@ -8,6 +8,9 @@ use solana_program::{
     account_info::AccountInfo, program::invoke, program::invoke_signed, system_instruction,
 };
 
+use exhibition::program::Exhibition;
+
+use exhibition::{self, Exhibit};
 // mod accounts;
 // use accounts::{CarnivalAccount, Market};
 
@@ -24,6 +27,19 @@ pub mod carnival {
     use super::*;
 
     pub fn initialize_carnival(ctx: Context<InitializeCarnival>) -> Result<()> {
+        let cpi_program = ctx.accounts.exhibition_program.to_account_info();
+        let cpi_accounts = exhibition::cpi::accounts::InitializeExhibit {
+            exhibit: ctx.accounts.exhibit.to_account_info(),
+            voucher_mint: ctx.accounts.voucher_mint.to_account_info(),
+            nft_metadata: ctx.accounts.nft_metadata.to_account_info(),
+            signer: ctx.accounts.signer.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        exhibition::cpi::initialize_exhibit(cpi_ctx);
+
         Ok(())
     }
 
@@ -74,6 +90,7 @@ pub mod carnival {
                 ctx.accounts.system_program.to_account_info(),
             ],
         );
+        msg!("finished depo sol");
 
         Ok(())
     }
@@ -83,19 +100,31 @@ pub mod carnival {
         market_id: u64,
         carnival_auth_bump: u8,
     ) -> Result<()> {
-        anchor_spl::token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::Transfer {
-                    from: ctx.accounts.nft_user_token.to_account_info(),
-                    to: ctx.accounts.nft_artifact.to_account_info(),
-                    authority: ctx.accounts.signer.to_account_info(),
-                },
-            ),
-            1,
-        )?;
+        // TODO change signer so that there is another flag saying who is the delegate from signer field
 
-        // TODO cpi into exhibition
+        msg!("in depo nft");
+        let cpi_program = ctx.accounts.exhibition_program.to_account_info();
+        let cpi_accounts = exhibition::cpi::accounts::ArtifactInsert {
+            exhibit: ctx.accounts.exhibit.to_account_info(),
+            voucher_mint: ctx.accounts.voucher_mint.to_account_info(),
+            user_voucher_wallet: ctx.accounts.user_voucher_wallet.to_account_info(),
+            nft_mint: ctx.accounts.nft_mint.to_account_info(),
+            nft_metadata: ctx.accounts.nft_metadata.to_account_info(),
+            nft_user_token: ctx.accounts.nft_user_token.to_account_info(),
+            nft_artifact: ctx.accounts.nft_artifact.to_account_info(),
+            signer: ctx.accounts.signer.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        msg!("finished depo nft");
+
+        exhibition::cpi::artifact_insert(cpi_ctx)?;
+
+        msg!("did cpi");
 
         Ok(())
     }
@@ -215,9 +244,10 @@ pub mod carnival {
 
 #[derive(Accounts)]
 pub struct InitializeCarnival<'info> {
-    /// CHECK: just reading pubkey
+    /// CHECK: escrow only purpose is to store sol
+    #[account(mut)]
     pub exhibit: AccountInfo<'info>,
-
+    // pub exhibit: Account<'info, Exhibit>,
     #[account(init, payer=signer, space = std::mem::size_of::<CarnivalAccount>() + 8,
 seeds = [b"carnival", exhibit.key().as_ref()], bump)]
     pub carnival: Account<'info, CarnivalAccount>,
@@ -233,6 +263,14 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
     pub carnival_auth: AccountInfo<'info>,
 
     /// CHECK: escrow only purpose is to store sol
+    #[account(mut)]
+    pub voucher_mint: AccountInfo<'info>,
+
+    /// CHECK: escrow only purpose is to store sol
+    #[account(mut)]
+    pub nft_metadata: AccountInfo<'info>,
+
+    /// CHECK: escrow only purpose is to store sol
     #[account(
         seeds = [b"escrow_sol", carnival.key().as_ref()],
         owner = system_program.key(),
@@ -243,7 +281,10 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    pub exhibition_program: Program<'info, Exhibition>,
 }
 
 #[derive(Accounts)]
@@ -315,15 +356,25 @@ pub struct DepositSol<'info> {
 #[derive(Accounts)]
 #[instruction(market_id: u64, carnival_auth_bump: u8)]
 pub struct DepositNft<'info> {
-    /// CHECK: just reading pubkey
-    pub exhibit: AccountInfo<'info>,
+    #[account(mut)]
+    pub exhibit: Box<Account<'info, Exhibit>>,
 
     #[account(mut, seeds = [b"carnival", exhibit.key().as_ref()], bump)]
-    pub carnival: Account<'info, CarnivalAccount>,
+    pub carnival: Box<Account<'info, CarnivalAccount>>,
 
     /// CHECK: auth only needs to sign for stuff, no metadata
     #[account(mut, seeds = [b"carnival_auth", carnival.key().as_ref()], bump=carnival_auth_bump)]
     pub carnival_auth: AccountInfo<'info>,
+
+    #[account(mut)]
+    pub voucher_mint: Account<'info, Mint>,
+
+    #[account(
+        mut,
+        associated_token::mint = voucher_mint,
+        associated_token::authority = signer
+    )]
+    pub user_voucher_wallet: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub nft_mint: Box<Account<'info, Mint>>,
@@ -332,15 +383,9 @@ pub struct DepositNft<'info> {
     #[account(mut)]
     pub nft_user_token: Box<Account<'info, TokenAccount>>,
 
-    #[account(
-        init,
-        payer = signer,
-        seeds = [b"nft_artifact".as_ref(), exhibit.key().as_ref(), nft_mint.key().as_ref()],
-        token::mint = nft_mint,
-        token::authority = carnival_auth,
-        bump
-    )]
-    pub nft_artifact: Account<'info, TokenAccount>,
+    /// CHECK: cpi stuff
+    #[account(mut)]
+    pub nft_artifact: AccountInfo<'info>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -349,6 +394,7 @@ pub struct DepositNft<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+    pub exhibition_program: Program<'info, Exhibition>,
 }
 
 #[derive(Accounts)]

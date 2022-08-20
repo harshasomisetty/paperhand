@@ -226,6 +226,7 @@ pub struct ArtifactInsert<'info> {
         constraint = voucher_mint.mint_authority == COption::Some(exhibit.key())
     )]
     pub voucher_mint: Account<'info, Mint>,
+
     #[account(
         mut,
         associated_token::mint = voucher_mint,
