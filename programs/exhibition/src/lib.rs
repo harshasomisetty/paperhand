@@ -252,6 +252,9 @@ pub struct ArtifactInsert<'info> {
     pub nft_artifact: Account<'info, TokenAccount>,
 
     #[account(mut)]
+    pub delegate_signer: Signer<'info>,
+
+    #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -292,6 +295,9 @@ pub struct ArtifactWithdraw<'info> {
         bump
     )]
     pub nft_artifact: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub delegate_signer: Signer<'info>,
 
     #[account(mut)]
     pub signer: Signer<'info>,

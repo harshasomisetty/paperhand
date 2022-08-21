@@ -120,7 +120,6 @@ impl LinkedList {
         self.free_head = i;
         self.orders[self.free_head as usize].prev = i;
 
-        // TODO the prev after removing is wrong
         if next != SENTINEL {
             println!("is not tail");
             self.orders[next as usize].prev = prev;

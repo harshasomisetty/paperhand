@@ -41,7 +41,6 @@ export async function createCarnival(
 
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
-  console.log("after carnival account");
 
   if (!(await checkIfAccountExists(carnival, connection))) {
     console.log(" carnival no exist");
@@ -94,7 +93,6 @@ export async function carnivalDepositNft(
   );
 
   if (!(await checkIfAccountExists(nftUserTokenAddress, connection))) {
-    console.log("creating user voucher");
     let voucher_tx = createAssociatedTokenAccountInstruction(
       publicKey,
       nftUserTokenAddress,
@@ -102,31 +100,118 @@ export async function carnivalDepositNft(
       nft.mint
     );
     transaction = transaction.add(voucher_tx);
-  } else {
-    console.log("user voucher already created");
   }
 
-  console.log("nft arti in actions", nftArtifact.toString());
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
 
-  let depositTx = await Carnival.methods
-    .depositNft(new BN(marketId), carnivalAuthBump)
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    let userVoucherTx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(userVoucherTx);
+  }
+
+  let [market, marketBump] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("market"),
+      carnival.toBuffer(),
+      new BN(marketId).toArrayLike(Buffer, "le", 8),
+    ],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  let depositNftTx = await Carnival.methods
+    .depositNft(new BN(marketId), carnivalAuthBump, marketBump)
     .accounts({
       exhibit: exhibit,
       carnival: carnival,
       carnivalAuth: carnivalAuth,
+      market: market,
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet,
       nftMint: nft.mint,
       nftMetadata: nft.metadataAccount.publicKey,
       nftUserToken: nftUserTokenAddress,
       nftArtifact: nftArtifact,
       signer: publicKey,
       systemProgram: SystemProgram.programId,
+      rent: SYSVAR_RENT_PUBKEY,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
+      exhibitionProgram: Exhibition.programId,
     })
     .transaction();
 
-  return transaction.add(depositTx);
+  return transaction.add(depositNftTx);
+}
+
+export async function carnivalWithdrawNft(
+  connection: Connection,
+  nft: Nft,
+  publicKey: PublicKey,
+  marketId: number
+): Promise<Transaction> {
+  let provider = await getProvider("http://localhost:8899", creator);
+  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+
+  let transaction = new Transaction();
+
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
+
+  let { carnival, carnivalAuth, carnivalAuthBump } = await getCarnivalAccounts(
+    exhibit
+  );
+
+  let nftUserTokenAddress = await getAssociatedTokenAddress(
+    nft.mint,
+    publicKey
+  );
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  let [market, marketBump] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("market"),
+      carnival.toBuffer(),
+      new BN(marketId).toArrayLike(Buffer, "le", 8),
+    ],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  let withdrawNftTx = await Carnival.methods
+    .withdrawNft(new BN(marketId), carnivalAuthBump, marketBump)
+    .accounts({
+      exhibit: exhibit,
+      carnival: carnival,
+      carnivalAuth: carnivalAuth,
+      market: market,
+      voucherMint: voucherMint,
+      userVoucherWallet: userVoucherWallet,
+      nftMint: nft.mint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      nftUserToken: nftUserTokenAddress,
+      nftArtifact: nftArtifact,
+      signer: publicKey,
+      systemProgram: SystemProgram.programId,
+      rent: SYSVAR_RENT_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      exhibitionProgram: Exhibition.programId,
+    })
+    .transaction();
+
+  return transaction.add(withdrawNftTx);
 }
 
 export async function createCarnivalMarket(
@@ -144,15 +229,16 @@ export async function createCarnivalMarket(
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
     nfts[0]
   );
+  console.log("actions", nftArtifact.toString());
   console.log("exhibit", exhibit.toString());
 
   let marketId = 0;
-  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
     await getCarnivalAccounts(exhibit);
 
   // make market
 
-  let [market] = await PublicKey.findProgramAddress(
+  let [market, marketBump] = await PublicKey.findProgramAddress(
     [
       Buffer.from("market"),
       carnival.toBuffer(),
@@ -187,7 +273,12 @@ export async function createCarnivalMarket(
     console.log("in depo sol section");
     console.log("market", market.toString());
     let depoSolTx = await Carnival.methods
-      .depositSol(new BN(marketId), new BN(solAmt), carnivalAuthBump)
+      .depositSol(
+        new BN(marketId),
+        new BN(solAmt),
+        carnivalAuthBump,
+        escrowSolBump
+      )
       .accounts({
         exhibit: exhibit,
         carnival: carnival,
@@ -203,58 +294,18 @@ export async function createCarnivalMarket(
     console.log("added depo tx");
   }
 
-  let userVoucherWallet = await getAssociatedTokenAddress(
-    voucherMint,
-    publicKey
-  );
-
-  // deposit NFTs
-  // for (let nft of nfts) {
   let nft = nfts[0];
-  let nftUserTokenAddress = await getAssociatedTokenAddress(
-    nft.mint,
-    publicKey
+
+  // for (let nft of nfts) {
+  let depositNftTx = await carnivalDepositNft(
+    connection,
+    nft,
+    publicKey,
+    marketId
   );
-
-  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-    console.log("creating user voucher");
-    let userVoucherTx = createAssociatedTokenAccountInstruction(
-      publicKey,
-      userVoucherWallet,
-      publicKey,
-      voucherMint,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-    transaction = transaction.add(userVoucherTx);
-  } else {
-    console.log("user voucher already created");
-  }
-
-  let depositNftTx = await Carnival.methods
-    .depositNft(new BN(marketId), carnivalAuthBump)
-    .accounts({
-      exhibit: exhibit,
-      carnival: carnival,
-      carnivalAuth: carnivalAuth,
-      voucherMint: voucherMint,
-      userVoucherWallet: userVoucherWallet,
-      nftMint: nft.mint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAddress,
-      nftArtifact: nftArtifact,
-      signer: publicKey,
-      systemProgram: SystemProgram.programId,
-      rent: SYSVAR_RENT_PUBKEY,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      exhibitionProgram: Exhibition.programId,
-    })
-    .transaction();
 
   transaction = transaction.add(depositNftTx);
   console.log("added depo nft tx");
-  // }
 
   return transaction;
 }
@@ -263,6 +314,7 @@ export async function closeCarnivalMarket(
   connection: Connection,
   publicKey: PublicKey,
   exhibit: PublicKey,
+  nfts: Nft[],
   solAmt: number
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
@@ -272,13 +324,12 @@ export async function closeCarnivalMarket(
 
   let marketId = 0;
 
-  console.log("exhibit", exhibit.toString());
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
     await getCarnivalAccounts(exhibit);
 
   // make market
 
-  let [market] = await PublicKey.findProgramAddress(
+  let [market, marketBump] = await PublicKey.findProgramAddress(
     [
       Buffer.from("market"),
       carnival.toBuffer(),
@@ -308,14 +359,22 @@ export async function closeCarnivalMarket(
     .transaction();
 
   transaction = transaction.add(withdrawSolTx);
-  console.log("added depo tx");
+  console.log("added withdraw sol tx");
 
   // withdraw NFTs
   // for (let nft of nfts) {
-  //   transaction = transaction.add(
-  //     await carnivalDepositNft(connection, nft, users[0].publicKey, marketId)
-  //   );
-  // }
+  let nft = nfts[0];
+
+  let withdrawNftTx = await carnivalWithdrawNft(
+    connection,
+    nft,
+    publicKey,
+    marketId
+  );
+
+  transaction = transaction.add(withdrawNftTx);
+
+  console.log("added withdraw nft tx");
 
   // let closeMarketTx = await Carnival.methods
   //   .closeMarket(users[0].publicKey, new BN(marketId), 0, 1, 1)

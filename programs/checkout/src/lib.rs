@@ -148,7 +148,7 @@ pub mod checkout {
             .remove_node_by_pubkey(pubkey_to_remove);
 
         msg!("escrow bal: {}", ctx.accounts.escrow_voucher.amount);
-        // TODO get seeds of pda?
+
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -168,7 +168,6 @@ pub mod checkout {
 
         Ok(())
     }
-    // TODO which node indexes (10, 10) to search for pubkey
 }
 
 // TODO MAKE SURE STORED ACCOUNT PUBKEY CONSTRAINT WORKS

@@ -7,6 +7,8 @@ import UserNftList from "@/components/UserNftList";
 import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
 import ExhibitList from "@/components/ExhibitList";
 
+// TODO add in display of changes account balance after the transaction is completed
+// TODO make the nft withdrawing process more cleaner
 export default function Home() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();

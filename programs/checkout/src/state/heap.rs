@@ -116,9 +116,6 @@ impl Heap {
         }
     }
 
-    /*
-    TODO : make sure that if bidder is not found that it is not cancelled
-    */
     pub fn cancel_bid(&mut self, bidder_pubkey: Pubkey) -> u64 {
         let mut index = 0;
         for elem in self.items {

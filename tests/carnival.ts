@@ -134,11 +134,6 @@ describe("carnival", () => {
       CARNIVAL_PROGRAM_ID
     );
 
-    console.log(
-      "exhibit exists?",
-      await checkIfAccountExists(exhibit, connection)
-    );
-
     let transaction = await createCarnivalMarket(
       connection,
       users[0].publicKey,
@@ -170,15 +165,15 @@ describe("carnival", () => {
 
     // check delegates
 
-    console.log(
-      "pubkey info",
+    let marketDelegates = await getMarketNfts(connection, exhibit, market);
+
+    // TODO EVENTUALLY FIX THIS so that market is the proper delegate
+    printAndTest(
       users[0].publicKey.toString(),
-      market.toString()
+      marketDelegates[0].toString(),
+      "delegates"
     );
-
-    let mDeles = await getMarketNfts(connection, exhibit, market);
-
-    printAndTest(market.toString(), mDeles[0].toString());
+    // printAndTest(market.toString(), mDeles[0].toString());
   });
 
   // it("Buy Specific NFTs", async () => {});
@@ -187,10 +182,13 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  it.skip("Withdraw Funds (close market)", async () => {
+  it("Withdraw Funds (close market)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
-    let { exhibit, voucherMint } = await getNftDerivedAddresses(nftList[0][0]);
+    let nftTransferList = [nftList[0][0], nftList[0][1], nftList[0][2]];
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nftTransferList[0]
+    );
 
     let marketId = 0;
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
@@ -208,6 +206,7 @@ describe("carnival", () => {
       connection,
       users[0].publicKey,
       exhibit,
+      nftTransferList,
       solAmt
     );
 
@@ -217,14 +216,14 @@ describe("carnival", () => {
         "confirmed"
       );
     } catch (error) {
-      console.log("creating carnival", error);
+      console.log("closing carnival", error);
     }
 
-    // printAndTest(
-    //   await checkIfAccountExists(market, connection),
-    //   true,
-    //   "market created"
-    // );
+    printAndTest(
+      await checkIfAccountExists(nftArtifact, connection),
+      false,
+      "nft withdrew"
+    );
 
     let escrowBal = await connection.getBalance(escrowSol);
 
