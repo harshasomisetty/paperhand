@@ -162,16 +162,16 @@ export async function getBidOrderData(
 ): Promise<{
   prices: number[];
   size: number[];
-  bids: { [key: string]: number[] };
+  bids: { [key: string]: BidInterface[] };
 }> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
   let { bidOrders } = await getCheckoutAccounts(exhibit);
 
+  let bids: { [pubkey: string]: BidInterface[] } = {};
+
   let prices: number[] = [];
   let size: number[] = [];
-
-  let bids: { [key: string]: number[] } = {};
 
   if (await checkIfAccountExists(bidOrders, connection)) {
     let account = await Checkout.account.bidOrders.fetch(bidOrders);
@@ -179,25 +179,31 @@ export async function getBidOrderData(
     let i = 0;
     while (account.heap.items[i].bidPrice > 0) {
       let curItem: BidInterface = account!.heap!.items![i];
-      let curBid = Number(
-        (Number(curItem.bidPrice) / LAMPORTS_PER_SOL).toFixed(3)
-      );
-      if (bids[curItem.bidderPubkey.toString()]) {
-        bids[curItem.bidderPubkey.toString()].push(curBid);
+      if (bids[curItem.bidderPubkey!.toString()]) {
+        bids[curItem.bidderPubkey.toString()].push(curItem);
       } else {
-        bids[curItem.bidderPubkey.toString()] = [curBid];
+        bids[curItem.bidderPubkey.toString()] = [curItem];
       }
       i++;
+    }
+
+    for (let pubkey of Object.keys(bids)) {
+      bids[pubkey] = bids[pubkey].sort((a, b) =>
+        a.bidPrice < b.bidPrice ? 1 : -1
+      );
     }
 
     let orderbookData = {};
 
     for (let pubkey of Object.keys(bids)) {
       for (let bid of bids[pubkey]) {
-        if (orderbookData[bid]) {
-          orderbookData[bid]++;
+        // let bidPrice = Number(bid.bidPrice);
+        let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
+        console.log("bid price?", bidPrice);
+        if (orderbookData[bidPrice]) {
+          orderbookData[bidPrice]++;
         } else {
-          orderbookData[bid] = 1;
+          orderbookData[bidPrice] = 1;
         }
       }
     }

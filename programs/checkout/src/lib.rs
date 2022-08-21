@@ -24,17 +24,13 @@ pub mod checkout {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("In initializer");
-
-        let list = LinkedList::initialize();
-
         ctx.accounts.matched_storage.matched_orders = ctx.accounts.matched_orders.key();
 
         let mut matched_orders = ctx.accounts.matched_orders.load_init()?;
 
-        matched_orders.trades = list;
+        matched_orders.trades = LinkedList::initialize();
 
-        msg!("linked holder data {:?}", &matched_orders.trades.order_head);
+        // msg!("linked holder data {:?}", &matched_orders.trades.order_head);
         Ok(())
     }
 
@@ -70,13 +66,13 @@ pub mod checkout {
         Ok(())
     }
 
-    pub fn cancel_bid(ctx: Context<CancelBid>) -> Result<()> {
+    pub fn cancel_bid(ctx: Context<CancelBid>, order_id: u64) -> Result<()> {
         let bidder = &ctx.accounts.bidder;
 
         let mut heap = ctx.accounts.bid_orders.load_mut()?;
 
         // Need a clever way to somehow know the bid price after the let mut heap declaration
-        let bid_price_sol = heap.heap.cancel_bid(bidder.key());
+        let bid_price_sol = heap.heap.cancel_bid(bidder.key(), order_id);
 
         **ctx
             .accounts
@@ -90,7 +86,7 @@ pub mod checkout {
         Ok(())
     }
 
-    pub fn bid_floor(ctx: Context<BidFloor>) -> Result<()> {
+    pub fn sell_floor(ctx: Context<SellFloor>) -> Result<()> {
         msg!("in set_data pubkey");
 
         let mut heap = ctx.accounts.bid_orders.load_mut()?;
@@ -246,6 +242,7 @@ pub struct MakeBid<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(order_id: u64)]
 pub struct CancelBid<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -264,7 +261,7 @@ pub struct CancelBid<'info> {
 }
 
 #[derive(Accounts)]
-pub struct BidFloor<'info> {
+pub struct SellFloor<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 

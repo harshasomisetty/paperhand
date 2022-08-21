@@ -116,10 +116,10 @@ impl Heap {
         }
     }
 
-    pub fn cancel_bid(&mut self, bidder_pubkey: Pubkey) -> u64 {
+    pub fn cancel_bid(&mut self, bidder_pubkey: Pubkey, order_id: u64) -> u64 {
         let mut index = 0;
         for elem in self.items {
-            if elem.bidder_pubkey == bidder_pubkey {
+            if elem.bidder_pubkey == bidder_pubkey && order_id == elem.sequence_number {
                 break;
             }
             index += 1;
@@ -127,8 +127,7 @@ impl Heap {
 
         // Bidder does not have an order active
         if index == self.items.len() {
-            0
-            // panic!("User trying to cancel does not have a bid!")
+            panic!("User trying to cancel does not have a bid!")
         } else {
             Self::swap_node(&mut self.items, index, (self.size - 1) as usize);
 
@@ -421,7 +420,7 @@ mod tests {
         /*
         Now we want to cancel the 5(1) bid -> let's use our cancelbid function to do this
         */
-        nft_heap.cancel_bid(test_keys[1]);
+        nft_heap.cancel_bid(test_keys[1], 1);
 
         /*
            Schematic:
@@ -489,7 +488,7 @@ mod tests {
         assert_eq!(nft_heap.items[6].sequence_number, 6);
         assert_eq!(nft_heap.items[7].sequence_number, 7);
 
-        nft_heap.cancel_bid(test_keys[2]);
+        nft_heap.cancel_bid(test_keys[2], 2);
         assert_eq!(nft_heap.size, 7);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -510,7 +509,7 @@ mod tests {
         4(3)  3(4)  2(5)    2(6)
         */
 
-        nft_heap.cancel_bid(test_keys[3]);
+        nft_heap.cancel_bid(test_keys[3], 3);
         assert_eq!(nft_heap.size, 6);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -529,7 +528,7 @@ mod tests {
         2(6)  3(4)  2(5)
         */
 
-        nft_heap.cancel_bid(test_keys[4]);
+        nft_heap.cancel_bid(test_keys[4], 4);
         assert_eq!(nft_heap.size, 5);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -548,7 +547,7 @@ mod tests {
         2(6)  3(5)
         */
 
-        nft_heap.cancel_bid(test_keys[5]);
+        nft_heap.cancel_bid(test_keys[5], 5);
         assert_eq!(nft_heap.size, 4);
         assert_eq!(nft_heap.items[0].sequence_number, 0);
         assert_eq!(nft_heap.items[1].sequence_number, 1);
@@ -566,7 +565,7 @@ mod tests {
         2(6)
         */
 
-        nft_heap.cancel_bid(test_keys[6]);
+        nft_heap.cancel_bid(test_keys[6], 6);
         /*
                   5 (0)
                  /   \

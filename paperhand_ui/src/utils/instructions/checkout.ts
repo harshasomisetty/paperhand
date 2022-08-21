@@ -458,7 +458,8 @@ export async function instructionCancelBid(
   publicKey: PublicKey,
   exhibit: PublicKey,
   signTransaction: any,
-  connection: Connection
+  connection: Connection,
+  orderId: number
 ) {
   console.log("in bid floor");
 
@@ -469,7 +470,7 @@ export async function instructionCancelBid(
   let transaction = new Transaction();
 
   const cancel_tx = await Checkout.methods
-    .cancelBid()
+    .cancelBid(new BN(orderId))
     .accounts({
       exhibit: exhibit,
       bidOrders: bidOrders,

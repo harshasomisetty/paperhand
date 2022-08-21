@@ -22,6 +22,7 @@ import {
   getFilledOrdersList,
 } from "@/utils/retrieveData";
 import { getCheckoutAccounts } from "@/utils/accountDerivation";
+import { Nft } from "@metaplex-foundation/js";
 
 const BidCard = ({
   bidSide,
@@ -41,6 +42,7 @@ const BidCard = ({
   const { exhibitAddress } = router.query;
   const [sellSlider, setSellSlider] = useState(0);
   const [allPrices, setAllPrices] = useState<number[]>([]);
+  const [allBids, setAllBids] = useState([]);
 
   let exhibit = new PublicKey(exhibitAddress);
   const { chosenNfts, chooseNft, clearNfts, addNft, removeNft } =
@@ -58,9 +60,11 @@ const BidCard = ({
         publicKey
       );
 
-      let { prices } = await getBidOrderData(exhibit, connection, wallet);
+      // TODO cancel bid by id
+      let { prices, bids } = await getBidOrderData(exhibit, connection, wallet);
 
       setAllPrices(prices);
+      setAllBids(bids);
 
       let uVoucher = 0;
       if (await checkIfAccountExists(userVoucherWallet, connection)) {
@@ -130,9 +134,22 @@ const BidCard = ({
   async function executeCancelBid() {
     if (exhibitAddress) {
       console.log("cancel bid");
-      await instructionCancelBid(wallet, publicKey, exhibit, connection);
+      console.log("all bids", allBids);
+      console.log("bids", allBids[publicKey.toString()]);
+      for (let bid of allBids[publicKey.toString()]) {
+        console.log("bid in execute", Number(bid.bidPrice));
+      }
+
+      await instructionCancelBid(
+        wallet,
+        publicKey,
+        exhibit,
+        signTransaction,
+        connection,
+        allBids[publicKey.toString()][0].sequenceNumber
+      );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   return (
