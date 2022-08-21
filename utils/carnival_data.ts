@@ -23,7 +23,7 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { getAllExhibitArtifacts } from "../floorbid_ui/src/utils/retrieveData";
+import { getAllExhibitArtifacts } from "../paperhand_ui/src/utils/retrieveData";
 
 export async function getAllMarkets(
   connection: Connection,

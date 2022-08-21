@@ -12,3 +12,4 @@ migrations/*
 Cargo.lock
 /package-lock.json
 Cargo.lock
+/floorbid_ui/.next/

@@ -11,7 +11,7 @@ const Navbar = () => {
       <div className="navbar-start">
         <Link href="/">
           <div className="btn btn-ghost normal-case font-bold text-3xl">
-            FLOORBID
+            PAPERHAND
           </div>
         </Link>
       </div>
