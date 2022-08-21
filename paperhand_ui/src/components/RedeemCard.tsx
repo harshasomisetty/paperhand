@@ -1,5 +1,6 @@
 import { NftContext } from "@/context/NftContext";
 import { instructionAcquireNft } from "@/utils/instructions/checkout";
+import { instructionDepositNft } from "@/utils/instructions/exhibition";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
@@ -7,13 +8,13 @@ import { useRouter } from "next/router";
 import { useContext } from "react";
 
 const RedeemCard = ({
-  bidSide,
-  setBidSide,
+  leftButton,
+  setLeftButton,
   userVoucher,
   userNftList,
 }: {
-  bidSide: boolean;
-  setBidSide: () => {};
+  leftButton: boolean;
+  setLeftButton: () => {};
   userVoucher: number;
   userNftList: Nft[];
 }) => {
@@ -24,6 +25,19 @@ const RedeemCard = ({
   const { exhibitAddress } = router.query;
 
   const { chosenNfts, clearNfts } = useContext(NftContext);
+
+  async function depositNft() {
+    console.log("depositing", chosenNfts);
+
+    await instructionDepositNft(
+      wallet,
+      publicKey,
+      signTransaction,
+      chosenNfts,
+      connection
+    );
+    router.reload(window.location.pathname);
+  }
 
   async function executeAcquireNft() {
     let exhibit = new PublicKey(exhibitAddress);
@@ -38,151 +52,71 @@ const RedeemCard = ({
         chosenNfts
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   return (
-    <div className="card w-96 bg-base-100 shadow-xl">
+    <div className="card min-w-max bg-base-100 shadow-xl">
       <div className="btn-group justify-center">
         <button
           className={`btn btn-ghost ${
-            bidSide && "border-success text-success"
+            leftButton && "border-success text-success"
           }`}
           onClick={() => {
-            setBidSide(true);
+            setLeftButton(true);
             clearNfts();
           }}
         >
-          Deposit NFT
+          Redeem Voucher
         </button>
         <button
-          className={`btn btn-ghost ${!bidSide && "border-error text-error"}`}
+          className={`btn btn-ghost ${
+            !leftButton && "border-error text-error"
+          }`}
           onClick={() => {
-            setBidSide(false);
+            setLeftButton(false);
             clearNfts();
           }}
         >
-          Withdraw NFT
+          Voucherize NFT
         </button>
       </div>
-      <div className="card-body">
-        <h2 className="card-title">Voucher</h2>
-        {bidSide ? <p>BID</p> : <p> Sell</p>}
 
-        <p>{userVoucher}</p>
+      <div className="card-body">
+        {/* TODO add in how many nfts are being voucherized with a slider like from bidcard */}
         <div className="card-actions justify-end">
-          {userVoucher ? (
-            <button className="btn btn-primary" onClick={executeAcquireNft}>
-              Withdraw nft
-            </button>
+          <div className="stat">
+            <div className="stat-title">{leftButton ? "Vouchers" : "NFTs"}</div>
+            <div className="stat-value">
+              {leftButton ? userVoucher : Object.keys(userNftList).length}
+            </div>
+          </div>
+
+          {leftButton ? (
+            <>
+              {Object.keys(chosenNfts).length <= userVoucher &&
+              userVoucher > 0 ? (
+                <button className="btn btn-primary" onClick={executeAcquireNft}>
+                  Redeem NFT
+                </button>
+              ) : (
+                <button className="btn btn-disabled">Need More Vouchers</button>
+              )}
+            </>
           ) : (
-            <button className="btn btn-disabled">
-              Need Vouchers To Withdraw
-            </button>
+            <>
+              {Object.keys(chosenNfts).length > 0 ? (
+                <button className="btn btn-primary" onClick={depositNft}>
+                  Voucherize NFT
+                </button>
+              ) : (
+                <button className="btn btn-disabled">
+                  Select a NFT to voucherize
+                </button>
+              )}
+            </>
           )}
         </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
-      <div className="card-body space-y-7">
-        <div className="btn-group justify-center">
-          <button
-            className={`btn btn-ghost ${
-              bidSide && "border-success text-success"
-            }`}
-            onClick={() => {
-              setBidSide(true);
-              clearNfts();
-            }}
-          >
-            Buy NFT
-          </button>
-          <button
-            className={`btn btn-ghost ${!bidSide && "border-error text-error"}`}
-            onClick={() => {
-              setBidSide(false);
-              clearNfts();
-            }}
-          >
-            Sell NFT
-          </button>
-        </div>
-
-        {bidSide ? (
-          <div className="flex flex-col space-y-7">
-            <div className="shadow flex flex-row items-center">
-              <div className="stat">
-                <div className="stat-title">Price</div>
-                <div className="stat-value">
-                  {(bidValue / LAMPORTS_PER_SOL).toFixed(2)} SOL
-                </div>
-                <div className="stat-desc">
-                  Sol Balance: {(userSol / LAMPORTS_PER_SOL).toFixed(2)}
-                </div>
-              </div>
-              <div className="flex flex-col space-y-2">
-                <button className="btn btn-success" onClick={executePlaceBid}>
-                  Place Bid
-                </button>
-                <button className="btn btn-warning" onClick={executeCancelBid}>
-                  Cancel Bid
-                </button>
-              </div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={userSol}
-              value={bidValue}
-              className="range range-sm"
-              onChange={(e) => setBidValue(e.target.value)}
-            />
-            {userVoucher > 0 ? (
-              <>
-                <button
-                  className="btn btn-outline btn-success"
-                  onClick={executeAcquireNft}
-                >
-                  Pick NFT
-                </button>
-                <p>Your vouchers: {userVoucher}</p>
-              </>
-            ) : (
-              <button className="btn" disabled="disabled">
-                Not enough vouchers!
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col space-y-7">
-            <div className="shadow flex flex-row items-center">
-              <div className="stat">
-                <div className="stat-title">
-                  Market Sell {Object.keys(chosenNfts).length} NFTs
-                </div>
-                <div className="stat-value text-success">
-                  +{" "}
-                  {allPrices
-                    .slice(0, Object.keys(chosenNfts).length)
-                    .reduce((a, b) => a + b, 0)}{" "}
-                  SOL
-                </div>
-              </div>
-            </div>
-            {chosenNfts ? (
-              <button className="btn btn-error" onClick={executeBidFloor}>
-                Market Sell
-              </button>
-            ) : (
-              <button className="btn" disabled="disabled">
-                Pick NFT To market Sell
-              </button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

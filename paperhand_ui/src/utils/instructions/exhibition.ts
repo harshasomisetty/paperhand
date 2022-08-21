@@ -56,78 +56,84 @@ export async function instructionDepositNft(
   wallet: Wallet,
   publicKey: PublicKey,
   signTransaction: any,
-  nft: Nft,
+  chosenNfts: Record<string, Nft>,
   connection: Connection
 ) {
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-  await nft.metadataTask.run();
-
-  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
-
-  let userVoucherWallet = await getAssociatedTokenAddress(
-    voucherMint!,
-    publicKey
-  );
-
-  let nftUserTokenAccount = await getAssociatedTokenAddress(
-    nft.mint,
-    publicKey
-  );
 
   let transaction = new Transaction();
+  for (let nft of Object.values(chosenNfts)) {
+    await nft.metadataTask.run();
 
-  if (!(await checkIfExhibitExists(nft, connection))) {
-    const init_tx = await Exhibition.methods
-      .initializeExhibit()
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nft
+    );
+
+    let userVoucherWallet = await getAssociatedTokenAddress(
+      voucherMint!,
+      publicKey
+    );
+
+    let nftUserTokenAccount = await getAssociatedTokenAddress(
+      nft.mint,
+      publicKey
+    );
+
+    if (!(await checkIfExhibitExists(nft, connection))) {
+      const init_tx = await Exhibition.methods
+        .initializeExhibit()
+        .accounts({
+          exhibit: exhibit,
+          voucherMint: voucherMint,
+          nftMetadata: nft.metadataAccount.publicKey,
+          signer: publicKey,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .transaction();
+
+      transaction = transaction.add(init_tx);
+
+      console.log("initing exhibit");
+    }
+
+    if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+      let voucher_tx = createAssociatedTokenAccountInstruction(
+        publicKey,
+        userVoucherWallet,
+        publicKey,
+        voucherMint,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+      transaction = transaction.add(voucher_tx);
+    } else {
+      console.log("user voucher already created");
+    }
+
+    let insert_nft_tx = await Exhibition.methods
+      .artifactInsert()
       .accounts({
         exhibit: exhibit,
         voucherMint: voucherMint,
+        userVoucherWallet: userVoucherWallet,
+        nftMint: nft.mint,
         nftMetadata: nft.metadataAccount.publicKey,
+        nftUserToken: nftUserTokenAccount,
+        nftArtifact: nftArtifact,
+        delegateSigner: publicKey,
         signer: publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
       })
       .transaction();
 
-    transaction = transaction.add(init_tx);
-
-    console.log("initing exhibit");
+    transaction = transaction.add(insert_nft_tx);
   }
 
-  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-    let voucher_tx = createAssociatedTokenAccountInstruction(
-      publicKey,
-      userVoucherWallet,
-      publicKey,
-      voucherMint,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-    transaction = transaction.add(voucher_tx);
-  } else {
-    console.log("user voucher already created");
-  }
-
-  let insert_tx = await Exhibition.methods
-    .artifactInsert()
-    .accounts({
-      exhibit: exhibit,
-      voucherMint: voucherMint,
-      userVoucherWallet: userVoucherWallet,
-      nftMint: nft.mint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAccount,
-      nftArtifact: nftArtifact,
-      signer: publicKey,
-      systemProgram: SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-    })
-    .transaction();
-
-  transaction = transaction.add(insert_tx);
   await manualSendTransaction(
     transaction,
     publicKey,
@@ -183,6 +189,7 @@ export async function instructionWithdrawNft(
       nftMetadata: nft.metadataAccount.publicKey,
       nftUserToken: nftUserTokenAccount,
       nftArtifact: nftArtifact,
+      delegateSigner: publicKey,
       signer: publicKey,
       systemProgram: SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,

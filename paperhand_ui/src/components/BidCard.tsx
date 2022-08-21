@@ -155,29 +155,6 @@ const BidCard = ({
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <div className="card-body space-y-7">
-        <div className="btn-group justify-center">
-          <button
-            className={`btn btn-ghost ${
-              bidSide && "border-success text-success"
-            }`}
-            onClick={() => {
-              setBidSide(true);
-              clearNfts();
-            }}
-          >
-            Buy NFT
-          </button>
-          <button
-            className={`btn btn-ghost ${!bidSide && "border-error text-error"}`}
-            onClick={() => {
-              setBidSide(false);
-              clearNfts();
-            }}
-          >
-            Sell NFT
-          </button>
-        </div>
-
         {bidSide ? (
           <div className="flex flex-col space-y-7">
             <div className="shadow flex flex-row items-center">
