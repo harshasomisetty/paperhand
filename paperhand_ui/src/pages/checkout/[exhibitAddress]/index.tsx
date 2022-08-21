@@ -21,7 +21,6 @@ import { getExhibitProgramAndProvider } from "@/utils/constants";
 import {
   checkIfAccountExists,
   getAllExhibitArtifacts,
-  getFilledOrdersList,
   getUserData,
 } from "@/utils/retrieveData";
 import { NftContext, NftProvider } from "@/context/NftContext";
@@ -30,18 +29,16 @@ import Orderbook from "@/components/Orderbook";
 import NftList from "@/components/NftList";
 import BidCard from "@/components/BidCard";
 import { instructionWithdrawNft } from "@/utils/instructions/exhibition";
-import {
-  getCheckoutAccounts,
-  getShopAccounts,
-} from "@/utils/accountDerivation";
 
-const ExplorePage = () => {
+const CheckoutPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
+  const [userNftList, setUserNftList] = useState<Nft[]>([]);
   const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
+  const [userData, setUserData] = useState<UserData>(null);
 
-  const [userVoucher, setUserVoucher] = useState(0);
+  const [bidSide, setBidSide] = useState<boolean>(true);
 
-  const { chosenNfts } = useContext(NftContext);
+  const { selectedNft } = useContext(NftContext);
 
   const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
@@ -62,6 +59,8 @@ const ExplorePage = () => {
         let exhibitNfts = await getAllExhibitArtifacts(exhibit, connection);
         console.log("getting nfts", exhibitNfts);
         setExhibitNftList(exhibitNfts);
+        let uData = await getUserData(exhibit, publicKey, connection);
+        setUserData(uData);
       }
 
       const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
@@ -72,28 +71,7 @@ const ExplorePage = () => {
           curNfts.push(nft);
         }
       }
-
-      let { voucherMint, matchedStorage } = await getCheckoutAccounts(exhibit);
-
-      let userVoucherWallet = await getAssociatedTokenAddress(
-        voucherMint,
-        publicKey
-      );
-
-      // TODO cancel bid by id
-      let uVoucher = 0;
-      if (await checkIfAccountExists(userVoucherWallet, connection)) {
-        uVoucher = Number(
-          (await getAccount(connection, userVoucherWallet)).amount
-        );
-      }
-      let orderFilled: Record<string, number> = await getFilledOrdersList(
-        matchedStorage,
-        wallet
-      );
-
-      // console.log("order filled", orderFilled);
-      setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
+      setUserNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
@@ -117,25 +95,29 @@ const ExplorePage = () => {
     <>
       {exhibitSymbol && (
         <NftProvider>
-          <NftList nftList={exhibitNftList} title={"Exhibit NFTs"} />
-          <p>{Object.keys(chosenNfts).length}</p>
-          {publicKey && Object.keys(chosenNfts).length > 0 && (
-            <>
-              {userVoucher ? (
-                <button className="btn btn-primary" onClick={withdrawNft}>
-                  Withdraw nft
-                </button>
+          <div className="grid grid-cols-2">
+            <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
+              {userData ? (
+                <BidCard
+                  bidSide={bidSide}
+                  setBidSide={setBidSide}
+                  userNftList={userNftList}
+                />
               ) : (
-                <button className="btn btn-disabled">
-                  Need Vouchers To Withdraw
-                </button>
+                <p>Loading market data</p>
               )}
-            </>
-          )}
+              <Orderbook />
+            </div>
+            {bidSide ? (
+              <NftList nftList={exhibitNftList} title={"Exhibit NFTs"} />
+            ) : (
+              <NftList nftList={userNftList} title={"Your NFTs"} />
+            )}
+          </div>
         </NftProvider>
       )}
     </>
   );
 };
 
-export default ExplorePage;
+export default CheckoutPage;

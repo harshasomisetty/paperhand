@@ -160,9 +160,8 @@ export async function getBidOrderData(
   connection: Connection,
   wallet: Wallet
 ): Promise<{
-  prices: number[];
-  size: number[];
   bids: { [key: string]: BidInterface[] };
+  bids: { [bidPrice: number]: number };
 }> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 

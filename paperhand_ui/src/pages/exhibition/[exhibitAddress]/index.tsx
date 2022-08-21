@@ -44,10 +44,12 @@ const ExhibitPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
   const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
   const [userVoucher, setUserVoucher] = useState(0);
+  const [userNftList, setUserNftList] = useState<Nft[]>([]);
+  const [bidSide, setBidSide] = useState<boolean>(true);
 
   const router = useRouter();
   const { exhibitAddress } = router.query;
-  console.log("exhibit add", exhibitAddress);
+  const mx = Metaplex.make(connection);
 
   useEffect(() => {
     async function fetchData() {
@@ -82,9 +84,17 @@ const ExhibitPage = () => {
         wallet
       );
 
-      // console.log("order filled", orderFilled);
-      console.log("u vouchers", uVoucher + orderFilled[publicKey.toString()]);
       setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
+
+      const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
+
+      const curNfts = [];
+      for (let nft of allUserNfts!) {
+        if (nft.symbol == exhibitInfo.exhibitSymbol) {
+          curNfts.push(nft);
+        }
+      }
+      setUserNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
@@ -94,9 +104,18 @@ const ExhibitPage = () => {
   return (
     <>
       <NftProvider>
-        <div className="flex flex-row">
-          <NftList nftList={exhibitNftList} />
-          <RedeemCard userVoucher={userVoucher} />
+        <div className="grid grid-cols-2 justify-items-center items-center">
+          {bidSide ? (
+            <NftList nftList={exhibitNftList} title={"Exhibit NFTs"} />
+          ) : (
+            <NftList nftList={userNftList} title={"Your NFTs"} />
+          )}
+          <RedeemCard
+            userVoucher={userVoucher}
+            bidSide={bidSide}
+            setBidSide={setBidSide}
+            userNftList={userNftList}
+          />
         </div>
       </NftProvider>
     </>

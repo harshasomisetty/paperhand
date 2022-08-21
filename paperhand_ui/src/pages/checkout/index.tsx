@@ -33,7 +33,7 @@ const ExhibitionPage: NextPage = () => {
   return (
     <>
       <h2 className="text-2xl font-extrabold m-2 mb-4">
-        Panic sell your NFTs!
+        Checkout Fast! Panic sell your NFTs!
       </h2>
       {publicKey ? (
         <div>

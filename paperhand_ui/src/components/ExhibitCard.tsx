@@ -9,11 +9,20 @@ import {
 } from "@/utils/retrieveData";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import DisplayImages from "./DisplayImages";
+import { useRouter } from "next/router";
 
 export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitData, setExhibitData] = useState();
   const [exhibitImages, setExhibitImages] = useState([]);
   const { connection } = useConnection();
+  const router = useRouter();
+  let url = router.route;
+
+  let base = router.route;
+  if (base === "/home") {
+    base = "/exhibition";
+  }
+
   const { wallet } = useWallet();
 
   useEffect(() => {
@@ -31,13 +40,15 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   return (
     <div className="card card-compact w-60 bg-base-300 shadow-xl">
       {exhibitData && (
-        <div className="card-body">
-          <DisplayImages images={exhibitImages} />
-          <div className="card-title">{exhibitData.exhibitSymbol} Exhibit</div>
-          <Link href={"/exhibition/" + exhibit.toString()}>
-            <button className="btn btn-primary">View Exhibit</button>
-          </Link>
-        </div>
+        <a href={base + "/" + exhibit.toString()}>
+          <div className="card-body">
+            <DisplayImages images={exhibitImages} />
+            <div className="card-title">
+              {exhibitData.exhibitSymbol} Exhibit
+            </div>
+            <button className="btn btn-primary">Enter</button>
+          </div>
+        </a>
       )}
     </div>
   );

@@ -3,9 +3,11 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 import Link from "next/link";
 
-const tabs: string[] = ["home", "exhibition", "nftamm", "floorbid", "carnival"];
+const tabs: string[] = ["home", "exhibition", "nftamm", "checkout", "carnival"];
 const Navbar = () => {
   const router = useRouter();
+
+  const { exhibitAddress } = router.query;
   return (
     <div className="navbar flex flex-row justify-between border-b border-neutral ">
       <div className="navbar-start">
@@ -17,7 +19,7 @@ const Navbar = () => {
       </div>
       <div className="navbar-center">
         <ul className="menu menu-horizontal p-0">
-          {tabs.map((tabName) => (
+          {tabs.slice(1).map((tabName) => (
             <li
               className={`${
                 router.pathname.slice(1).split("/")[0] === tabName
@@ -26,7 +28,11 @@ const Navbar = () => {
               } `}
               key={tabName}
             >
-              <Link href={"/" + tabName}>
+              <Link
+                href={
+                  "/" + tabName + "/" + (exhibitAddress ? exhibitAddress : "")
+                }
+              >
                 <div>{tabName.toUpperCase()}</div>
               </Link>
             </li>
