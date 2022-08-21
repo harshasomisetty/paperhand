@@ -3,7 +3,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 import Link from "next/link";
 
-const tabs: string[] = ["home", "exhibition"];
+const tabs: string[] = ["home", "exhibition", "nftamm", "floorbid", "carnival"];
 const Navbar = () => {
   const router = useRouter();
   return (
@@ -21,13 +21,13 @@ const Navbar = () => {
             <li
               className={`${
                 router.pathname.slice(1).split("/")[0] === tabName
-                  ? "border-b rounded-none border-black"
+                  ? "border-b rounded-none border-primary"
                   : ""
               } `}
               key={tabName}
             >
               <Link href={"/" + tabName}>
-                <div>{tabName[0].toUpperCase() + tabName.slice(1)}</div>
+                <div>{tabName.toUpperCase()}</div>
               </Link>
             </li>
           ))}

@@ -279,6 +279,7 @@ export async function instructionBidFloor(
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount,
         nftArtifact: nftArtifact,
+        delegateSigner: publicKey,
         signer: publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -290,7 +291,7 @@ export async function instructionBidFloor(
     transaction = transaction.add(insert_nft_tx);
 
     let bid_floor_tx = await Checkout.methods
-      .bidFloor()
+      .sellFloor()
       .accounts({
         exhibit: exhibit,
         matchedOrders: matchedOrders,
@@ -332,7 +333,7 @@ export async function instructionAcquireNft(
   connection: Connection,
   chosenNfts: Record<string, Nft>
 ) {
-  console.log("in bid floor");
+  console.log("in instruction acquire nft");
 
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
@@ -359,6 +360,7 @@ export async function instructionAcquireNft(
 
   for (let nft of Object.values(chosenNfts)) {
     let { nftArtifact } = await getNftDerivedAddresses(nft);
+    console.log("in for loop", nft);
 
     let nftUserTokenAccount = await getAssociatedTokenAddress(
       nft.mint,
@@ -378,6 +380,11 @@ export async function instructionAcquireNft(
     );
 
     totalVouchers = currentVouchers + orderFilled[publicKey.toString()];
+    console.log(
+      "voucher cont",
+      currentVouchers,
+      orderFilled[publicKey.toString()]
+    );
 
     if (totalVouchers == 0) {
       console.log("not enough vouchers");
@@ -413,6 +420,8 @@ export async function instructionAcquireNft(
         })
         .transaction();
       transaction = transaction.add(fulfill_tx);
+
+      console.log("added fulfill_tx");
     }
 
     if (!(await checkIfAccountExists(nftUserTokenAccount, connection))) {
@@ -435,6 +444,7 @@ export async function instructionAcquireNft(
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount,
         nftArtifact: nftArtifact,
+        delegateSigner: publicKey,
         signer: publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,

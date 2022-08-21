@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { useState, useEffect, useContext } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import router, { useRouter } from "next/router";
+import { useRouter } from "next/router";
 import {
   bundlrStorage,
   keypairIdentity,
@@ -34,21 +34,21 @@ import {
   getCheckoutAccounts,
   getShopAccounts,
 } from "@/utils/accountDerivation";
-import { instructionAcquireNft } from "@/utils/instructions/checkout";
-import RedeemCard from "@/components/RedeemCard";
 
-const ExhibitPage = () => {
-  const { wallet, publicKey, signTransaction } = useWallet();
-  const { connection } = useConnection();
-
+const ExplorePage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
   const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
+
   const [userVoucher, setUserVoucher] = useState(0);
 
+  const { chosenNfts } = useContext(NftContext);
+
+  const { wallet, publicKey, signTransaction } = useWallet();
+  const { connection } = useConnection();
   const router = useRouter();
   const { exhibitAddress } = router.query;
-  console.log("exhibit add", exhibitAddress);
 
+  const mx = Metaplex.make(connection);
   useEffect(() => {
     async function fetchData() {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
@@ -58,13 +58,21 @@ const ExhibitPage = () => {
       let exhibitInfo;
       if (exhibitExists) {
         exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-        let exhibitNfts = await getAllExhibitArtifacts(exhibit, connection);
-
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
+        let exhibitNfts = await getAllExhibitArtifacts(exhibit, connection);
+        console.log("getting nfts", exhibitNfts);
         setExhibitNftList(exhibitNfts);
       }
 
-      let uVoucher = 0;
+      const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
+
+      const curNfts = [];
+      for (let nft of allUserNfts!) {
+        if (nft.symbol == exhibitInfo.exhibitSymbol) {
+          curNfts.push(nft);
+        }
+      }
+
       let { voucherMint, matchedStorage } = await getCheckoutAccounts(exhibit);
 
       let userVoucherWallet = await getAssociatedTokenAddress(
@@ -72,6 +80,8 @@ const ExhibitPage = () => {
         publicKey
       );
 
+      // TODO cancel bid by id
+      let uVoucher = 0;
       if (await checkIfAccountExists(userVoucherWallet, connection)) {
         uVoucher = Number(
           (await getAccount(connection, userVoucherWallet)).amount
@@ -83,7 +93,6 @@ const ExhibitPage = () => {
       );
 
       // console.log("order filled", orderFilled);
-      console.log("u vouchers", uVoucher + orderFilled[publicKey.toString()]);
       setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
     }
     if (wallet && publicKey && exhibitAddress) {
@@ -91,16 +100,42 @@ const ExhibitPage = () => {
     }
   }, [wallet, exhibitAddress, publicKey]);
 
+  async function withdrawNft() {
+    console.log("withdrawing nft");
+
+    await instructionWithdrawNft(
+      wallet,
+      publicKey,
+      signTransaction,
+      selectedNft,
+      connection
+    );
+    router.reload(window.location.pathname);
+  }
+
   return (
     <>
-      <NftProvider>
-        <div className="flex flex-row">
-          <NftList nftList={exhibitNftList} />
-          <RedeemCard userVoucher={userVoucher} />
-        </div>
-      </NftProvider>
+      {exhibitSymbol && (
+        <NftProvider>
+          <NftList nftList={exhibitNftList} title={"Exhibit NFTs"} />
+          <p>{Object.keys(chosenNfts).length}</p>
+          {publicKey && Object.keys(chosenNfts).length > 0 && (
+            <>
+              {userVoucher ? (
+                <button className="btn btn-primary" onClick={withdrawNft}>
+                  Withdraw nft
+                </button>
+              ) : (
+                <button className="btn btn-disabled">
+                  Need Vouchers To Withdraw
+                </button>
+              )}
+            </>
+          )}
+        </NftProvider>
+      )}
     </>
   );
 };
 
-export default ExhibitPage;
+export default ExplorePage;
