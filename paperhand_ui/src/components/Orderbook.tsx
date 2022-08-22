@@ -94,17 +94,6 @@ const Orderbook = () => {
 
       let orderbookData = {};
 
-      for (let bid of bids[publicKey.toString()]) {
-        let bidPrice = Number(bid.bidPrice);
-        // let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
-        if (orderbookData[bidPrice]) {
-          orderbookData[bidPrice].push(Number(bid.sequenceNumber));
-        } else {
-          orderbookData[bidPrice] = [Number(bid.sequenceNumber)];
-        }
-      }
-      setUserBids(orderbookData);
-
       let labColors = [];
       let normalColor = "rgba(75, 192, 192, .2)"; // green
       let userColor = "rgba(75, 192, 192, .2)"; // green
@@ -112,6 +101,16 @@ const Orderbook = () => {
 
       if (publicKey && bids[publicKey.toString()]) {
         let userOrders = bids[publicKey.toString()];
+        for (let bid of userOrders) {
+          let bidPrice = Number(bid.bidPrice);
+          // let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
+          if (orderbookData[bidPrice]) {
+            orderbookData[bidPrice].push(Number(bid.sequenceNumber));
+          } else {
+            orderbookData[bidPrice] = [Number(bid.sequenceNumber)];
+          }
+        }
+        setUserBids(orderbookData);
 
         for (let i = 0; i < prices.length; i++) {
           if (userOrders.includes(prices[i])) {

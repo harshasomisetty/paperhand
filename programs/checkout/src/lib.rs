@@ -11,8 +11,8 @@ use exhibition::program::Exhibition;
 use exhibition::{self, Exhibit};
 
 pub mod state;
-use state::heap::Heap;
-use state::linked_list::LinkedList;
+use state::checkout_queue::CheckoutQueue;
+use state::orderbook::Orderbook;
 
 declare_id!("8b7yjj2P5fHV9NCyNXJut1pDM1J1D9oRKzqUGW1ycTWk");
 
@@ -28,7 +28,7 @@ pub mod checkout {
 
         let mut matched_orders = ctx.accounts.matched_orders.load_init()?;
 
-        matched_orders.trades = LinkedList::initialize();
+        matched_orders.trades = CheckoutQueue::initialize();
 
         // msg!("linked holder data {:?}", &matched_orders.trades.order_head);
         Ok(())
@@ -56,10 +56,10 @@ pub mod checkout {
         let bid_orders = &mut ctx.accounts.bid_orders.load_mut()?;
 
         bid_orders
-            .heap
+            .orderbook
             .add(bid_price, ctx.accounts.bidder.to_account_info().key());
 
-        let highest_bid = bid_orders.heap.peek_highest_bid();
+        let highest_bid = bid_orders.orderbook.peek_highest_bid();
 
         msg!("current highest BID : {}", highest_bid.bid_price);
 
@@ -69,10 +69,10 @@ pub mod checkout {
     pub fn cancel_bid(ctx: Context<CancelBid>, order_id: u64) -> Result<()> {
         let bidder = &ctx.accounts.bidder;
 
-        let mut heap = ctx.accounts.bid_orders.load_mut()?;
+        let mut bid_orders = ctx.accounts.bid_orders.load_mut()?;
 
-        // Need a clever way to somehow know the bid price after the let mut heap declaration
-        let bid_price_sol = heap.heap.cancel_bid(bidder.key(), order_id);
+        // Need a clever way to somehow know the bid price after the let mut Orderbook declaration
+        let bid_price_sol = bid_orders.orderbook.cancel_bid(bidder.key(), order_id);
 
         **ctx
             .accounts
@@ -81,7 +81,7 @@ pub mod checkout {
             .try_borrow_mut_lamports()? -= bid_price_sol;
         **ctx.accounts.bidder.try_borrow_mut_lamports()? += bid_price_sol;
 
-        // msg!("canceling heap data: {}", heap.heap);
+        // msg!("canceling Orderbook data: {}", Orderbook.Orderbook);
 
         Ok(())
     }
@@ -89,9 +89,9 @@ pub mod checkout {
     pub fn sell_floor(ctx: Context<SellFloor>) -> Result<()> {
         msg!("in set_data pubkey");
 
-        let mut heap = ctx.accounts.bid_orders.load_mut()?;
+        let mut Orderbook = ctx.accounts.bid_orders.load_mut()?;
 
-        let highest_bid = heap.heap.pop_highest_bid();
+        let highest_bid = Orderbook.orderbook.pop_highest_bid();
 
         let mut matched_orders = ctx.accounts.matched_orders.load_mut()?;
 
@@ -139,6 +139,7 @@ pub mod checkout {
         msg!("in remove_order pubkey: {}", &pubkey_to_remove.to_string());
 
         let mut matched_orders = ctx.accounts.matched_orders.load_mut()?;
+
         matched_orders
             .trades
             .remove_node_by_pubkey(pubkey_to_remove);
@@ -361,7 +362,7 @@ pub struct FulfillOrder<'info> {
 #[account(zero_copy)]
 #[repr(C)]
 pub struct MatchedOrders {
-    pub trades: LinkedList,
+    pub trades: CheckoutQueue,
 }
 
 #[account]
@@ -378,9 +379,9 @@ pub struct MatchedStorage {
 #[repr(C)]
 #[derive(Default)]
 pub struct BidOrders {
-    pub authority: Pubkey, // 32
-    pub heap: Heap,        // 1,544 bytes
-    pub bump: u8,          // stores the bump for the PDA
+    pub authority: Pubkey,    // 32
+    pub orderbook: Orderbook, // 1,544 bytes
+    pub bump: u8,             // stores the bump for the PDA
 }
 
 #[account]

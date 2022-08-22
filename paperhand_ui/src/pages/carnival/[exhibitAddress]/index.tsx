@@ -30,7 +30,7 @@ import NftList from "@/components/NftList";
 import BidCard from "@/components/BidCard";
 import { instructionWithdrawNft } from "@/utils/instructions/exhibition";
 
-const CheckoutPage = () => {
+const CarnivalPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
   const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
@@ -96,31 +96,27 @@ const CheckoutPage = () => {
         <NftProvider>
           <div className="grid grid-cols-2">
             {bidSide ? (
-              <div className="opacity-50 pointer-events-none">
-                <NftList
-                  nftList={exhibitNftList}
-                  title={"Place Bid to Get One of these NFTs!"}
-                />
-              </div>
+              <NftList nftList={exhibitNftList} title={"Buy These NFTs!"} />
             ) : (
-              <NftList nftList={userNftList} title={"Your NFTs"} />
+              <NftList nftList={userNftList} title={"Sell Your NFTs"} />
             )}
             <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
               {userData ? (
                 <>
-                  <ul
-                    className="menu menu-horizontal bg-base-300 rounded-box border border-neutral-focus"
-                    onClick={() => {
-                      setBidSide(!bidSide);
-                    }}
-                  >
-                    <li>
-                      <a className={`${bidSide && "active"}`}>Bid NFT</a>
+                  <ul className="menu menu-horizontal bg-base-300 rounded-box border border-neutral-focus">
+                    <li
+                      onClick={() => {
+                        setBidSide(true);
+                      }}
+                    >
+                      <a className={`${bidSide && "active"}`}>Buy NFTs</a>
                     </li>
-                    <li>
-                      <a className={`${!bidSide && "active"}`}>
-                        Panic Sell NFT
-                      </a>
+                    <li
+                      onClick={() => {
+                        setBidSide(false);
+                      }}
+                    >
+                      <a className={`${!bidSide && "active"}`}>Manage Pools</a>
                     </li>
                   </ul>
                   <BidCard bidSide={bidSide} userNftList={userNftList} />
@@ -128,7 +124,6 @@ const CheckoutPage = () => {
               ) : (
                 <p>Loading market data</p>
               )}
-              <Orderbook />
             </div>
           </div>
         </NftProvider>
@@ -137,4 +132,4 @@ const CheckoutPage = () => {
   );
 };
 
-export default CheckoutPage;
+export default CarnivalPage;

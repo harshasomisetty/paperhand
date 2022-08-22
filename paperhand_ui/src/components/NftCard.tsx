@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext } from "react";
 import Link from "next/link";
 import { Nft } from "@metaplex-foundation/js";
 import { NftContext } from "@/context/NftContext";
@@ -19,8 +19,8 @@ export default function NftCard({
 
   return (
     <div
-      className={`card card-compact w-40 bg-base-300 cursor-pointer shadow-xl border-transparent border hover:border-2 ${
-        chosenNfts[nft.mint.toString()] ? "border-primary-focus" : "opacity-75"
+      className={`card card-compact w-40 bg-base-300 cursor-pointer shadow-xl border-transparent border hover:border-4 hover:opacity-75 ${
+        chosenNfts[nft.mint.toString()] ? "border-primary-focus" : "opacity-50"
       }
 `}
       onClick={() => {

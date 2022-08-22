@@ -153,13 +153,13 @@ describe("checkout", () => {
 
     console.log("account orders");
     for (let i = 0; i < 5; i++) {
-      console.log(account.heap.items[i].bidderPubkey.toString());
+      console.log(account.orderbook.items[i].bidderPubkey.toString());
     }
 
     printAndTest(
-      regSol(account.heap.items[0].bidPrice),
+      regSol(account.orderbook.items[0].bidPrice),
       regSol(Math.max.apply(Math, bidSizes)),
-      "max heap"
+      "max orderbook"
     );
 
     let postHeapBal = await connection.getBalance(escrowSol);
@@ -206,7 +206,7 @@ describe("checkout", () => {
     }
 
     let account = await Checkout.account.bidOrders.fetch(bidOrders);
-    let highestBid = Number(account.heap.items[0].bidPrice);
+    let highestBid = Number(account.orderbook.items[0].bidPrice);
 
     let preHeapBal = await connection.getBalance(escrowSol);
     let preUserBal = await connection.getBalance(users[0].publicKey);
@@ -293,7 +293,7 @@ describe("checkout", () => {
 
     console.log("account orders");
     for (let i = 0; i < 5; i++) {
-      console.log(account.heap.items[i].bidderPubkey.toString());
+      console.log(account.orderbook.items[i].bidderPubkey.toString());
     }
 
     console.log("user 0", users[0].publicKey.toString());

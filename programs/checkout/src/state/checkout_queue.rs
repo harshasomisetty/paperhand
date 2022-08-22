@@ -36,15 +36,15 @@ pub struct Node {
 
 #[zero_copy]
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
-pub struct LinkedList {
-    // pub struct LinkedList<T = Pubkey> {
+pub struct CheckoutQueue {
+    // pub struct CheckoutQueue<T = Pubkey> {
     // _marker: PhantomData<T>,
     pub free_head: u64,
     pub order_head: u64,
     pub orders: [Node; MAX_OPEN_ORDERS as usize],
 }
 
-impl LinkedList {
+impl CheckoutQueue {
     pub fn initialize() -> Self {
         let mut orders = [Node::default(); MAX_OPEN_ORDERS as usize];
         for i in 0..MAX_OPEN_ORDERS as u64 {
@@ -159,10 +159,10 @@ impl LinkedList {
     }
 }
 
-// impl<T> Display for LinkedList<T>
+// impl<T> Display for CheckoutQueue<T>
 // where
 // T: Display + PartialEq + Default + Debug,
-impl Display for LinkedList {
+impl Display for CheckoutQueue {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut output = Vec::new();
 
@@ -202,12 +202,12 @@ mod tests {
 
     use anchor_lang::prelude::Pubkey;
 
-    use super::LinkedList;
+    use super::CheckoutQueue;
 
     #[test]
     fn insert_node_works() {
-        // let mut list = LinkedList::<u8>::initialize();
-        let mut list = LinkedList::initialize();
+        // let mut list = CheckoutQueue::<u8>::initialize();
+        let mut list = CheckoutQueue::initialize();
 
         let program_id = Pubkey::from_str("G1DCNUQTSGHehwdLCAmRyAG8hf51eCHrLNUqkgGKYASj").unwrap();
         let mut pubkeys = Vec::new();
@@ -227,7 +227,7 @@ mod tests {
 
     // #[test]
     // fn remove_node_works() {
-    //     let mut list = LinkedList::initialize();
+    //     let mut list = CheckoutQueue::initialize();
     //     // list.insert_node(1);
     //     // list.insert_node(2);
     //     // list.insert_node(3);

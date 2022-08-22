@@ -7,7 +7,6 @@ import {
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 import {
-  SHOP_PROGRAM_ID,
   getExhibitProgramAndProvider,
   getCheckoutProgramAndProvider,
 } from "@/utils/constants";
@@ -64,7 +63,7 @@ export async function getAllNftImages(nfts: Nft[]): Promise<string[]> {
 
 export async function checkIfAccountExists(
   account: PublicKey,
-  connection
+  connection: Connection
 ): Promise<boolean> {
   // console.log("connection print", connection);
   let bal = await connection.getBalance(account);
@@ -177,8 +176,8 @@ export async function getBidOrderData(
     let account = await Checkout.account.bidOrders.fetch(bidOrders);
 
     let i = 0;
-    while (account.heap.items[i].bidPrice > 0) {
-      let curItem: BidInterface = account!.heap!.items![i];
+    while (account.orderbook.items[i].bidPrice > 0) {
+      let curItem: BidInterface = account!.orderbook!.items![i];
       if (bids[curItem.bidderPubkey!.toString()]) {
         bids[curItem.bidderPubkey.toString()].push(curItem);
       } else {

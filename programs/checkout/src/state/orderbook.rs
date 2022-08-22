@@ -9,7 +9,7 @@ use anchor_lang::prelude::*;
 */
 #[zero_copy]
 #[derive(Default, Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
-pub struct HeapNode {
+pub struct OrderNode {
     pub sequence_number: u64,  // 8 bytes
     pub bid_price: u64,        // 8 bytes
     pub bidder_pubkey: Pubkey, // 32 bytes
@@ -21,13 +21,13 @@ pub struct HeapNode {
 */
 #[zero_copy]
 #[derive(Default, Debug, AnchorSerialize, AnchorDeserialize, PartialEq)]
-pub struct Heap {
-    pub size: u64,             // 8 bytes
-    pub items: [HeapNode; 32], // 1,536 byes
+pub struct Orderbook {
+    pub size: u64,              // 8 bytes
+    pub items: [OrderNode; 32], // 1,536 byes
 }
 
-impl Heap {
-    fn swap_node(arr: &mut [HeapNode; 32], parent_idx: usize, added_idx: usize) {
+impl Orderbook {
+    fn swap_node(arr: &mut [OrderNode; 32], parent_idx: usize, added_idx: usize) {
         let temp = arr[parent_idx];
         arr[parent_idx] = arr[added_idx];
         arr[added_idx] = temp;
@@ -44,7 +44,7 @@ impl Heap {
 
     // zero-indexed recursive implementation of heapify up
     fn heapifyup(&mut self, index: usize) {
-        // base case 1: where the heap was empty
+        // base case 1: where the Orderbook was empty
         if self.size == 1 {
             return;
         }
@@ -133,7 +133,7 @@ impl Heap {
 
             let bid_price = self.items[(self.size - 1) as usize].bid_price;
 
-            self.items[(self.size - 1) as usize] = HeapNode::default();
+            self.items[(self.size - 1) as usize] = OrderNode::default();
 
             self.size -= 1;
 
@@ -146,7 +146,7 @@ impl Heap {
     pub fn add(&mut self, price: u64, pubkey: Pubkey) {
         let sequence_number = self.size;
 
-        let bid = HeapNode {
+        let bid = OrderNode {
             sequence_number: sequence_number,
             bid_price: price,
             bidder_pubkey: pubkey,
@@ -157,18 +157,18 @@ impl Heap {
         self.items[last] = bid;
 
         self.size += 1;
-        // maintains the max heap structure
+        // maintains the max Orderbook structure
         self.heapifyup(last);
     }
 
-    pub fn pop_highest_bid(&mut self) -> HeapNode {
+    pub fn pop_highest_bid(&mut self) -> OrderNode {
         let lastidx = (self.size - 1) as usize;
 
         Self::swap_node(&mut self.items, 0, lastidx);
 
         let highest_bid = self.items[lastidx];
 
-        self.items[(self.size - 1) as usize] = HeapNode::default();
+        self.items[(self.size - 1) as usize] = OrderNode::default();
 
         self.size -= 1;
 
@@ -177,31 +177,31 @@ impl Heap {
         highest_bid
     }
 
-    pub fn peek_highest_bid(&mut self) -> HeapNode {
+    pub fn peek_highest_bid(&mut self) -> OrderNode {
         let highest_bid = self.items[0];
 
         highest_bid
     }
 }
 
-impl Display for HeapNode {
+impl Display for OrderNode {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "HeapNode: seq number {} bid price {} bidder pub {}",
+            "OrderNode: seq number {} bid price {} bidder pub {}",
             self.sequence_number, self.bid_price, self.bidder_pubkey
         )
     }
 }
 
-impl Display for Heap {
+impl Display for Orderbook {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut output = Vec::new();
 
         // let mut cur_node_index = self.order_head;
 
         for i in 0..10 {
-            // println!("HeapNode: {}", self.items[i as usize]);
+            // println!("OrderNode: {}", self.items[i as usize]);
             output.push(&self.items[i as usize])
         }
 
@@ -222,16 +222,16 @@ mod tests {
 
     use anchor_lang::prelude::Pubkey;
 
-    use crate::state::heap::HeapNode;
+    use crate::state::Orderbook::OrderNode;
 
-    use super::Heap;
+    use super::Orderbook;
 
     // test for additions
     #[test]
     fn handles_price_time_priority_adding_nodes() {
-        let mut nft_heap = Heap {
+        let mut nft_heap = Orderbook {
             size: 0,
-            items: [HeapNode::default(); 32],
+            items: [OrderNode::default(); 32],
         };
 
         let mut test_keys = Vec::new();
@@ -249,7 +249,7 @@ mod tests {
             nft_heap.add(test_vals[i] as u64, test_keys[i]);
         }
 
-        // println!("heap bid: {}", nft_heap.size);
+        // println!("Orderbook bid: {}", nft_heap.size);
 
         // println!("HERREEE\n\n\n");
         // println!(
@@ -258,7 +258,7 @@ mod tests {
         //     nft_heap.is_empty(),
         //     nft_heap.items[0].bid_price
         // );
-        // println!("heap? {}", nft_heap);
+        // println!("Orderbook? {}", nft_heap);
 
         assert_eq!(nft_heap.size, (num_keys - 1) as u64);
         assert_eq!(nft_heap.is_empty(), false);
@@ -274,9 +274,9 @@ mod tests {
     // test for deletions
     #[test]
     fn handles_price_time_priority_deleting_nodes() {
-        let mut nft_heap = Heap {
+        let mut nft_heap = Orderbook {
             size: 0,
-            items: [HeapNode::default(); 32],
+            items: [OrderNode::default(); 32],
         };
 
         let mut test_keys_vals: Vec<(Pubkey, usize)> = Vec::new();
@@ -317,9 +317,9 @@ mod tests {
 
     #[test]
     fn test_highest_bid_deletion() {
-        let mut nft_heap = Heap {
+        let mut nft_heap = Orderbook {
             size: 0,
-            items: [HeapNode::default(); 32],
+            items: [OrderNode::default(); 32],
         };
 
         let mut test_keys_vals: Vec<(Pubkey, usize)> = Vec::new();
@@ -382,9 +382,9 @@ mod tests {
     #[test]
     fn cancel_one_bid() {
         // need to know exactly what the keys are here.
-        let mut nft_heap = Heap {
+        let mut nft_heap = Orderbook {
             size: 0,
-            items: [HeapNode::default(); 32],
+            items: [OrderNode::default(); 32],
         };
 
         let mut test_keys = Vec::new();
@@ -444,9 +444,9 @@ mod tests {
 
     #[test]
     fn cancel_multiple_bids() {
-        let mut nft_heap = Heap {
+        let mut nft_heap = Orderbook {
             size: 0,
-            items: [HeapNode::default(); 32],
+            items: [OrderNode::default(); 32],
         };
 
         let mut test_keys = Vec::new();

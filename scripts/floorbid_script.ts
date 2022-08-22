@@ -7,9 +7,6 @@ import {
 import { BN, Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  getAccount,
-  getAssociatedTokenAddress,
-  getOrCreateAssociatedTokenAccount,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
@@ -25,28 +22,17 @@ import {
 } from "@solana/web3.js";
 import {
   getNftDerivedAddresses,
-  getShopAccounts,
   getCheckoutAccounts,
 } from "../utils/accountDerivation";
-import {
-  getProvider,
-  getUserVoucherWallets,
-  initAssociatedAddressIfNeeded,
-} from "../utils/actions";
+import { getProvider } from "../utils/actions";
 import {
   CHECKOUT_PROGRAM_ID,
   creator,
   EXHIBITION_PROGRAM_ID,
   otherCreators,
-  SHOP_PROGRAM_ID,
   users,
 } from "../utils/constants";
 import { mintNFTs } from "../utils/createNFTs";
-
-interface Project {
-  pubkey: PublicKey;
-  account: AccountInfo<Buffer>;
-}
 
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
 import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
@@ -252,9 +238,9 @@ export async function makeBids() {
   for (let i = 0; i < 10; i++) {
     console.log(
       i,
-      account.heap.items[i].bidderPubkey.toString(),
-      account.heap.items[i].bidPrice,
-      account.heap.items[i].sequenceNumber
+      account.orderbook.items[i].bidderPubkey.toString(),
+      account.orderbook.items[i].bidPrice,
+      account.orderbook.items[i].sequenceNumber
     );
   }
 
