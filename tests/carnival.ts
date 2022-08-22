@@ -169,9 +169,10 @@ describe("carnival", () => {
 
     // TODO EVENTUALLY FIX THIS so that market is the proper delegate
     printAndTest(
-      users[0].publicKey.toString(),
+      // users[0].publicKey.toString(),
+      market.toString(),
       marketDelegates[0].toString(),
-      "delegates"
+      "delegate is market"
     );
     // printAndTest(market.toString(), mDeles[0].toString());
   });

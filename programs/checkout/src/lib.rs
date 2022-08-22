@@ -89,9 +89,9 @@ pub mod checkout {
     pub fn sell_floor(ctx: Context<SellFloor>) -> Result<()> {
         msg!("in set_data pubkey");
 
-        let mut Orderbook = ctx.accounts.bid_orders.load_mut()?;
+        let mut bid_orders = ctx.accounts.bid_orders.load_mut()?;
 
-        let highest_bid = Orderbook.orderbook.pop_highest_bid();
+        let highest_bid = bid_orders.orderbook.pop_highest_bid();
 
         let mut matched_orders = ctx.accounts.matched_orders.load_mut()?;
 

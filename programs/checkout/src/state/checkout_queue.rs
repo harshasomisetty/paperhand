@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::pubkey;
 use std::cmp::PartialEq;
 use std::default::Default;
 use std::fmt::{self, Debug, Display, Formatter};
