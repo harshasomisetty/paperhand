@@ -12,8 +12,8 @@ const Navbar = () => {
     <div className="navbar flex flex-row justify-between border-b border-neutral ">
       <div className="navbar-start">
         <Link href="/">
-          <div className="btn btn-ghost normal-case font-bold text-3xl">
-            PAPERHAND
+          <div className="btn btn-ghost normal-case font-light text-3xl">
+            paperhand
           </div>
         </Link>
       </div>
@@ -33,7 +33,7 @@ const Navbar = () => {
                   "/" + tabName + "/" + (exhibitAddress ? exhibitAddress : "")
                 }
               >
-                <div>{tabName.toUpperCase()}</div>
+                <div>{tabName.charAt(0).toUpperCase() + tabName.slice(1)}</div>
               </Link>
             </li>
           ))}
