@@ -1,8 +1,9 @@
-#+title: NFTAMM
+#+title: PaperHand
 * Overview
-NFTAMM is a system that allows people to fungitize their NFTs, and trade these voucherables in an AMM.
+Paperhand is a suite of NFTAMM implementatios.
 
-This allows for an easily determinable floor for people to use.
+The core of paperhand allows nfts to be algorithimically associated with a collection, allowing for trading of NFTs through traditional AMMs, an instantaneous FloorBid, and through an aggregation of user-created pools (a structure heavily inspired by Sudoswap)
+
 * Architecture
 *** Exhibition
 Exhibition is a Collection identification system. It creates PDAs hashed from the verified creators of a nft, and associates all other NFTs with the same identification system as the same collection.
@@ -26,7 +27,7 @@ Checkout thus manages a heap to store user bids, and a DLL to store fulfilled or
 *** Carnival
 Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
 
-** FUture work
+** Future work
 *** bid on certain features
 **** market sell certain features
 *** check token account pubkeys to see if they are owned properly by the user
