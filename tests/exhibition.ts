@@ -20,6 +20,8 @@ import {
   initAssociatedAddressIfNeeded,
 } from "../utils/actions";
 import {
+  APE_URIS,
+  BEAR_URIS,
   creator,
   EXHIBITION_PROGRAM_ID,
   otherCreators,
@@ -38,7 +40,6 @@ const metaplex = Metaplex.make(provider.connection).use(
   keypairIdentity(creator)
 );
 
-// in seperate function
 describe("exhibition", () => {
   /*
     This test suite will involve 2 users, and consist of:
@@ -51,9 +52,7 @@ describe("exhibition", () => {
     7) Verify that the exhibit still has 1 NFT, and ensure we can retrieve the NFT metadata
   */
 
-  let mintCollectionCount = 2;
-  let mintNftCount = 2;
-  let nftList: Nft[][] = Array(mintCollectionCount);
+  let nftList: Nft[][] = [];
 
   let airdropVal = 20 * LAMPORTS_PER_SOL;
   before("Init create and mint exhibits and Metadata", async () => {
@@ -61,11 +60,23 @@ describe("exhibition", () => {
 
     await airdropAll(airdropees, airdropVal, connection);
 
-    nftList = await mintNFTs(
-      mintNftCount,
-      mintCollectionCount,
-      metaplex,
-      connection
+    nftList.push(
+      await mintNFTs(
+        metaplex,
+        connection,
+        APE_URIS.splice(0, 2),
+        otherCreators[0],
+        [users[0].publicKey, users[1].publicKey]
+      )
+    );
+    nftList.push(
+      await mintNFTs(
+        metaplex,
+        connection,
+        BEAR_URIS.splice(0, 2),
+        otherCreators[1],
+        [users[0].publicKey, users[1].publicKey]
+      )
     );
   });
 
@@ -120,11 +131,8 @@ describe("exhibition", () => {
     // Prep accounts for depositing first NFT.
 
     let nft = nftList[0][0];
-    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-
-    let [nftArtifact] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-      EXHIBITION_PROGRAM_ID
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nft
     );
 
     let userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
@@ -135,7 +143,6 @@ describe("exhibition", () => {
       users[0].publicKey
     );
 
-    // create new user voucher token account outside of artifact insert
     await initAssociatedAddressIfNeeded(
       connection,
       userVoucherWallet[0],
@@ -163,46 +170,47 @@ describe("exhibition", () => {
       .signers([users[0]])
       .rpc();
 
-    let postUserVoucherTokenBal = await getAccount(
-      provider.connection,
-      userVoucherWallet[0]
-    );
-
-    let postUserNftTokenBal = await getAccount(
-      provider.connection,
-      nftUserTokenAccount.address
-    );
-
-    let postNftArtifactBal = await getAccount(provider.connection, nftArtifact);
-
     printAndTest(
       users[0].publicKey.toString(),
-      postNftArtifactBal.delegate.toString(),
+      (await getAccount(provider.connection, nftArtifact)).delegate.toString(),
       "delegates test"
     );
 
-    let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+    printAndTest(
+      Number(
+        (await getAccount(provider.connection, userVoucherWallet[0])).amount
+      ),
+      1
+    );
+    printAndTest(
+      Number(
+        (await getAccount(provider.connection, nftUserTokenAccount.address))
+          .amount
+      ),
+      0
+    );
+    printAndTest(
+      Number((await getAccount(provider.connection, nftArtifact)).amount),
+      1
+    );
 
-    printAndTest(Number(postUserVoucherTokenBal.amount), 1);
-    printAndTest(Number(postUserNftTokenBal.amount), 0);
-    printAndTest(Number(postNftArtifactBal.amount), 1);
-    printAndTest(exhibitInfo.artifactCount, 1);
+    printAndTest(
+      (await Exhibition.account.exhibit.fetch(exhibit)).artifactCount,
+      1
+    );
   });
 
   it("inserted second nft from user 2", async () => {
     let nft = nftList[0][1];
-    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nft
+    );
 
     let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
       users[1],
       nft.mint,
       users[1].publicKey
-    );
-
-    let [nftArtifact] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-      EXHIBITION_PROGRAM_ID
     );
 
     let userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
@@ -237,11 +245,8 @@ describe("exhibition", () => {
 
   it("Withdrew from artifact!", async () => {
     let nft = nftList[0][0];
-    let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-
-    let [nftArtifact] = await PublicKey.findProgramAddress(
-      [Buffer.from("nft_artifact"), exhibit.toBuffer(), nft.mint.toBuffer()],
-      EXHIBITION_PROGRAM_ID
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nft
     );
 
     let userVoucherWallet = await getUserVoucherWallets(voucherMint, users);
@@ -307,7 +312,6 @@ describe("exhibition", () => {
 
     let artifactKeys = [];
     allArtifactAccounts.value.forEach((x, i) => {
-      // console.log("Artifact", x.pubkey.toString());
       artifactKeys.push(x.pubkey);
     });
 

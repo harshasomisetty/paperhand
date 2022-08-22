@@ -107,6 +107,7 @@ export async function instructionDepositNft(
         TOKEN_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
       );
+
       transaction = transaction.add(voucher_tx);
     } else {
       console.log("user voucher already created");

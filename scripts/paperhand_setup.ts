@@ -7,6 +7,7 @@ import {
 import { BN, Program } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
   getAccount,
   getAssociatedTokenAddress,
   getOrCreateAssociatedTokenAccount,
@@ -27,11 +28,19 @@ import {
   getCheckoutAccounts,
   getShopAccounts,
 } from "../utils/accountDerivation";
-import { getProvider, initAssociatedAddressIfNeeded } from "../utils/actions";
 import {
+  checkIfAccountExists,
+  getProvider,
+  initAssociatedAddressIfNeeded,
+} from "../utils/actions";
+import {
+  ABC_URIS,
+  APE_URIS,
+  BEAR_URIS,
   CHECKOUT_PROGRAM_ID,
   creator,
   EXHIBITION_PROGRAM_ID,
+  GOD_URIS,
   otherCreators,
   SHOP_PROGRAM_ID,
   users,
@@ -48,21 +57,11 @@ const metaplex = Metaplex.make(connection)
   .use(keypairIdentity(creator))
   .use(bundlrStorage());
 
-let mintNumberOfCollections = 2;
-let mintNumberOfNfts = 10;
-let nftList: Nft[][] = Array(mintNumberOfCollections);
+let nftList: Nft[][] = [];
 
 let Exhibition;
 let Checkout;
 let Shop;
-
-let initAmounts = [2, 6];
-let liqAmounts = [1];
-let swapAmount = [1];
-
-//voucher wallets for both users
-// nft token account
-let nftUserTokenAccount;
 
 export async function airdropAndMint() {
   let provider = await getProvider("http://localhost:8899", creator);
@@ -76,65 +75,78 @@ export async function airdropAndMint() {
   let airdropees = [...otherCreators, ...users, creator];
   await airdropAll(airdropees, airdropVal, connection);
 
-  nftList = await mintNFTs(
-    mintNumberOfNfts,
-    mintNumberOfCollections,
-    metaplex,
-    connection
+  nftList.push(
+    await mintNFTs(metaplex, connection, APE_URIS, otherCreators[0], [
+      users[0].publicKey,
+      users[1].publicKey,
+    ])
+  );
+  nftList.push(
+    await mintNFTs(metaplex, connection, BEAR_URIS, otherCreators[1], [
+      users[0].publicKey,
+      users[1].publicKey,
+    ])
+  );
+  nftList.push(
+    await mintNFTs(metaplex, connection, GOD_URIS, otherCreators[0], [
+      users[0].publicKey,
+    ])
+  );
+  nftList.push(
+    await mintNFTs(metaplex, connection, ABC_URIS, otherCreators[1], [
+      users[1].publicKey,
+    ])
   );
 
   console.log("Minted all nfts!");
 }
 
-export async function initializeExhibit(nft: Nft) {
-  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-
-  const init_exhibit_tx = await Exhibition.methods
-    .initializeExhibit()
-    .accounts({
-      exhibit: exhibit,
-      voucherMint: voucherMint,
-      nftMetadata: nft.metadataAccount.publicKey,
-      creator: creator.publicKey,
-      rent: SYSVAR_RENT_PUBKEY,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
-  let transaction = new Transaction().add(init_exhibit_tx);
-
-  let signature = await sendAndConfirmTransaction(connection, transaction, [
-    creator,
-  ]);
-  await connection.confirmTransaction(signature, "confirmed");
-  let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-
-  console.log("Initialized exhibit!", exhibitInfo.exhibitSymbol);
-}
-
-export async function insertNft(nft: Nft) {
+export async function insertNft(nft: Nft, signer: Keypair) {
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
+  let transaction = new Transaction();
+
+  if (!(await checkIfAccountExists(exhibit, connection))) {
+    const init_tx = await Exhibition.methods
+      .initializeExhibit()
+      .accounts({
+        exhibit: exhibit,
+        voucherMint: voucherMint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        signer: signer.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(init_tx);
+
+    console.log("initing exhibit");
+  }
 
   let userVoucherWallet = await getAssociatedTokenAddress(
-    voucherMint,
-    users[0].publicKey
+    voucherMint!,
+    signer.publicKey
   );
 
-  let nftUserTokenAccount = await getOrCreateAssociatedTokenAccount(
-    connection,
-    users[0],
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      signer.publicKey,
+      userVoucherWallet,
+      signer.publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    transaction = transaction.add(voucher_tx);
+  }
+
+  let nftUserTokenAccount = await getAssociatedTokenAddress(
     nft.mint,
-    users[0].publicKey
+    signer.publicKey
   );
 
-  await initAssociatedAddressIfNeeded(
-    connection,
-    userVoucherWallet,
-    voucherMint,
-    users[0]
-  );
-
-  let insert_tx = await Exhibition.methods
+  let insert_nft_tx = await Exhibition.methods
     .artifactInsert()
     .accounts({
       exhibit: exhibit,
@@ -142,10 +154,10 @@ export async function insertNft(nft: Nft) {
       userVoucherWallet: userVoucherWallet,
       nftMint: nft.mint,
       nftMetadata: nft.metadataAccount.publicKey,
-      nftUserToken: nftUserTokenAccount.address,
+      nftUserToken: nftUserTokenAccount,
       nftArtifact: nftArtifact,
-      delegateSigner: users[0].publicKey,
-      signer: users[0].publicKey,
+      delegateSigner: signer.publicKey,
+      signer: signer.publicKey,
       systemProgram: SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -153,26 +165,18 @@ export async function insertNft(nft: Nft) {
     })
     .transaction();
 
-  let transaction = new Transaction().add(insert_tx);
+  transaction = transaction.add(insert_nft_tx);
 
   let signature = await sendAndConfirmTransaction(connection, transaction, [
-    users[0],
+    signer,
   ]);
 
   await connection.confirmTransaction(signature, "confirmed");
 
-  let postNftArtifactBal = await getAccount(connection, nftArtifact);
-
-  let postUserVoucherTokenBal = await getAccount(connection, userVoucherWallet);
-
-  console.log(
-    "Inserted NFT! Artifact bal, userVoucherBal",
-    Number(postNftArtifactBal.amount),
-    Number(postUserVoucherTokenBal.amount)
-  );
+  console.log("Inserted NFT! Artifact bal, userVoucherBal");
 }
 
-async function initializeSwap(nft: Nft) {
+async function initializeSwap(nft: Nft, user: Keypair, initAmounts: number[]) {
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
 
   let { marketAuth, shopAuthBump, marketTokens, liqMint } =
@@ -186,12 +190,10 @@ async function initializeSwap(nft: Nft) {
 
   let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
-    users[0].publicKey
+    user.publicKey
   );
-  let userTokenLiq = await getAssociatedTokenAddress(
-    liqMint,
-    users[0].publicKey
-  );
+
+  let userTokenLiq = await getAssociatedTokenAddress(liqMint, user.publicKey);
 
   const initialize_market_tx = await Shop.methods
     .initializeMarket(
@@ -209,7 +211,7 @@ async function initializeSwap(nft: Nft) {
       marketSol: marketTokens[1],
       userVoucher: userVoucherWallet,
       userLiq: userTokenLiq,
-      user: users[0].publicKey,
+      user: user.publicKey,
       rent: SYSVAR_RENT_PUBKEY,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -219,26 +221,27 @@ async function initializeSwap(nft: Nft) {
 
   let transaction = new Transaction().add(initialize_market_tx);
   let signature = await sendAndConfirmTransaction(connection, transaction, [
-    users[0],
+    user,
   ]);
 
   await connection.confirmTransaction(signature, "confirmed");
   console.log("Initialized Swap");
 }
 
-export async function instructionDepositLiquidity(nft: Nft) {
+export async function instructionDepositLiquidity(
+  nft: Nft,
+  user: Keypair,
+  liqAmounts: number[]
+) {
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
   let { marketAuth, shopAuthBump, marketTokens, liqMint } =
     await getShopAccounts(exhibit);
 
   let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
-    users[0].publicKey
+    user.publicKey
   );
-  let userTokenLiq = await getAssociatedTokenAddress(
-    liqMint,
-    users[0].publicKey
-  );
+  let userTokenLiq = await getAssociatedTokenAddress(liqMint, user.publicKey);
 
   const deposit_liq_tx = await Shop.methods
     .depositLiquidity(new BN(liqAmounts[0]), shopAuthBump)
@@ -252,7 +255,7 @@ export async function instructionDepositLiquidity(nft: Nft) {
       marketSol: marketTokens[1],
       userVoucher: userVoucherWallet,
       userLiq: userTokenLiq,
-      user: users[0].publicKey,
+      user: user.publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
@@ -262,14 +265,14 @@ export async function instructionDepositLiquidity(nft: Nft) {
   let transaction = new Transaction().add(deposit_liq_tx);
 
   let signature = await sendAndConfirmTransaction(connection, transaction, [
-    users[0],
+    user,
   ]);
 
   await connection.confirmTransaction(signature, "confirmed");
   console.log("Deposited Liquidity!");
 }
 
-export async function initializeCheckout(nft: Nft) {
+export async function initializeCheckout(nft: Nft, user: Keypair) {
   let matchedOrders: Keypair = Keypair.generate();
 
   let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
@@ -286,7 +289,7 @@ export async function initializeCheckout(nft: Nft) {
   let transaction = new Transaction();
 
   const init_create_tx = await SystemProgram.createAccount({
-    fromPubkey: creator.publicKey,
+    fromPubkey: user.publicKey,
     newAccountPubkey: matchedOrders.publicKey,
     space: 3610,
     lamports: await connection.getMinimumBalanceForRentExemption(3610),
@@ -304,7 +307,7 @@ export async function initializeCheckout(nft: Nft) {
       voucherMint: voucherMint,
       escrowVoucher: escrowVoucher,
       escrowSol: escrowSol,
-      user: creator.publicKey,
+      user: user.publicKey,
       systemProgram: SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -317,7 +320,7 @@ export async function initializeCheckout(nft: Nft) {
   transaction = transaction.add(init_checkout_tx);
 
   let signature = await sendAndConfirmTransaction(connection, transaction, [
-    creator,
+    user,
     matchedOrders,
   ]);
   await connection.confirmTransaction(signature, "confirmed");
@@ -325,8 +328,8 @@ export async function initializeCheckout(nft: Nft) {
   console.log("Initialized checkout");
 }
 
-export async function makeBids(nft: Nft) {
-  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
+export async function makeBids(nft: Nft, users: Keypair[]) {
+  let { exhibit } = await getNftDerivedAddresses(nft);
 
   let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
 
@@ -341,7 +344,7 @@ export async function makeBids(nft: Nft) {
         exhibit: exhibit,
         bidOrders: bidOrders,
         escrowSol: escrowSol,
-        bidder: otherCreators[i % 2].publicKey,
+        bidder: users[i % 2].publicKey,
         systemProgram: SystemProgram.programId,
       })
       .transaction();
@@ -349,7 +352,7 @@ export async function makeBids(nft: Nft) {
     let transaction = new Transaction().add(bid_tx);
 
     let signature = sendAndConfirmTransaction(connection, transaction, [
-      otherCreators[i % 2],
+      users[i % 2],
     ]);
 
     bidPromises.push(signature);
@@ -379,18 +382,24 @@ export async function makeBids(nft: Nft) {
 }
 
 async function initialFlow() {
+  // 1) start by showing off exhibition creation by depositing into exhibit for ABC
   await airdropAndMint();
 
-  await initializeExhibit(nftList[0][0]);
-  await insertNft(nftList[0][0]);
-  await insertNft(nftList[0][2]);
-  await insertNft(nftList[0][6]);
+  // 2) go into ape shop to demonstrate trading
+  await insertNft(nftList[0][0], users[0]);
+  await insertNft(nftList[0][2], users[0]);
+  await insertNft(nftList[0][4], users[0]);
+  await insertNft(nftList[0][6], users[0]);
+  await initializeSwap(nftList[0][0], users[0], [2, 6]);
+  await instructionDepositLiquidity(nftList[0][0], users[0], [1]);
 
-  await initializeSwap(nftList[0][0]);
-  await instructionDepositLiquidity(nftList[0][0]);
+  // 3) go into BEAR exhibit to demonstrate floorbid
+  await insertNft(nftList[1][0], users[0]);
+  await initializeCheckout(nftList[0][0], users[0]);
+  await makeBids(nftList[0][0], [users[0], users[1]]);
 
-  await initializeCheckout(nftList[0][0]);
-  await makeBids(nftList[0][0]);
+  // 4) go into gods to demonstrate carnival
+  await insertNft(nftList[2][0], users[0]);
 }
 
 initialFlow();

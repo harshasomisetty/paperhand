@@ -22,6 +22,7 @@ import {
   Transaction,
   LAMPORTS_PER_SOL,
   Connection,
+  PublicKey,
 } from "@solana/web3.js";
 import {
   ABC_SYMBOL,
@@ -67,6 +68,7 @@ export function nftJsonFormat(
     uses: null,
   };
 }
+
 export function getNftJsonDataArray(
   images: string[],
   symbol: string,
@@ -129,77 +131,62 @@ export async function uploadNfts(
 const uploadAllNfts = async () => {
   // await uploadNfts(APE_URLS, APE_SYMBOL, otherCreators[0], creator);
   // await uploadNfts(BEAR_URLS, BEAR_SYMBOL, otherCreators[1], creator);
-  await uploadNfts(GOD_URLS, GOD_SYMBOL, otherCreators[0], creator);
-  await uploadNfts(ABC_URLS, ABC_SYMBOL, otherCreators[1], creator);
+  // await uploadNfts(GOD_URLS, GOD_SYMBOL, otherCreators[0], creator);
+  // await uploadNfts(ABC_URLS, ABC_SYMBOL, otherCreators[1], creator);
 };
 
-uploadAllNfts();
+// uploadAllNfts();
 
-// export async function mintNFTs(
-//   mintNumberOfNfts: number,
-//   mintNumberOfCollections: number,
-//   metaplex: Metaplex,
-//   connection: Connection
-// ): Promise<Nft[][]> {
-//   let uriData = [APE_URIS, BEAR_URIS];
-//   let nftList: Nft[][] = Array(mintNumberOfCollections);
-//   console.log("1", uriData[1][0]);
-//   console.log("Creating and uploading NFTs...");
-//   nftList[0] = Array(mintNumberOfNfts);
-//   nftList[1] = Array(mintNumberOfNfts);
+export async function mintNFTs(
+  metaplex: Metaplex,
+  connection: Connection,
+  uriData: string[],
+  otherCreator: Keypair,
+  owners: PublicKey[]
+): Promise<Nft[]> {
+  async function mintSingleNft(uri: string, ownerKey: PublicKey): Promise<Nft> {
+    let { nft } = await metaplex.nfts().create({
+      uri: uri,
+      mintAuthority: otherCreator, // other creator[i] created all of collection i
+      updateAuthority: otherCreator,
+      owner: ownerKey, // users alternate ownership of nfts,
+      payer: otherCreator,
+      creators: [
+        {
+          address: otherCreator.publicKey,
+          share: 50,
+          verified: true,
+        },
+        {
+          address: creator.publicKey,
+          share: 50,
+          verified: false,
+        },
+      ],
+    });
 
-//   async function mintSingleNft(i: number, j: number): Promise<Nft> {
-//     let { nft } = await metaplex.nfts().create({
-//       uri: uriData[i][j],
-//       mintAuthority: otherCreators[i], // other creator[i] created all of collection i
-//       updateAuthority: otherCreators[i],
-//       owner: users[j % 2].publicKey, // users alternate ownership of nfts,
-//       payer: otherCreators[i],
-//       creators: [
-//         {
-//           address: otherCreators[i].publicKey,
-//           share: 50,
-//           verified: true,
-//         },
-//         {
-//           address: creator.publicKey,
-//           share: 50,
-//           verified: false,
-//         },
-//       ],
-//     });
+    const metadata = findMetadataPda(nft.mint);
+    let tx2 = new Transaction().add(
+      createSignMetadataInstruction({
+        metadata: metadata,
+        creator: otherCreator.publicKey,
+      })
+    );
 
-//     const metadata = findMetadataPda(nft.mint);
-//     let tx2 = new Transaction().add(
-//       createSignMetadataInstruction({
-//         metadata: metadata,
-//         creator: otherCreators[i].publicKey,
-//       })
-//     );
+    await connection.sendTransaction(tx2, [otherCreator]);
 
-//     await connection.sendTransaction(tx2, [otherCreators[i]]);
+    return nft;
+  }
 
-//     return nft;
-//   }
+  let nftPromises: Promise<Nft>[] = [];
+  for (let i = 0; i < uriData.length; i++) {
+    let uri = uriData[i];
+    nftPromises.push(mintSingleNft(uri, owners[i % owners.length]));
+  }
 
-//   let nftPromises: Promise<Nft>[] = [];
-//   for (let i = 0; i < mintNumberOfCollections; i++) {
-//     for (let j = 0; j < mintNumberOfNfts; j++) {
-//       console.log("minting nft", i, j, "to user", j % 2);
-//       // console.log("URI", uriData[i][j]);
+  let nftResults = await Promise.all(nftPromises);
 
-//       nftPromises.push(mintSingleNft(i, j));
-//     }
-//   }
+  console.log("Finished Minting nfts");
 
-//   let nftResults = await Promise.all(nftPromises);
-
-//   for (let i = 0; i < mintNumberOfCollections; i++) {
-//     for (let j = 0; j < mintNumberOfNfts; j++) {
-//       nftList[i][j] = nftResults[i * mintNumberOfCollections + j];
-//     }
-//   }
-
-//   console.log("Finished Uploading nfts");
-//   return nftList;
-// }
+  return nftResults;
+}

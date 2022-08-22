@@ -218,7 +218,8 @@ export async function createCarnivalMarket(
   connection: Connection,
   publicKey: PublicKey,
   nfts: Nft[],
-  solAmt: number
+  solAmt: number,
+  marketId: number
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
@@ -232,7 +233,6 @@ export async function createCarnivalMarket(
   console.log("actions", nftArtifact.toString());
   console.log("exhibit", exhibit.toString());
 
-  let marketId = 0;
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
     await getCarnivalAccounts(exhibit);
 
@@ -315,14 +315,13 @@ export async function closeCarnivalMarket(
   publicKey: PublicKey,
   exhibit: PublicKey,
   nfts: Nft[],
-  solAmt: number
+  solAmt: number,
+  marketId: number
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
 
   let transaction = new Transaction();
-
-  let marketId = 0;
 
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
     await getCarnivalAccounts(exhibit);

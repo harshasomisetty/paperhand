@@ -86,6 +86,13 @@ pub mod shop {
             .checked_div(ctx.accounts.market_voucher.amount)
             .unwrap();
 
+        msg!(
+            "input sol amt: {}, input voucher amt{}, voucher bal: {}",
+            &input_sol_amt,
+            &input_voucher_amt,
+            ctx.accounts.user_voucher.amount
+        );
+
         msg!("voucher transfer");
         /* TODO didn't check for decimals when calculating token_*_amount to transfer */
         anchor_spl::token::transfer(

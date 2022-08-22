@@ -7,7 +7,7 @@ export default function DisplayImages({ images }: { images: string[] }) {
     const timerId = setInterval(() => {
       // Use a functional state update to correctly increment the count
       setCount((count) => count + 1);
-    }, 1000);
+    }, 2000);
 
     return () => clearInterval(timerId);
   }, []);
