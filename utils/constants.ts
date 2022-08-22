@@ -121,5 +121,59 @@ export const BEAR_URIS: string[] = [
   "https://arweave.net/rvHBkB8Hn1gAIfKgSU_foV9Sg9RrzSYNhtvkRt_CE6Y",
 ];
 
+export let GOD_URLS: string[] = [
+  "https://metadata.degods.com/g/4927.png",
+  "https://metadata.degods.com/g/1449.png",
+  "https://metadata.degods.com/g/7799.png",
+  "https://metadata.degods.com/g/5252.png",
+  "https://metadata.degods.com/g/6187-dead.png",
+  "https://metadata.degods.com/g/6856-dead.png",
+  "https://metadata.degods.com/g/828-dead.png",
+  "https://metadata.degods.com/g/145.png",
+  "https://metadata.degods.com/g/6891.png",
+  "https://metadata.degods.com/g/1834-dead.png",
+];
+
+export let GOD_URIS: string[] = [
+  "https://arweave.net/GH8s-XH1py2aIJeHHJBGWWYvywlLQFcsTef-KzhHmWM",
+  "https://arweave.net/WuGWRAuGG7WbDLzPHcg0Rjj_DdgmSCSBtxZ5_v3piQo",
+  "https://arweave.net/CTP6_XDl350m8cuKWIzsDeb6GPhwxgwLiT-vXAwxn2U",
+  "https://arweave.net/KTwcPB4GDmeSiuaUI_i4Ap_thePYGXHBkIauPRIkgkA",
+  "https://arweave.net/tFfaltw4MnfC_Ff13xgFxHyhhPo5dwvVPbzanhdHrCs",
+  "https://arweave.net/ZVboTl-6OJrOduf7GYYJLNjSc86o93ATMd5bT4-MkeI",
+  "https://arweave.net/3Qf9sFzu3n0eKhW5qnrs1ViCS1XPPx_Ohaz7MWtffM4",
+  "https://arweave.net/mcYSftt4VGsYkbhWYwDeyzTMph7uBWrUuewGTGTJx4g",
+  "https://arweave.net/ruQjxwC_kNtqTtFIkCbiwaYxpXO4Z16ZTBQnzeoR5TY",
+  "https://arweave.net/pnTaFpfYg_cbRGH3imnVWiYryIbfi1NkqsXCimNaw7Y",
+];
+
+export let ABC_URLS: string[] = [
+  "https://yd3kt3ugck7mc67diregsomy5c6d6eskhtjacaszrohusbdwoa4q.arweave.net/wPap7oYSvsF740RIaTmY6Lw_Eko80gECWYuPSQR2cDk",
+  "https://g56lut6krjyycpw7agiuvtqkxymwwmdls62mznwm6dy6zizxkq4q.arweave.net/N3y6T8qKcYE-3wGRSs4KvhlrMGuXtMy2zPDx7KM3VDk",
+  "https://rev6vxj3i6d4znel6sslaz5bb5wpwzki4unac3pi27cwxiyhzanq.arweave.net/iSvq3TtHh8y0i_SksGehD2z7ZUjlGgFt6NfFa6MHyBs",
+  "https://ykh4a55k4ie6fz2dkwbq254ufrgcbq6qdx5hytxvpkydtbz4joxq.arweave.net/wo_Ad6riCeLnQ1WDDXeULEwgw9Ad-nxO9XqwOYc8S68",
+  "https://psisfwvdhk3m44f6cdcfefat3ug3su5fe3arouq2oosssmcbcnla.arweave.net/fJEi2qM6ts5wvhDEUhQT3Q25U6UmwRdSGnOlKTBBE1Y",
+  "https://uj63oxppcnml6zzoiuafffu64vj54ftf4fzexlym6rmuoitib4ja.arweave.net/on23Xe8TWL9nLkUAUpae5VPeFmXhckuvDPRZRyJoDxI",
+  "https://2b6qbdeqdud33md5nylddjirgpfmf62dqlc4xmhsfdfxuads2elq.arweave.net/0H0AjJAdB72wfW4WMaURM8rC-0OCxcuw8ijLegBy0Rc",
+  "https://55pjgmfoz45p23jctwrbwfyjt2yf67noaexysvhb7twssrmwxwiq.arweave.net/716TMK7POv1tIp2iGxcJnrBffa4BL4lU4fztKUWWvZE",
+  "https://yzgnbwriqf2iz6fgzqmhdq2z6uk3k2dn6fgqc2xom7tc4xf5rxpa.arweave.net/xkzQ2iiBdIz4pswYccNZ9RW1aG3xTQFq7mfmLly9jd4",
+  "https://vnkubxhxqjw3fevmi4hfa7ea5vhfksbv5zscxsesecyoz2zfq4lq.arweave.net/q1VA3PeCbbKSrEcOUHyA7U5VSDXuZCvIkiCw7Oslhxc",
+];
+
+export let ABC_URIS: string[] = [
+  "https://arweave.net/n1gIJPJGSQEK4ZGVLb7xyqe-sNmoawIYSpnT5VfoZD4",
+  "https://arweave.net/EUyl5IddKjrCYW3_vV_1ilSfMRIzGfMFdVY7x1rmmPY",
+  "https://arweave.net/_-Tl1vCCO_btke9Z9IfW0FT4UNIC8v_-2OnXwNY7lRU",
+  "https://arweave.net/y9IfkMeWtZLSRMm5fSYiD_sQw95HBNe50pV65BcQYX8",
+  "https://arweave.net/oGjtzQ_eLmqBdPrR7GoVQtYU16D3iXGz3vCibhmFK7A",
+  "https://arweave.net/WsEKbTYnzhyW0SFch75gHRNdxxjgK2s9XZn9n-0A-C4",
+  "https://arweave.net/LfyUL3Y4y7c71M7IlMwWr60YDuSs23zyiuX_vwhUP2s",
+  "https://arweave.net/0YBzwuEjIUwR-UXXttM0y9d3dsc6tdG1Xyp12NAJieI",
+  "https://arweave.net/i28sDlvWNjWIqelcz9gVOWxmst_Xe7Igyp12x6XcedE",
+  "https://arweave.net/dwb61GOa03VAFt-TRIl9hFqSE_y3VX-stbfigtjXCd8",
+];
+
 export let APE_SYMBOL: string = "APE";
 export let BEAR_SYMBOL: string = "BEAR";
+export let GOD_SYMBOL: string = "GOD";
+export let ABC_SYMBOL: string = "ABC";

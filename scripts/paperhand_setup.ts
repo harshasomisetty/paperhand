@@ -76,8 +76,6 @@ export async function airdropAndMint() {
   let airdropees = [...otherCreators, ...users, creator];
   await airdropAll(airdropees, airdropVal, connection);
 
-  let mOrderBal = await connection.getBalance(creator.publicKey);
-
   nftList = await mintNFTs(
     mintNumberOfNfts,
     mintNumberOfCollections,
@@ -89,8 +87,6 @@ export async function airdropAndMint() {
 }
 
 export async function initializeExhibit(nft: Nft) {
-  console.log("Initializing Exhibit");
-
   let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
   const init_exhibit_tx = await Exhibition.methods
@@ -117,7 +113,6 @@ export async function initializeExhibit(nft: Nft) {
 }
 
 export async function insertNft(nft: Nft) {
-  console.log("Inserting nft");
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
 
   let userVoucherWallet = await getAssociatedTokenAddress(
@@ -178,8 +173,6 @@ export async function insertNft(nft: Nft) {
 }
 
 async function initializeSwap(nft: Nft) {
-  console.log("Initialize swap");
-
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
 
   let { marketAuth, shopAuthBump, marketTokens, liqMint } =
@@ -199,8 +192,6 @@ async function initializeSwap(nft: Nft) {
     liqMint,
     users[0].publicKey
   );
-
-  let userTokenVoucherBal = await getAccount(connection, userVoucherWallet);
 
   const initialize_market_tx = await Shop.methods
     .initializeMarket(
@@ -236,8 +227,6 @@ async function initializeSwap(nft: Nft) {
 }
 
 export async function instructionDepositLiquidity(nft: Nft) {
-  console.log("Depositing Liquidity");
-
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
   let { marketAuth, shopAuthBump, marketTokens, liqMint } =
     await getShopAccounts(exhibit);
@@ -281,7 +270,6 @@ export async function instructionDepositLiquidity(nft: Nft) {
 }
 
 export async function initializeCheckout(nft: Nft) {
-  console.log("In initialize checkout");
   let matchedOrders: Keypair = Keypair.generate();
 
   let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
@@ -338,8 +326,6 @@ export async function initializeCheckout(nft: Nft) {
 }
 
 export async function makeBids(nft: Nft) {
-  console.log("in make bids");
-
   let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
 
   let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
@@ -377,7 +363,7 @@ export async function makeBids(nft: Nft) {
     await connection.confirmTransaction(promise, "confirmed");
   }
 
-  await new Promise((r) => setTimeout(r, 3000));
+  await new Promise((r) => setTimeout(r, 1000));
   let account = await Checkout.account.bidOrders.fetch(bidOrders);
 
   for (let i = 0; i < 10; i++) {
@@ -389,7 +375,7 @@ export async function makeBids(nft: Nft) {
     );
   }
 
-  console.log("finsihed making 10 bids`");
+  console.log("finsihed making bids");
 }
 
 async function initialFlow() {
