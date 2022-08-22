@@ -58,7 +58,6 @@ const BidCard = ({
         publicKey
       );
 
-      // TODO cancel bid by id
       let { prices, bids } = await getBidOrderData(exhibit, connection, wallet);
 
       setAllPrices(prices);
@@ -75,7 +74,6 @@ const BidCard = ({
         wallet
       );
 
-      // console.log("order filled", orderFilled);
       setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
     }
     if (wallet && publicKey) {
@@ -96,7 +94,7 @@ const BidCard = ({
         connection
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   async function executeBidFloor() {
@@ -111,7 +109,7 @@ const BidCard = ({
         chosenNfts
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   async function executeAcquireNft() {
@@ -129,27 +127,6 @@ const BidCard = ({
     router.reload(window.location.pathname);
   }
 
-  async function executeCancelBid() {
-    if (exhibitAddress) {
-      console.log("cancel bid");
-      console.log("all bids", allBids);
-      console.log("bids", allBids[publicKey.toString()]);
-      for (let bid of allBids[publicKey.toString()]) {
-        console.log("bid in execute", Number(bid.bidPrice));
-      }
-
-      await instructionCancelBid(
-        wallet,
-        publicKey,
-        exhibit,
-        signTransaction,
-        connection,
-        allBids[publicKey.toString()][0].sequenceNumber
-      );
-    }
-    // router.reload(window.location.pathname);
-  }
-
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <div className="card-body space-y-7">
@@ -164,11 +141,6 @@ const BidCard = ({
                 <div className="stat-desc">
                   Sol Balance: {(userSol / LAMPORTS_PER_SOL).toFixed(2)}
                 </div>
-              </div>
-              <div className="flex flex-col space-y-2">
-                <button className="btn btn-warning" onClick={executeCancelBid}>
-                  Cancel Bid
-                </button>
               </div>
             </div>
             <input

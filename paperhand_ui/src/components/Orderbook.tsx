@@ -16,6 +16,7 @@ import {
 import { Bar } from "react-chartjs-2";
 import { getBidOrderData } from "@/utils/retrieveData";
 import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
+import { instructionCancelBid } from "@/utils/instructions/checkout";
 
 ChartJS.register(
   CategoryScale,
@@ -65,12 +66,17 @@ export const options = {
 const Orderbook = () => {
   const [orderbook, setOrderbook] = useState();
   const [labels, setLabels] = useState();
+  const [allBids, setAllBids] = useState();
+  const [userBids, setUserBids] = useState();
   const [labelColors, setLabelColors] = useState();
+  const [leftside, setLeftside] = useState<boolean>(true);
+  const [userCancel, setUserCancel] = useState<Record<number, number>>({});
   const { connection } = useConnection();
-  const { publicKey, wallet } = useWallet();
+  const { publicKey, wallet, signTransaction } = useWallet();
   const router = useRouter();
   const { exhibitAddress } = router.query;
 
+  let exhibit = new PublicKey(exhibitAddress);
   useEffect(() => {
     async function fetchData() {
       let exhibit = new PublicKey(exhibitAddress!);
@@ -84,6 +90,20 @@ const Orderbook = () => {
       // let formattedLabels = labels.map((element) => "$" + element.toString());
       setLabels(prices);
       setOrderbook(size);
+      setAllBids(bids);
+
+      let orderbookData = {};
+
+      for (let bid of bids[publicKey.toString()]) {
+        let bidPrice = Number(bid.bidPrice);
+        // let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
+        if (orderbookData[bidPrice]) {
+          orderbookData[bidPrice].push(Number(bid.sequenceNumber));
+        } else {
+          orderbookData[bidPrice] = [Number(bid.sequenceNumber)];
+        }
+      }
+      setUserBids(orderbookData);
 
       let labColors = [];
       let normalColor = "rgba(75, 192, 192, .2)"; // green
@@ -113,30 +133,117 @@ const Orderbook = () => {
     }
   }, [exhibitAddress, wallet]);
 
+  function selectCancel(price: number) {
+    let oldCancel = { ...userCancel };
+    if (oldCancel[price]) {
+      delete oldCancel[price];
+      setUserCancel(oldCancel);
+    } else {
+      oldCancel[price] = userBids[price];
+      setUserCancel(oldCancel);
+    }
+  }
+
+  async function executeCancelBid() {
+    let cancelIds = [];
+
+    for (let price of Object.keys(userCancel)) {
+      cancelIds = cancelIds.concat(userCancel[price]);
+    }
+    console.log(cancelIds);
+    if (exhibitAddress) {
+      console.log("cancel bid");
+
+      await instructionCancelBid(
+        wallet,
+        publicKey,
+        exhibit,
+        signTransaction,
+        connection,
+        cancelIds
+      );
+    }
+    router.reload(window.location.pathname);
+  }
+
   if (!orderbook) {
     return <p>Loading data</p>;
   }
+
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <div className="card-body space-y-7 items-center">
-        <h2 className="card-title">Bids</h2>
-        <div className="relative h-80 w-40">
-          <Bar
-            options={options}
-            data={{
-              labels,
-              datasets: [
-                {
-                  data: orderbook,
-                  backgroundColor: labelColors,
-                  barPercentage: 1.0,
-                  minBarLength: 10,
-                  categoryPercentage: 1,
-                },
-              ],
-            }}
-          />
-        </div>
+        <ul
+          className="menu menu-horizontal bg-base-300 rounded-box border border-neutral-focus"
+          onClick={() => {
+            setLeftside(!leftside);
+          }}
+        >
+          <li>
+            <a className={`${leftside && "active"}`}>All Bids</a>
+          </li>
+          <li>
+            <a className={`${!leftside && "active"}`}>Your Bids</a>
+          </li>
+        </ul>
+        {Object.keys(userCancel).length > 0 ? (
+          <button className="btn btn-warning" onClick={executeCancelBid}>
+            Cancel All Selected Bids
+          </button>
+        ) : (
+          <button className="btn btn-disabled">Choose bid to cancel</button>
+        )}
+
+        {leftside ? (
+          <div className="relative h-80 w-40">
+            <Bar
+              options={options}
+              data={{
+                labels,
+                datasets: [
+                  {
+                    data: orderbook,
+                    backgroundColor: labelColors,
+                    barPercentage: 1.0,
+                    minBarLength: 10,
+                    categoryPercentage: 1,
+                  },
+                ],
+              }}
+            />
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Price</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {userBids &&
+                Object.keys(userBids)
+                  .sort()
+                  .reverse()
+                  .map((bid, index) => (
+                    <tr
+                      onClick={(e) => {
+                        selectCancel(Number(bid));
+                        console.log("usercancel", userCancel);
+                      }}
+                      className={`${
+                        userCancel[bid] && "border-2 border-secondary-focus"
+                      }`}
+                    >
+                      <td>
+                        {Number(Number(bid) / LAMPORTS_PER_SOL).toFixed(3)}
+                      </td>
+                      <td>{userBids[bid].length}</td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

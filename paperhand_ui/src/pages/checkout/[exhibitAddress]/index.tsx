@@ -57,7 +57,6 @@ const CheckoutPage = () => {
         exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
         let exhibitNfts = await getAllExhibitArtifacts(exhibit, connection);
-        console.log("getting nfts", exhibitNfts);
         setExhibitNftList(exhibitNfts);
         let uData = await getUserData(exhibit, publicKey, connection);
         setUserData(uData);

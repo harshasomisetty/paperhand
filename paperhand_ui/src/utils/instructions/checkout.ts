@@ -469,7 +469,7 @@ export async function instructionCancelBid(
   exhibit: PublicKey,
   signTransaction: any,
   connection: Connection,
-  orderId: number
+  orderIds: number[]
 ) {
   console.log("in bid floor");
 
@@ -479,18 +479,20 @@ export async function instructionCancelBid(
 
   let transaction = new Transaction();
 
-  const cancel_tx = await Checkout.methods
-    .cancelBid(new BN(orderId))
-    .accounts({
-      exhibit: exhibit,
-      bidOrders: bidOrders,
-      escrowSol: escrowSol,
-      bidder: publicKey,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
+  for (let orderId of orderIds) {
+    const cancel_tx = await Checkout.methods
+      .cancelBid(new BN(orderId))
+      .accounts({
+        exhibit: exhibit,
+        bidOrders: bidOrders,
+        escrowSol: escrowSol,
+        bidder: publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
 
-  transaction = transaction.add(cancel_tx);
+    transaction = transaction.add(cancel_tx);
+  }
 
   try {
     console.log("before manual send");

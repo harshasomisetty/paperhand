@@ -160,8 +160,9 @@ export async function getBidOrderData(
   connection: Connection,
   wallet: Wallet
 ): Promise<{
+  prices: number[];
+  size: number[];
   bids: { [key: string]: BidInterface[] };
-  bids: { [bidPrice: number]: number };
 }> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
@@ -198,7 +199,6 @@ export async function getBidOrderData(
       for (let bid of bids[pubkey]) {
         // let bidPrice = Number(bid.bidPrice);
         let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
-        console.log("bid price?", bidPrice);
         if (orderbookData[bidPrice]) {
           orderbookData[bidPrice]++;
         } else {
