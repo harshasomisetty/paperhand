@@ -95,7 +95,7 @@ pub mod exhibition {
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Approve {
                     to: ctx.accounts.nft_artifact.to_account_info(),
-                    delegate: ctx.accounts.signer.to_account_info(),
+                    delegate: ctx.accounts.delegate_signer.to_account_info(),
                     authority: ctx.accounts.exhibit.to_account_info(),
                 },
                 &[&seeds],
@@ -103,6 +103,7 @@ pub mod exhibition {
             0,
         )?;
         ctx.accounts.exhibit.artifact_count = ctx.accounts.exhibit.artifact_count + 1;
+        msg!("assigning delegate: {}", ctx.accounts.delegate_signer.key);
         Ok(())
     }
 

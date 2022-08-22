@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use std::cmp::PartialEq;
 use std::default::Default;
 use std::fmt::{self, Debug, Display, Formatter};
-// use std::marker::PhantomData;
 
 #[constant]
 pub const MAX_OPEN_ORDERS: u64 = 64;

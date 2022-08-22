@@ -143,8 +143,7 @@ pub fn deposit_nft(
         nft_metadata: ctx.accounts.nft_metadata.to_account_info(),
         nft_user_token: ctx.accounts.nft_user_token.to_account_info(),
         nft_artifact: ctx.accounts.nft_artifact.to_account_info(),
-        // delegate_signer: ctx.accounts.market.to_account_info(),
-        delegate_signer: ctx.accounts.signer.to_account_info(),
+        delegate_signer: ctx.accounts.market.to_account_info(),
         signer: ctx.accounts.signer.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
         rent: ctx.accounts.rent.to_account_info(),
@@ -152,21 +151,23 @@ pub fn deposit_nft(
         associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
     };
 
-    // let borrowed_bump = &[market_bump];
-    // let borrowed_id = market_id.clone().to_le_bytes().to_owned();
+    let borrowed_id = market_id.clone().to_le_bytes().to_owned();
 
-    // let seeds = [
-    //     b"market",
-    //     ctx.accounts.carnival.to_account_info().key().as_ref(),
-    //     &[market_bump],
-    // ];
+    let carnival_key = ctx.accounts.carnival.key();
 
-    // let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, &[&seeds]);
+    let seeds = &[
+        b"market",
+        carnival_key.as_ref(),
+        borrowed_id.as_ref(),
+        &[market_bump],
+    ];
+    let pda_seeds = &[&seeds[..]];
 
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, pda_seeds);
+
     exhibition::cpi::artifact_insert(cpi_ctx)?;
-    msg!("did cpi");
 
+    msg!("did cpi");
     msg!("finished depo nft");
 
     Ok(())

@@ -166,6 +166,8 @@ describe("carnival", () => {
     // check delegates
 
     let marketDelegates = await getMarketNfts(connection, exhibit, market);
+    console.log("user", users[0].publicKey.toString());
+    console.log("market", market.toString());
 
     // TODO EVENTUALLY FIX THIS so that market is the proper delegate
     printAndTest(
