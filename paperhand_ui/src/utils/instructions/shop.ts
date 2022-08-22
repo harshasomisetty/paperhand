@@ -65,14 +65,18 @@ export async function instructionInitSwap(
   console.log("in init instruction", solIn, voucherIn);
   let { Shop } = await getShopProgramAndProvider(wallet);
 
-  let [
+  // let [
+  //   userTokenVoucher,
+  // ] = await getSwapAccounts(exhibit, publicKey);
+
+  let { voucherMint, marketAuth, shopAuthBump, marketTokens, liqMint } =
+    await getShopAccounts(exhibit);
+
+  let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
+  let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ] = await getSwapAccounts(exhibit, publicKey);
+    publicKey
+  );
 
   let marketTokenFee = await getAssociatedTokenAddress(
     liqMint,
@@ -80,15 +84,25 @@ export async function instructionInitSwap(
     true
   );
 
-  let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
-
   let transaction = new Transaction();
 
-  const init_tx = await Shop.methods
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint
+    );
+    transaction = transaction.add(voucher_wallet_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
+  const init_market_tx = await Shop.methods
     .initializeMarket(
       new BN(voucherIn),
       new BN(solIn * LAMPORTS_PER_SOL),
-      authBump
+      shopAuthBump
     )
     .accounts({
       exhibit: exhibit,
@@ -98,7 +112,7 @@ export async function instructionInitSwap(
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],
       marketSol: marketTokens[1],
-      userVoucher: userTokenVoucher,
+      userVoucher: userVoucherWallet,
       userLiq: userTokenLiq,
       user: publicKey,
       rent: SYSVAR_RENT_PUBKEY,
@@ -109,7 +123,8 @@ export async function instructionInitSwap(
     .transaction();
 
   console.log("before add");
-  transaction = transaction.add(init_tx);
+  transaction = transaction.add(init_market_tx);
+
   try {
     console.log("before manual send");
 
@@ -140,21 +155,25 @@ export async function instructionSwap(
   let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
   console.log(exhibitInfo.creator.toString());
 
-  let [
+  let { voucherMint, marketAuth, shopAuthBump, marketTokens } =
+    await getShopAccounts(exhibit);
+
+  // let marketTokenFee = await getAssociatedTokenAddress(
+  //   liqMint,
+  //   marketAuth,
+  //   true
+  // );
+  let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ] = await getSwapAccounts(exhibit, publicKey);
+    publicKey
+  );
 
   let transaction = new Transaction();
 
-  if (!(await checkIfAccountExists(userTokenVoucher, connection))) {
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
     let voucher_tx = createAssociatedTokenAccountInstruction(
       publicKey,
-      userTokenVoucher,
+      userVoucherWallet,
       publicKey,
       voucherMint,
       TOKEN_PROGRAM_ID,
@@ -167,7 +186,7 @@ export async function instructionSwap(
 
   console.log("swap amounts", vouchers, buyVouchers);
   const swap_tx = await Shop.methods
-    .swap(new BN(vouchers), buyVouchers, authBump)
+    .swap(new BN(vouchers), buyVouchers, shopAuthBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
@@ -175,7 +194,7 @@ export async function instructionSwap(
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],
       marketSol: marketTokens[1],
-      userVoucher: userTokenVoucher,
+      userVoucher: userVoucherWallet,
       creator: exhibitInfo.creator,
       user: publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
@@ -208,23 +227,14 @@ export async function instructionDepositLiquidity(
   console.log("in instruction dpeo");
   let { Shop } = await getShopProgramAndProvider(wallet);
 
-  let [
-    voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ] = await getSwapAccounts(exhibit, publicKey);
-
-  let tokenMints = new Array(1);
-  let temp;
-  [liqMint, temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    SHOP_PROGRAM_ID
-  );
+  let { voucherMint, marketAuth, shopAuthBump, marketTokens, liqMint } =
+    await getShopAccounts(exhibit);
 
   let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
 
   let transaction = new Transaction();
 
@@ -243,7 +253,7 @@ export async function instructionDepositLiquidity(
   }
 
   const deposit_liq_tx = await Shop.methods
-    .depositLiquidity(new BN(vouchers), authBump)
+    .depositLiquidity(new BN(vouchers), shopAuthBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
@@ -252,7 +262,7 @@ export async function instructionDepositLiquidity(
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],
       marketSol: marketTokens[1],
-      userVoucher: userTokenVoucher,
+      userVoucher: userVoucherWallet,
       userLiq: userTokenLiq,
       user: publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
@@ -286,23 +296,14 @@ export async function instructionWithdrawLiquidity(
   console.log("in instruction dpeo");
   let { Shop } = await getShopProgramAndProvider(wallet);
 
-  let [
-    voucherMint,
-    marketAuth,
-    authBump,
-    marketTokens,
-    userTokenVoucher,
-    liqMint,
-  ] = await getSwapAccounts(exhibit, publicKey);
-
-  let tokenMints = new Array(1);
-  let temp;
-  [liqMint, temp] = await PublicKey.findProgramAddress(
-    [Buffer.from("market_token_mint"), marketAuth.toBuffer()],
-    SHOP_PROGRAM_ID
-  );
+  let { voucherMint, marketAuth, shopAuthBump, marketTokens, liqMint } =
+    await getShopAccounts(exhibit);
 
   let userTokenLiq = await getAssociatedTokenAddress(liqMint, publicKey);
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
 
   let transaction = new Transaction();
 
@@ -321,7 +322,7 @@ export async function instructionWithdrawLiquidity(
   }
 
   const withdraw_liq_tx = await Shop.methods
-    .withdrawLiquidity(new BN(liqTokens), new BN(vouchers), authBump)
+    .withdrawLiquidity(new BN(liqTokens), new BN(vouchers), shopAuthBump)
     .accounts({
       exhibit: exhibit,
       marketAuth: marketAuth,
@@ -330,7 +331,7 @@ export async function instructionWithdrawLiquidity(
       voucherMint: voucherMint,
       marketVoucher: marketTokens[0],
       marketSol: marketTokens[1],
-      userVoucher: userTokenVoucher,
+      userVoucher: userVoucherWallet,
       userLiq: userTokenLiq,
       user: publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,

@@ -41,7 +41,7 @@ const WithdrawLiquidity = ({
       signTransaction,
       connection
     );
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   function updateInputs(liqCount: number, voucherCount: number) {

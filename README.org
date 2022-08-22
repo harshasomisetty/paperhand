@@ -27,4 +27,6 @@ Checkout thus manages a heap to store user bids, and a DLL to store fulfilled or
 Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
 
 ** FUture work
+*** bid on certain features
+**** market sell certain features
 *** check token account pubkeys to see if they are owned properly by the user

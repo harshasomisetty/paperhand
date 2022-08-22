@@ -26,11 +26,9 @@ import { Nft } from "@metaplex-foundation/js";
 
 const BidCard = ({
   bidSide,
-  setBidSide,
   userNftList,
 }: {
   bidSide: boolean;
-  setBidSide: () => {};
   userNftList: Nft[];
 }) => {
   const { wallet, publicKey, signTransaction } = useWallet();
@@ -168,9 +166,6 @@ const BidCard = ({
                 </div>
               </div>
               <div className="flex flex-col space-y-2">
-                <button className="btn btn-success" onClick={executePlaceBid}>
-                  Place Bid
-                </button>
                 <button className="btn btn-warning" onClick={executeCancelBid}>
                   Cancel Bid
                 </button>
@@ -184,19 +179,15 @@ const BidCard = ({
               className="range range-sm"
               onChange={(e) => setBidValue(e.target.value)}
             />
-            {userVoucher > 0 ? (
+            {bidValue > 0 ? (
               <>
-                <button
-                  className="btn btn-outline btn-success"
-                  onClick={executeAcquireNft}
-                >
-                  Pick NFT
+                <button className="btn btn-success" onClick={executePlaceBid}>
+                  Place Bid
                 </button>
-                <p>Your vouchers: {userVoucher}</p>
               </>
             ) : (
               <button className="btn" disabled="disabled">
-                Not enough vouchers!
+                Place Bid
               </button>
             )}
           </div>
@@ -246,7 +237,7 @@ const BidCard = ({
                 }
               }}
             />
-            {chosenNfts ? (
+            {Object.keys(chosenNfts).length > 0 ? (
               <button className="btn btn-error" onClick={executeBidFloor}>
                 Market Sell
               </button>

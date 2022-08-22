@@ -96,23 +96,42 @@ const CheckoutPage = () => {
       {exhibitSymbol && (
         <NftProvider>
           <div className="grid grid-cols-2">
+            {bidSide ? (
+              <div className="opacity-50 pointer-events-none">
+                {" "}
+                <NftList
+                  nftList={exhibitNftList}
+                  title={"Place Bid to Get One of these NFTs!"}
+                />
+              </div>
+            ) : (
+              <NftList nftList={userNftList} title={"Your NFTs"} />
+            )}
             <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
               {userData ? (
-                <BidCard
-                  bidSide={bidSide}
-                  setBidSide={setBidSide}
-                  userNftList={userNftList}
-                />
+                <>
+                  <ul
+                    className="menu menu-horizontal bg-base-300 rounded-box border border-neutral-focus"
+                    onClick={() => {
+                      setBidSide(!bidSide);
+                    }}
+                  >
+                    <li>
+                      <a className={`${bidSide && "active"}`}>Bid NFT</a>
+                    </li>
+                    <li>
+                      <a className={`${!bidSide && "active"}`}>
+                        Panic Sell NFT
+                      </a>
+                    </li>
+                  </ul>
+                  <BidCard bidSide={bidSide} userNftList={userNftList} />
+                </>
               ) : (
                 <p>Loading market data</p>
               )}
               <Orderbook />
             </div>
-            {bidSide ? (
-              <NftList nftList={exhibitNftList} title={"Exhibit NFTs"} />
-            ) : (
-              <NftList nftList={userNftList} title={"Your NFTs"} />
-            )}
           </div>
         </NftProvider>
       )}

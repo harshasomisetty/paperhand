@@ -159,7 +159,7 @@ describe("shop", () => {
 
       let { marketAuth, shopAuthBump, marketTokens, liqMint } =
         await getShopAccounts(exhibit);
-      // console.log("market auth", marketAuth.toString());
+
       const tx = await Shop.methods
         .initializeMarket(
           new anchor.BN(initAmounts[0]),
