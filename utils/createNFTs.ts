@@ -180,22 +180,20 @@ export async function mintNFTs(
   for (let i = 0; i < mintNumberOfCollections; i++) {
     for (let j = 0; j < mintNumberOfNfts; j++) {
       console.log("minting nft", i, j, "to user", j % 2);
-      console.log("URI", uriData[i][j]);
+      // console.log("URI", uriData[i][j]);
 
       nftPromises.push(mintSingleNft(i, j));
     }
   }
 
-  console.log("before nftResults");
   let nftResults = await Promise.all(nftPromises);
 
-  console.log("after nftResults");
   for (let i = 0; i < mintNumberOfCollections; i++) {
     for (let j = 0; j < mintNumberOfNfts; j++) {
       nftList[i][j] = nftResults[i * mintNumberOfCollections + j];
     }
   }
 
-  console.log("Finished Uploading...");
+  console.log("Finished Uploading nfts");
   return nftList;
 }
