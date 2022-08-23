@@ -84,9 +84,29 @@ describe("carnival", () => {
     let nft = nftList[0][0];
 
     let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-    let { carnival } = await getCarnivalAccounts(exhibit);
+    let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+      await getCarnivalAccounts(exhibit);
 
-    let transaction = await createCarnival(connection, nft, users[0].publicKey);
+    let transaction = new Transaction();
+
+    let initCarnTx = await Carnival.methods
+      .initializeCarnival()
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        voucherMint: voucherMint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        escrowSol: escrowSol,
+        signer: users[0].publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+        systemProgram: SystemProgram.programId,
+        exhibitionProgram: Exhibition.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(initCarnTx);
 
     console.log("about to send create carnival tx", transaction);
 
@@ -110,63 +130,71 @@ describe("carnival", () => {
 
   it("Made all markets", async () => {
     // console.log("nft list", nftList);
-    let solAmt = 2 * LAMPORTS_PER_SOL;
 
-    let nftTransferList = [nftList[0][0], nftList[0][2], nftList[0][4]];
+    let nfts = [nftList[0][0], nftList[0][2], nftList[0][4]];
+    let solAmts = [
+      2 * LAMPORTS_PER_SOL,
+      4 * LAMPORTS_PER_SOL,
+      6 * LAMPORTS_PER_SOL,
+    ];
+
     let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
-      nftTransferList[0]
+      nfts[0]
     );
 
-    let marketId = 0;
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
 
-    let [market] = await PublicKey.findProgramAddress(
-      [
-        Buffer.from("market"),
-        carnival.toBuffer(),
-        new BN(marketId).toArrayLike(Buffer, "le", 8),
-      ],
-      CARNIVAL_PROGRAM_ID
-    );
+    for (let marketId = 0; marketId < 3; marketId++) {
+      console.log("Starting creating", marketId);
+      let nftList = [nfts[marketId]];
 
-    let transaction = await createCarnivalMarket(
-      connection,
-      users[0].publicKey,
-      nftTransferList,
-      solAmt,
-      marketId
-    );
+      let [market] = await PublicKey.findProgramAddress(
+        [
+          Buffer.from("market"),
+          carnival.toBuffer(),
+          new BN(marketId).toArrayLike(Buffer, "le", 8),
+        ],
+        CARNIVAL_PROGRAM_ID
+      );
 
-    connection.confirmTransaction(
-      await sendAndConfirmTransaction(connection, transaction, [users[0]]),
-      "confirmed"
-    );
+      console.log("for loop market", market.toString());
+      let transaction = await createCarnivalMarket(
+        connection,
+        users[0].publicKey,
+        nftList,
+        solAmts[marketId],
+        marketId
+      );
 
-    printAndTest(
-      await checkIfAccountExists(market, connection),
-      true,
-      "market created"
-    );
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+        "confirmed"
+      );
+
+      printAndTest(await checkIfAccountExists(market, connection), true);
+
+      let marketNfts = await getMarketNfts(connection, exhibit, market);
+      let marketDelegate =
+        marketNfts[0].account.data.parsed.info.delegate.toString();
+
+      printAndTest(market.toString(), marketDelegate, "market delegates");
+
+      printAndTest(marketNfts.length, nftList.length);
+      console.log("Created Market", marketId);
+      printAndTest(
+        Number((await getAccount(connection, nftArtifact)).amount),
+        1
+      );
+    }
 
     printAndTest(
       regSol(await connection.getBalance(escrowSol)),
-      regSol(solAmt),
-      "Escrow Bal"
+      regSol(solAmts.reduce((partialSum, a) => partialSum + a, 0))
     );
 
-    printAndTest(
-      Number((await getAccount(provider.connection, nftArtifact)).amount),
-      1,
-      "nft transferred"
-    );
+    // TODO CHECK LIST OF POOLS HERE AND DATA
 
-    let marketDelegates = await getMarketNfts(connection, exhibit, market);
-
-    printAndTest(
-      market.toString(),
-      marketDelegates[0].toString(),
-      "delegate is market"
-    );
+    console.log("Finsihed Initing all markets");
   });
 
   // it("Buy Specific NFTs", async () => {});
@@ -175,12 +203,12 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  it("Withdraw Funds (close market)", async () => {
+  it.skip("Withdraw Funds (close market)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
-    let nftTransferList = [nftList[0][0], nftList[0][1], nftList[0][2]];
+    let nfts = [nftList[0][0], nftList[0][1], nftList[0][2]];
     let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
-      nftTransferList[0]
+      nfts[0]
     );
 
     let marketId = 0;
@@ -190,7 +218,7 @@ describe("carnival", () => {
       connection,
       users[0].publicKey,
       exhibit,
-      nftTransferList,
+      nfts,
       solAmt,
       marketId
     );

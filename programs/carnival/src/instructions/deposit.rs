@@ -47,6 +47,7 @@ pub struct DepositSol<'info> {
     pub system_program: Program<'info, System>,
 }
 
+// TODO check the idea in the market matches the depositor
 #[derive(Accounts)]
 #[instruction(market_id: u64, carnival_auth_bump: u8, market_bump: u8)]
 pub struct DepositNft<'info> {
@@ -119,6 +120,7 @@ pub fn deposit_sol(
             ctx.accounts.system_program.to_account_info(),
         ],
     );
+    // TODO UPDATE market balance
 
     msg!("finished depo sol");
 
@@ -133,7 +135,11 @@ pub fn deposit_nft(
 ) -> Result<()> {
     // TODO change signer so that there is another flag saying who is the delegate from signer field
 
-    msg!("in depo nft");
+    msg!(
+        "in depo nft. marketId: {}, market pub: {}",
+        &market_id,
+        ctx.accounts.market.key().to_string()
+    );
     let cpi_program = ctx.accounts.exhibition_program.to_account_info();
     let cpi_accounts = exhibition::cpi::accounts::ArtifactInsert {
         exhibit: ctx.accounts.exhibit.to_account_info(),

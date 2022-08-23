@@ -103,7 +103,10 @@ pub mod exhibition {
             0,
         )?;
         ctx.accounts.exhibit.artifact_count = ctx.accounts.exhibit.artifact_count + 1;
-        msg!("assigning delegate: {}", ctx.accounts.delegate_signer.key);
+        msg!(
+            "assigning delegate: {}",
+            ctx.accounts.delegate_signer.key.to_string()
+        );
         Ok(())
     }
 

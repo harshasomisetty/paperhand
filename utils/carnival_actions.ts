@@ -44,24 +44,6 @@ export async function createCarnival(
 
   if (!(await checkIfAccountExists(carnival, connection))) {
     console.log(" carnival no exist");
-    let initCarnTx = await Carnival.methods
-      .initializeCarnival()
-      .accounts({
-        exhibit: exhibit,
-        carnival: carnival,
-        carnivalAuth: carnivalAuth,
-        voucherMint: voucherMint,
-        nftMetadata: nft.metadataAccount.publicKey,
-        escrowSol: escrowSol,
-        signer: users[0].publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        rent: SYSVAR_RENT_PUBKEY,
-        systemProgram: SystemProgram.programId,
-        exhibitionProgram: Exhibition.programId,
-      })
-      .transaction();
-
-    transaction = transaction.add(initCarnTx);
 
     console.log("added tx");
   }
@@ -92,15 +74,24 @@ export async function carnivalDepositNft(
     publicKey
   );
 
-  if (!(await checkIfAccountExists(nftUserTokenAddress, connection))) {
-    let voucher_tx = createAssociatedTokenAccountInstruction(
-      publicKey,
-      nftUserTokenAddress,
-      publicKey,
-      nft.mint
-    );
-    transaction = transaction.add(voucher_tx);
-  }
+  let [market, marketBump] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("market"),
+      carnival.toBuffer(),
+      new BN(marketId).toArrayLike(Buffer, "le", 8),
+    ],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  // if (!(await checkIfAccountExists(nftUserTokenAddress, connection))) {
+  //   let voucher_tx = createAssociatedTokenAccountInstruction(
+  //     publicKey,
+  //     nftUserTokenAddress,
+  //     publicKey,
+  //     nft.mint
+  //   );
+  // transaction = transaction.add(voucher_tx);
+  // }
 
   let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
@@ -118,15 +109,6 @@ export async function carnivalDepositNft(
     );
     transaction = transaction.add(userVoucherTx);
   }
-
-  let [market, marketBump] = await PublicKey.findProgramAddress(
-    [
-      Buffer.from("market"),
-      carnival.toBuffer(),
-      new BN(marketId).toArrayLike(Buffer, "le", 8),
-    ],
-    CARNIVAL_PROGRAM_ID
-  );
 
   let depositNftTx = await Carnival.methods
     .depositNft(new BN(marketId), carnivalAuthBump, marketBump)
@@ -246,6 +228,8 @@ export async function createCarnivalMarket(
     ],
     CARNIVAL_PROGRAM_ID
   );
+
+  console.log("function market", market.toString());
 
   if (!(await checkIfAccountExists(market, connection))) {
     console.log("market no exist");

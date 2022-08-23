@@ -3,6 +3,7 @@ import { Program } from "@project-serum/anchor";
 import {
   AccountInfo,
   Connection,
+  ParsedAccountData,
   PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
@@ -48,7 +49,12 @@ export async function getMarketNfts(
   connection: Connection,
   exhibit: PublicKey,
   marketKey: PublicKey
-): Promise<PublicKey[]> {
+): Promise<
+  Array<{
+    pubkey: PublicKey;
+    account: AccountInfo<ParsedAccountData>;
+  }>
+> {
   let allArtifactAccounts = (
     await connection.getParsedTokenAccountsByOwner(exhibit, {
       programId: TOKEN_PROGRAM_ID,
@@ -58,7 +64,10 @@ export async function getMarketNfts(
   let marketNfts = [];
 
   for (let account of allArtifactAccounts) {
-    marketNfts.push(new PublicKey(account.account.data.parsed.info.delegate));
+    let delKey = new PublicKey(account.account.data.parsed.info.delegate);
+    if (delKey.toString() === marketKey.toString()) {
+      marketNfts.push(account);
+    }
   }
 
   return marketNfts;

@@ -27,6 +27,7 @@ import {
   getNftDerivedAddresses,
   getCheckoutAccounts,
   getShopAccounts,
+  getCarnivalAccounts,
 } from "../utils/accountDerivation";
 import {
   checkIfAccountExists,
@@ -37,6 +38,7 @@ import {
   ABC_URIS,
   APE_URIS,
   BEAR_URIS,
+  CARNIVAL_PROGRAM_ID,
   CHECKOUT_PROGRAM_ID,
   creator,
   EXHIBITION_PROGRAM_ID,
@@ -50,7 +52,12 @@ import { mintNFTs } from "../utils/createNFTs";
 import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
 import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
 import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
+import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
 import { airdropAll } from "../utils/helpfulFunctions";
+import {
+  createCarnival,
+  createCarnivalMarket,
+} from "../utils/carnival_actions";
 const connection = new Connection("http://localhost:8899", "processed");
 
 const metaplex = Metaplex.make(connection)
@@ -60,8 +67,9 @@ const metaplex = Metaplex.make(connection)
 let nftList: Nft[][] = [];
 
 let Exhibition;
-let Checkout;
 let Shop;
+let Checkout;
+let Carnival;
 
 export async function airdropAndMint() {
   let provider = await getProvider("http://localhost:8899", creator);
@@ -69,6 +77,7 @@ export async function airdropAndMint() {
   Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
   Checkout = new Program(CHECKOUT_IDL, CHECKOUT_PROGRAM_ID, provider);
   Shop = new Program(SHOP_IDL, SHOP_PROGRAM_ID, provider);
+  Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
 
   let airdropVal = 150 * LAMPORTS_PER_SOL;
 
@@ -381,6 +390,61 @@ export async function makeBids(nft: Nft, users: Keypair[]) {
   console.log("finsihed making bids");
 }
 
+export async function initCarnivalAndMarket(
+  nfts: Nft[],
+  solAmt: number,
+  users: Keypair[]
+) {
+  let transaction: Transaction;
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+    nfts[0]
+  );
+  let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
+
+  // transaction = await createCarnival(connection, nfts[0], users[0].publicKey);
+
+  let initCarnTx = await Carnival.methods
+    .initializeCarnival()
+    .accounts({
+      exhibit: exhibit,
+      carnival: carnival,
+      carnivalAuth: carnivalAuth,
+      voucherMint: voucherMint,
+      nftMetadata: nft.metadataAccount.publicKey,
+      escrowSol: escrowSol,
+      signer: users[0].publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: SystemProgram.programId,
+      exhibitionProgram: Exhibition.programId,
+    })
+    .transaction();
+
+  transaction = transaction.add(initCarnTx);
+
+  console.log("about to send create carnival tx", transaction);
+
+  connection.confirmTransaction(
+    await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+    "confirmed"
+  );
+
+  let marketId = 0;
+
+  transaction = await createCarnivalMarket(
+    connection,
+    users[0].publicKey,
+    nfts,
+    solAmt,
+    marketId
+  );
+
+  connection.confirmTransaction(
+    await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+    "confirmed"
+  );
+}
+
 async function initialFlow() {
   // 1) start by showing off exhibition creation by depositing into exhibit for ABC
   await airdropAndMint();
@@ -400,6 +464,16 @@ async function initialFlow() {
 
   // 4) go into gods to demonstrate carnival
   await insertNft(nftList[2][0], users[0]);
+
+  let nfts = [
+    nftList[2][1],
+    nftList[2][2],
+    nftList[2][3],
+    nftList[2][4],
+    nftList[2][5],
+  ];
+
+  await initCarnivalAndMarket(nfts, 2 * LAMPORTS_PER_SOL, [users[0]]);
 }
 
 initialFlow();
