@@ -1,3 +1,4 @@
+import { keypairIdentity, Metaplex, Nft } from "@metaplex-foundation/js";
 import { Nft } from "@metaplex-foundation/js";
 import { BN, Program } from "@project-serum/anchor";
 import {
@@ -76,28 +77,25 @@ export async function getBoothNfts(
   connection: Connection,
   exhibit: PublicKey,
   boothKey: PublicKey
-): Promise<
-  Array<{
-    pubkey: PublicKey;
-    account: AccountInfo<ParsedAccountData>;
-  }>
-> {
+): Promise<Nft[]> {
   let allArtifactAccounts = (
     await connection.getParsedTokenAccountsByOwner(exhibit, {
       programId: TOKEN_PROGRAM_ID,
     })
   ).value;
 
-  let boothNfts = [];
-
-  for (let account of allArtifactAccounts) {
-    let delKey = new PublicKey(account.account.data.parsed.info.delegate);
+  let artifactMints = [];
+  for (let artifact of allArtifactAccounts) {
+    let delKey = new PublicKey(artifact.account.data.parsed.info.delegate);
     if (delKey.toString() === boothKey.toString()) {
-      boothNfts.push(account);
+      artifactMints.push(new PublicKey(artifact.account.data.parsed.info.mint));
     }
   }
 
-  return boothNfts;
+  const metaplex = Metaplex.make(connection).use(keypairIdentity(creator));
+  let allNfts = await metaplex.nfts().findAllByMintList(artifactMints);
+
+  return allNfts;
 }
 
 export async function getOpenBoothId(carnival: PublicKey): Promise<number> {

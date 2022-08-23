@@ -39,8 +39,6 @@ export async function carnivalDepositNft(
 
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
 
-  console.log("\n\n\nNFT INFO?69", nft.name, nftArtifact.toString());
-
   let { carnival, carnivalAuth, carnivalAuthBump } = await getCarnivalAccounts(
     exhibit
   );
@@ -106,9 +104,6 @@ export async function carnivalDepositNft(
     })
     .transaction();
 
-  console.log("nft deposit tx addihg", nft.name, nftArtifact.toString());
-  console.log("carnival", carnival.toString());
-  console.log("booth", booth.toString());
   return transaction.add(depositNftTx);
 }
 
