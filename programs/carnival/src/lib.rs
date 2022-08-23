@@ -16,34 +16,34 @@ pub mod carnival {
         instructions::carnival::init_carnival(ctx)
     }
 
-    pub fn create_market(
-        ctx: Context<InitializeMarket>,
-        market_owner: Pubkey,
-        market_id: u64,
+    pub fn create_booth(
+        ctx: Context<InitializeBooth>,
+        booth_owner: Pubkey,
+        booth_id: u64,
         curve: u8,
         delta: u8,
         fee: u8,
     ) -> Result<()> {
-        instructions::market::create_market(ctx, market_owner, market_id, curve, delta, fee)
+        instructions::booth::create_booth(ctx, booth_owner, booth_id, curve, delta, fee)
     }
 
     pub fn deposit_sol(
         ctx: Context<DepositSol>,
-        market_id: u64,
+        booth_id: u64,
         sol_amt: u64,
         carnival_auth_bump: u8,
-        market_bump: u8,
+        booth_bump: u8,
     ) -> Result<()> {
-        instructions::deposit::deposit_sol(ctx, market_id, sol_amt, carnival_auth_bump, market_bump)
+        instructions::deposit::deposit_sol(ctx, booth_id, sol_amt, carnival_auth_bump, booth_bump)
     }
 
     pub fn deposit_nft(
         ctx: Context<DepositNft>,
-        market_id: u64,
+        booth_id: u64,
         carnival_auth_bump: u8,
-        market_bump: u8,
+        booth_bump: u8,
     ) -> Result<()> {
-        instructions::deposit::deposit_nft(ctx, market_id, carnival_auth_bump, market_bump)
+        instructions::deposit::deposit_nft(ctx, booth_id, carnival_auth_bump, booth_bump)
     }
 
     pub fn trade_sol(ctx: Context<TradeSol>) -> Result<()> {
@@ -56,14 +56,14 @@ pub mod carnival {
 
     pub fn withdraw_sol(
         ctx: Context<WithdrawSol>,
-        market_id: u64,
+        booth_id: u64,
         sol_amt: u64,
         carnival_auth_bump: u8,
         escrow_auth_bump: u8,
     ) -> Result<()> {
         instructions::withdraw::withdraw_sol(
             ctx,
-            market_id,
+            booth_id,
             sol_amt,
             carnival_auth_bump,
             escrow_auth_bump,
@@ -72,22 +72,22 @@ pub mod carnival {
 
     pub fn withdraw_nft(
         ctx: Context<WithdrawNft>,
-        market_id: u64,
+        booth_id: u64,
         carnival_auth_bump: u8,
-        market_bump: u8,
+        booth_bump: u8,
     ) -> Result<()> {
-        instructions::withdraw::withdraw_nft(ctx, market_id, carnival_auth_bump, market_bump)
+        instructions::withdraw::withdraw_nft(ctx, booth_id, carnival_auth_bump, booth_bump)
     }
 
-    pub fn close_market(
-        ctx: Context<InitializeMarket>,
-        market_owner: Pubkey,
-        market_id: u64,
+    pub fn close_booth(
+        ctx: Context<InitializeBooth>,
+        booth_owner: Pubkey,
+        booth_id: u64,
         curve: u8,
         delta: u8,
         fee: u8,
     ) -> Result<()> {
-        instructions::market::close_market(ctx, market_owner, market_id, curve, delta, fee)
+        instructions::booth::close_booth(ctx, booth_owner, booth_id, curve, delta, fee)
     }
 }
 

@@ -8,9 +8,9 @@ use super::curve::CurveType;
 #[account]
 #[derive(Default)]
 #[repr(C)]
-pub struct Market {
-    pub market_id: u64,
-    pub market_owner: Pubkey,
+pub struct Booth {
+    pub booth_id: u64,
+    pub booth_owner: Pubkey,
     pub sol: u64,
     pub nfts: u64,
     pub curve: CurveType,
@@ -20,7 +20,7 @@ pub struct Market {
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct Quote {
-    market_id: u64,
+    booth_id: u64,
     bid: u64,
     ask: u64,
 }
@@ -29,5 +29,5 @@ pub struct Quote {
 #[derive(Default)]
 #[repr(C)]
 pub struct CarnivalAccount {
-    pub market_id_count: u64,
+    pub booth_id_count: u64,
 }

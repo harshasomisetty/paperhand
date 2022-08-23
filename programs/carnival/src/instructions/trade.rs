@@ -13,8 +13,8 @@ pub struct TradeNft<'info> {
 }
 
 pub fn trade_sol(ctx: Context<TradeSol>) -> Result<()> {
-    // If specific, find markets nft belongs to
-    // If any, loop through markets to find cheapest price
+    // If specific, find booths nft belongs to
+    // If any, loop through booths to find cheapest price
 
     // invoke(
     //     &system_instruction::transfer(

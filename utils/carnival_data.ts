@@ -27,55 +27,55 @@ import {
 import { getAllExhibitArtifacts } from "../paperhand_ui/src/utils/retrieveData";
 import { getMultipleAccounts } from "@project-serum/anchor/dist/cjs/utils/rpc";
 
-export async function getAllMarkets(
+export async function getAllBooths(
   connection: Connection,
   exhibit: PublicKey,
-  marketIdCount: number
+  boothIdCount: number
 ): Promise<
   Record<number, { publicKey: PublicKey; account: AccountInfo<Buffer> }>
 > {
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
 
-  // let allMarketAccounts = await connection.getProgramAccounts(
+  // let allBoothAccounts = await connection.getProgramAccounts(
   //   CARNIVAL_PROGRAM_ID
   // );
 
-  let markets: PublicKey[] = [];
-  for (let i = 0; i < marketIdCount; i++) {
-    let [market, marketBump] = await PublicKey.findProgramAddress(
+  let booths: PublicKey[] = [];
+  for (let i = 0; i < boothIdCount; i++) {
+    let [booth, boothBump] = await PublicKey.findProgramAddress(
       [
-        Buffer.from("market"),
+        Buffer.from("booth"),
         carnival.toBuffer(),
         new BN(i).toArrayLike(Buffer, "le", 8),
       ],
       CARNIVAL_PROGRAM_ID
     );
 
-    markets.push(market);
+    booths.push(booth);
   }
 
-  let multipleMarkets = await getMultipleAccounts(connection, markets);
+  let multipleBooths = await getMultipleAccounts(connection, booths);
 
-  let marketInfos: Record<
+  let boothInfos: Record<
     number,
     { publicKey: PublicKey; account: AccountInfo<Buffer> }
   > = {};
 
-  for (let i = 0; i < marketIdCount; i++) {
-    // console.log(multipleMarkets[i]);
-    if (multipleMarkets[i]) {
-      marketInfos[i] = multipleMarkets[i];
+  for (let i = 0; i < boothIdCount; i++) {
+    // console.log(multipleBooths[i]);
+    if (multipleBooths[i]) {
+      boothInfos[i] = multipleBooths[i];
     }
   }
 
-  return marketInfos;
+  return boothInfos;
 }
 
-export async function getMarketNfts(
+export async function getBoothNfts(
   connection: Connection,
   exhibit: PublicKey,
-  marketKey: PublicKey
+  boothKey: PublicKey
 ): Promise<
   Array<{
     pubkey: PublicKey;
@@ -88,24 +88,23 @@ export async function getMarketNfts(
     })
   ).value;
 
-  let marketNfts = [];
+  let boothNfts = [];
 
   for (let account of allArtifactAccounts) {
     let delKey = new PublicKey(account.account.data.parsed.info.delegate);
-    if (delKey.toString() === marketKey.toString()) {
-      marketNfts.push(account);
+    if (delKey.toString() === boothKey.toString()) {
+      boothNfts.push(account);
     }
   }
 
-  return marketNfts;
+  return boothNfts;
 }
 
-export async function getOpenBoothId(carnival: PublicKey): Promise<Number> {
+export async function getOpenBoothId(carnival: PublicKey): Promise<number> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
 
   let carnivalInfo = await Carnival.account.carnivalAccount.fetch(carnival);
-  console.log("canri info", carnivalInfo);
 
-  return Number(carnivalInfo.marketIdCount);
+  return Number(carnivalInfo.boothIdCount);
 }

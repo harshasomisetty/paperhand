@@ -30,10 +30,10 @@ import {
 import { checkIfAccountExists } from "../utils/actions";
 import {
   carnivalDepositNft,
-  closeCarnivalMarket,
-  createCarnivalMarket,
+  closeCarnivalBooth,
+  createCarnivalBooth,
 } from "../utils/carnival_actions";
-import { getAllMarkets, getMarketNfts } from "../utils/carnival_data";
+import { getAllBooths, getBoothNfts } from "../utils/carnival_data";
 import {
   otherCreators,
   creator,
@@ -57,7 +57,7 @@ const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
 const metaplex = Metaplex.make(connection).use(keypairIdentity(creator));
 
-// TODO RENAME carnival markets to booths
+// TODO RENAME carnival booths to booths
 describe("carnival", () => {
   let airdropVal = 60 * LAMPORTS_PER_SOL;
 
@@ -126,7 +126,7 @@ describe("carnival", () => {
 
     transaction = transaction.add(initCarnTx);
 
-    console.log("about to send create carnival tx", transaction);
+    console.log("about to send create carnival tx");
 
     try {
       connection.confirmTransaction(
@@ -140,7 +140,7 @@ describe("carnival", () => {
     printAndTest(
       await checkIfAccountExists(exhibit, connection),
       true,
-      "market created"
+      "booth created"
     );
 
     printAndTest(
@@ -155,87 +155,101 @@ describe("carnival", () => {
     );
   });
 
-  it("Made all markets", async () => {
+  it("Made all booths", async () => {
     // console.log("nft list", nftList);
 
-    let nfts = [nftList[0][0], nftList[0][2], nftList[0][4]];
-    let solAmts = [
-      2 * LAMPORTS_PER_SOL,
-      4 * LAMPORTS_PER_SOL,
-      6 * LAMPORTS_PER_SOL,
-    ];
+    let solAmts = [2 * LAMPORTS_PER_SOL, 4 * LAMPORTS_PER_SOL];
 
-    let { exhibit, nftArtifact } = await getNftDerivedAddresses(nfts[0]);
+    let numBooths = 2;
+    for (let i = 0; i < numBooths; i++) {
+      console.log("Creating booth ", i);
+      let nfts = [nftList[0][i * 4], nftList[0][i * 4 + 2]];
 
-    let numMarkets = 3;
-    for (let marketId = 0; marketId < numMarkets; marketId++) {
-      console.log("Creating market ", marketId);
-      let nftList = [nfts[marketId]];
-
-      let transaction = await createCarnivalMarket(
+      let { exhibit, nftArtifact } = await getNftDerivedAddresses(nfts[0]);
+      let transaction = await createCarnivalBooth(
         connection,
         users[0].publicKey,
-        nftList,
-        solAmts[marketId]
+        nfts,
+        solAmts[i]
       );
+      console.log("outside of create carnival booth");
 
-      connection.confirmTransaction(
-        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
-        "confirmed"
-      );
+      try {
+        connection.confirmTransaction(
+          await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+          "confirmed"
+        );
+      } catch (error) {
+        console.log("trying to create booth", error);
+      }
 
-      printAndTest(
-        Number((await getAccount(connection, nftArtifact)).amount),
-        1
-      );
-      await new Promise((r) => setTimeout(r, 1000));
+      console.log("DEPOING NFT\n");
+
+      for (let nft of nfts) {
+        let transaction = await carnivalDepositNft(
+          connection,
+          nft,
+          users[0].publicKey,
+          i
+        );
+        try {
+          connection.confirmTransaction(
+            await sendAndConfirmTransaction(connection, transaction, [
+              users[0],
+            ]),
+            "confirmed"
+          );
+        } catch (error) {
+          console.log("trying to create booth", error);
+        }
+        console.log("depoed nft outsidesdfjlk");
+      }
     }
 
+    let { exhibit, nftArtifact } = await getNftDerivedAddresses(nftList[0][0]);
     let { escrowSol } = await getCarnivalAccounts(exhibit);
     printAndTest(
       regSol(await connection.getBalance(escrowSol)),
       regSol(solAmts.reduce((partialSum, a) => partialSum + a, 0))
     );
 
-    let marketInfos = await getAllMarkets(connection, exhibit, numMarkets);
-
-    console.log("markts and infos", marketInfos);
+    let boothInfos = await getAllBooths(connection, exhibit, numBooths);
 
     printAndTest(
-      Object.keys(marketInfos).length,
-      numMarkets,
-      "right number of markets were made"
+      Object.keys(boothInfos).length,
+      numBooths,
+      "right number of booths were made"
     );
 
-    for (let index of Object.keys(marketInfos)) {
-      let market = marketInfos[index].publicKey;
+    for (let index of Object.keys(boothInfos)) {
+      let booth = boothInfos[index].publicKey;
 
-      printAndTest(await checkIfAccountExists(market, connection), true);
+      printAndTest(await checkIfAccountExists(booth, connection), true);
 
-      let marketNfts = await getMarketNfts(connection, exhibit, market);
+      let boothNfts = await getBoothNfts(connection, exhibit, booth);
 
-      let marketDelegate =
-        marketNfts[0].account.data.parsed.info.delegate.toString();
+      let boothDelegate =
+        boothNfts[0].account.data.parsed.info.delegate.toString();
 
       printAndTest(
-        market.toString(),
-        marketDelegate,
-        "market delegates between market and nfts accurate"
+        booth.toString(),
+        boothDelegate,
+        "booth delegates between booth and nfts accurate"
       );
 
-      printAndTest(marketNfts.length, 1);
+      printAndTest(boothNfts.length, 2);
     }
 
     // check data of how much nfts each pool contains
 
-    console.log("Finsihed Initing all markets");
+    console.log("Finsihed Initing all booths");
   });
-  // TODO MAke test that people can't insert or take out from markets that aren't theirs
+  // TODO MAke test that people can't insert or take out from booths that aren't theirs
 
-  it("Tried inserting SOL and nft to a market user doens't own", async () => {
+  it("Tried inserting SOL and nft to a booth user doens't own", async () => {
     let transaction = new Transaction();
 
-    let marketId = 0;
+    let boothId = 0;
     let solAmt = 1 * LAMPORTS_PER_SOL;
 
     let nfts = [nftList[0][0], nftList[0][3], nftList[0][5]];
@@ -250,11 +264,11 @@ describe("carnival", () => {
     let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
       await getCarnivalAccounts(exhibit);
 
-    let [market, marketBump] = await PublicKey.findProgramAddress(
+    let [booth, boothBump] = await PublicKey.findProgramAddress(
       [
-        Buffer.from("market"),
+        Buffer.from("booth"),
         carnival.toBuffer(),
-        new BN(marketId).toArrayLike(Buffer, "le", 8),
+        new BN(boothId).toArrayLike(Buffer, "le", 8),
       ],
       CARNIVAL_PROGRAM_ID
     );
@@ -263,7 +277,7 @@ describe("carnival", () => {
 
     let depoSolTx = await Carnival.methods
       .depositSol(
-        new BN(marketId),
+        new BN(boothId),
         new BN(solAmt),
         carnivalAuthBump,
         escrowSolBump
@@ -272,7 +286,7 @@ describe("carnival", () => {
         exhibit: exhibit,
         carnival: carnival,
         carnivalAuth: carnivalAuth,
-        market: market,
+        booth: booth,
         escrowSol: escrowSol,
         signer: users[1].publicKey,
         systemProgram: SystemProgram.programId,
@@ -310,7 +324,7 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  it("Withdraw Funds (close market)", async () => {
+  it("Withdraw Funds (close booth)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
     let nfts = [nftList[0][0], nftList[0][1], nftList[0][2]];
@@ -318,17 +332,17 @@ describe("carnival", () => {
       nfts[0]
     );
 
-    let marketId = 0;
+    let boothId = 0;
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
 
     let preEscrowBal = await connection.getBalance(escrowSol);
-    let transaction = await closeCarnivalMarket(
+    let transaction = await closeCarnivalBooth(
       connection,
       users[0].publicKey,
       exhibit,
       [nfts[0]],
       solAmt,
-      marketId
+      boothId
     );
 
     try {

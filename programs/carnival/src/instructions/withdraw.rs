@@ -11,10 +11,10 @@ use exhibition::state::metaplex_anchor::TokenMetadata;
 
 use exhibition::{self, Exhibit};
 
-use crate::state::accounts::{CarnivalAccount, Market};
+use crate::state::accounts::{Booth, CarnivalAccount};
 
 #[derive(Accounts)]
-#[instruction(market_id: u64, sol_amt: u64, carnival_auth_bump: u8, escrow_auth_bump: u8)]
+#[instruction(booth_id: u64, sol_amt: u64, carnival_auth_bump: u8, escrow_auth_bump: u8)]
 pub struct WithdrawSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -28,10 +28,10 @@ pub struct WithdrawSol<'info> {
 
     #[account(
         mut,
-        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
+        seeds = [b"booth", carnival.key().as_ref(), booth_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub market: Account<'info, Market>,
+    pub booth: Account<'info, Booth>,
 
     /// CHECK: escrow only purpose is to store sol
     #[account(
@@ -41,14 +41,14 @@ pub struct WithdrawSol<'info> {
     )]
     pub escrow_sol: AccountInfo<'info>,
 
-    #[account(mut, address = market.market_owner)]
+    #[account(mut, address = booth.booth_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-#[instruction(market_id: u64, carnival_auth_bump: u8, market_bump: u8)]
+#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
 pub struct WithdrawNft<'info> {
     #[account(mut)]
     pub exhibit: Box<Account<'info, Exhibit>>,
@@ -62,10 +62,10 @@ pub struct WithdrawNft<'info> {
 
     #[account(
         mut,
-        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
+        seeds = [b"booth", carnival.key().as_ref(), booth_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub market: Account<'info, Market>,
+    pub booth: Account<'info, Booth>,
 
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
@@ -88,7 +88,7 @@ pub struct WithdrawNft<'info> {
     #[account(mut)]
     pub nft_artifact: AccountInfo<'info>,
 
-    #[account(mut, address = market.market_owner)]
+    #[account(mut, address = booth.booth_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -99,7 +99,7 @@ pub struct WithdrawNft<'info> {
 
 pub fn withdraw_sol(
     ctx: Context<WithdrawSol>,
-    market_id: u64,
+    booth_id: u64,
     sol_amt: u64,
     carnival_auth_bump: u8,
     escrow_auth_bump: u8,
@@ -134,18 +134,18 @@ pub fn withdraw_sol(
 
 pub fn withdraw_nft(
     ctx: Context<WithdrawNft>,
-    market_id: u64,
+    booth_id: u64,
     carnival_auth_bump: u8,
-    market_bump: u8,
+    booth_bump: u8,
 ) -> Result<()> {
-    // check signer is market
+    // check signer is booth
     // check the user signer is the owner on the carnival
     // exhibit withdraw nft to user
 
     msg!(
-        "in withdraw nft. marketId: {}, market pub: {}",
-        &market_id,
-        ctx.accounts.market.key().to_string()
+        "in withdraw nft. boothId: {}, booth pub: {}",
+        &booth_id,
+        ctx.accounts.booth.key().to_string()
     );
 
     let cpi_program = ctx.accounts.exhibition_program.to_account_info();
@@ -158,20 +158,20 @@ pub fn withdraw_nft(
         nft_user_token: ctx.accounts.nft_user_token.to_account_info(),
         nft_artifact: ctx.accounts.nft_artifact.to_account_info(),
         delegate_signer: ctx.accounts.signer.to_account_info(),
-        signer: ctx.accounts.market.to_account_info(),
+        signer: ctx.accounts.booth.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
         token_program: ctx.accounts.token_program.to_account_info(),
     };
 
-    let borrowed_id = market_id.clone().to_le_bytes().to_owned();
+    let borrowed_id = booth_id.clone().to_le_bytes().to_owned();
 
     let carnival_key = ctx.accounts.carnival.key();
 
     let seeds = &[
-        b"market",
+        b"booth",
         carnival_key.as_ref(),
         borrowed_id.as_ref(),
-        &[market_bump],
+        &[booth_bump],
     ];
 
     let pda_seeds = &[&seeds[..]];

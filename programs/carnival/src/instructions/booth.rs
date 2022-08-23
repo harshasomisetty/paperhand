@@ -1,10 +1,10 @@
-use crate::state::accounts::{CarnivalAccount, Market};
+use crate::state::accounts::{Booth, CarnivalAccount};
 use crate::state::curve::CurveType;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(market_owner: Pubkey, market_id: u64, curve: u8, delta: u8, fee: u8)]
-pub struct InitializeMarket<'info> {
+#[instruction(booth_owner: Pubkey, booth_id: u64, curve: u8, delta: u8, fee: u8)]
+pub struct InitializeBooth<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 
@@ -22,11 +22,11 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = std::mem::size_of::<Market>() + 8,
-        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
+        space = std::mem::size_of::<Booth>() + 8,
+        seeds = [b"booth", carnival.key().as_ref(), booth_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub market: Account<'info, Market>,
+    pub booth: Account<'info, Booth>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -35,51 +35,51 @@ pub struct InitializeMarket<'info> {
 }
 
 #[derive(Accounts)]
-pub struct CloseMarket<'info> {
+pub struct CloseBooth<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 }
-pub fn create_market(
-    ctx: Context<InitializeMarket>,
-    market_owner: Pubkey,
-    market_id: u64,
+pub fn create_booth(
+    ctx: Context<InitializeBooth>,
+    booth_owner: Pubkey,
+    booth_id: u64,
     curve: u8,
     delta: u8,
     fee: u8,
 ) -> Result<()> {
-    msg!("in create market");
-    let mut market = &mut ctx.accounts.market;
+    msg!("in create booth");
+    let mut booth = &mut ctx.accounts.booth;
 
-    assert_eq!(market_id, ctx.accounts.carnival.market_id_count);
+    assert_eq!(booth_id, ctx.accounts.carnival.booth_id_count);
 
-    market.market_id = ctx.accounts.carnival.market_id_count;
-    market.market_owner = market_owner;
-    market.curve = match curve {
+    booth.booth_id = ctx.accounts.carnival.booth_id_count;
+    booth.booth_owner = booth_owner;
+    booth.curve = match curve {
         0 => CurveType::Linear,
         _ => CurveType::Exponential,
     };
 
-    market.delta = delta;
-    market.fee = fee;
+    booth.delta = delta;
+    booth.fee = fee;
 
     msg!(
-        "prev market id count: {}",
-        ctx.accounts.carnival.market_id_count
+        "prev booth id count: {}",
+        ctx.accounts.carnival.booth_id_count
     );
-    ctx.accounts.carnival.market_id_count = ctx.accounts.carnival.market_id_count + 1;
+    ctx.accounts.carnival.booth_id_count = ctx.accounts.carnival.booth_id_count + 1;
 
     Ok(())
 }
 
-pub fn close_market(
-    ctx: Context<InitializeMarket>,
-    market_owner: Pubkey,
-    market_id: u64,
+pub fn close_booth(
+    ctx: Context<InitializeBooth>,
+    booth_owner: Pubkey,
+    booth_id: u64,
     curve: u8,
     delta: u8,
     fee: u8,
 ) -> Result<()> {
-    msg!("in close market");
+    msg!("in close booth");
 
     // // 3) close pda nft artifact
     // anchor_spl::token::close_account(CpiContext::new_with_signer(

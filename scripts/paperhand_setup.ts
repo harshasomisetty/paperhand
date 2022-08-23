@@ -54,7 +54,7 @@ import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
 import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
 import { airdropAll } from "../utils/helpfulFunctions";
-import { createCarnivalMarket } from "../utils/carnival_actions";
+import { createCarnivalBooth } from "../utils/carnival_actions";
 import { getOpenBoothId } from "../utils/carnival_data";
 const connection = new Connection("http://localhost:8899", "processed");
 
@@ -412,7 +412,7 @@ export async function initCarnival(nft: Nft, users: Keypair[]) {
 
   transaction = transaction.add(initCarnTx);
 
-  console.log("about to send create carnival tx", transaction);
+  console.log("about to send create carnival tx");
 
   connection.confirmTransaction(
     await sendAndConfirmTransaction(connection, transaction, [users[0]]),
@@ -420,12 +420,12 @@ export async function initCarnival(nft: Nft, users: Keypair[]) {
   );
 }
 
-export async function instructionExecuteCreateMarket(
+export async function instructionExecuteCreateBooth(
   nfts: Nft[],
   solAmt: number,
   user: Keypair
 ) {
-  let transaction = await createCarnivalMarket(
+  let transaction = await createCarnivalBooth(
     connection,
     user.publicKey,
     nfts,
@@ -469,8 +469,8 @@ async function initialFlow() {
 
   console.log("about to start init carnival");
   await new Promise((r) => setTimeout(r, 2000));
-  // await initCarnival(nfts[0], [users[0]]);
-  // await instructionExecuteCreateMarket(nfts, 2 * LAMPORTS_PER_SOL, users[0]);
+  await initCarnival(nfts[0], [users[0]]);
+  await instructionExecuteCreateBooth(nfts, 2 * LAMPORTS_PER_SOL, users[0]);
 }
 
 initialFlow();

@@ -11,10 +11,10 @@ use exhibition::state::metaplex_anchor::TokenMetadata;
 
 use exhibition::{self, Exhibit};
 
-use crate::state::accounts::{CarnivalAccount, Market};
+use crate::state::accounts::{Booth, CarnivalAccount};
 
 #[derive(Accounts)]
-#[instruction(market_id: u64, sol_amt: u64, carnival_auth_bump: u8, market_bump: u8)]
+#[instruction(booth_id: u64, sol_amt: u64, carnival_auth_bump: u8, booth_bump: u8)]
 pub struct DepositSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -28,10 +28,10 @@ pub struct DepositSol<'info> {
 
     #[account(
         mut,
-        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
+        seeds = [b"booth", carnival.key().as_ref(), booth_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub market: Account<'info, Market>,
+    pub booth: Account<'info, Booth>,
 
     /// CHECK: escrow only purpose is to store sol
     #[account(
@@ -41,14 +41,14 @@ pub struct DepositSol<'info> {
     )]
     pub escrow_sol: AccountInfo<'info>,
 
-    #[account(mut, address = market.market_owner)]
+    #[account(mut, address = booth.booth_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-#[instruction(market_id: u64, carnival_auth_bump: u8, market_bump: u8)]
+#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
 pub struct DepositNft<'info> {
     #[account(mut)]
     pub exhibit: Box<Account<'info, Exhibit>>,
@@ -62,10 +62,10 @@ pub struct DepositNft<'info> {
 
     #[account(
         mut,
-        seeds = [b"market", carnival.key().as_ref(), market_id.to_le_bytes().as_ref()],
+        seeds = [b"booth", carnival.key().as_ref(), booth_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub market: Account<'info, Market>,
+    pub booth: Account<'info, Booth>,
 
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
@@ -88,7 +88,7 @@ pub struct DepositNft<'info> {
     #[account(mut)]
     pub nft_artifact: AccountInfo<'info>,
 
-    #[account(mut, address = market.market_owner)]
+    #[account(mut, address = booth.booth_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -100,17 +100,17 @@ pub struct DepositNft<'info> {
 
 pub fn deposit_sol(
     ctx: Context<DepositSol>,
-    market_id: u64,
+    booth_id: u64,
     sol_amt: u64,
     carnival_auth_bump: u8,
-    market_bump: u8,
+    booth_bump: u8,
 ) -> Result<()> {
     msg!("in dpepo sol");
 
     msg!(
-        "signer: {}, marketOwner: {}",
+        "signer: {}, boothOwner: {}",
         ctx.accounts.signer.to_account_info().key(),
-        ctx.accounts.market.market_owner.to_string()
+        ctx.accounts.booth.booth_owner.to_string()
     );
 
     invoke(
@@ -125,9 +125,9 @@ pub fn deposit_sol(
             ctx.accounts.system_program.to_account_info(),
         ],
     );
-    // TODO UPDATE market balance
+    // TODO UPDATE booth balance
 
-    ctx.accounts.market.sol = ctx.accounts.market.sol + sol_amt;
+    ctx.accounts.booth.sol = ctx.accounts.booth.sol + sol_amt;
     msg!("finished depo sol");
 
     Ok(())
@@ -135,18 +135,22 @@ pub fn deposit_sol(
 
 pub fn deposit_nft(
     ctx: Context<DepositNft>,
-    market_id: u64,
+    booth_id: u64,
     carnival_auth_bump: u8,
-    market_bump: u8,
+    booth_bump: u8,
 ) -> Result<()> {
     // TODO change signer so that there is another flag saying who is the delegate from signer field
 
     msg!(
-        "in depo nft. marketId: {}, market pub: {}",
-        &market_id,
-        ctx.accounts.market.key().to_string()
+        "in depo nft. boothId: {}, booth pub: {}",
+        &booth_id,
+        ctx.accounts.booth.key().to_string()
     );
     let cpi_program = ctx.accounts.exhibition_program.to_account_info();
+    msg!(
+        "\nartifact: {}\n",
+        ctx.accounts.nft_artifact.to_account_info().key()
+    );
     let cpi_accounts = exhibition::cpi::accounts::ArtifactInsert {
         exhibit: ctx.accounts.exhibit.to_account_info(),
         voucher_mint: ctx.accounts.voucher_mint.to_account_info(),
@@ -155,7 +159,7 @@ pub fn deposit_nft(
         nft_metadata: ctx.accounts.nft_metadata.to_account_info(),
         nft_user_token: ctx.accounts.nft_user_token.to_account_info(),
         nft_artifact: ctx.accounts.nft_artifact.to_account_info(),
-        delegate_signer: ctx.accounts.market.to_account_info(),
+        delegate_signer: ctx.accounts.booth.to_account_info(),
         signer: ctx.accounts.signer.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
         rent: ctx.accounts.rent.to_account_info(),
@@ -163,15 +167,15 @@ pub fn deposit_nft(
         associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
     };
 
-    let borrowed_id = market_id.clone().to_le_bytes().to_owned();
+    let borrowed_id = booth_id.clone().to_le_bytes().to_owned();
 
     let carnival_key = ctx.accounts.carnival.key();
 
     let seeds = &[
-        b"market",
+        b"booth",
         carnival_key.as_ref(),
         borrowed_id.as_ref(),
-        &[market_bump],
+        &[booth_bump],
     ];
     let pda_seeds = &[&seeds[..]];
 
@@ -179,10 +183,9 @@ pub fn deposit_nft(
 
     exhibition::cpi::artifact_insert(cpi_ctx)?;
 
-    ctx.accounts.market.nfts = ctx.accounts.market.nfts + 1;
+    ctx.accounts.booth.nfts = ctx.accounts.booth.nfts + 1;
 
-    msg!("did cpi");
-    msg!("finished depo nft");
+    msg!("did cpi, finished depo nft");
 
     Ok(())
 }
