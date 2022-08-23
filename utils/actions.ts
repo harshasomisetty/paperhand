@@ -77,30 +77,6 @@ export async function getProvider(network: String, payer: Keypair) {
   return provider;
 }
 
-export async function getUserVoucherWallets(
-  voucherMint: PublicKey,
-  user
-): Promise<PublicKey[]> {
-  let userVoucherWallet = Array(2);
-
-  userVoucherWallet[0] = await getAssociatedTokenAddress(
-    voucherMint,
-    user[0].publicKey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
-
-  userVoucherWallet[1] = await getAssociatedTokenAddress(
-    voucherMint,
-    user[1].publicKey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
-  return userVoucherWallet;
-}
-
 export async function checkIfAccountExists(
   account: PublicKey,
   connection: Connection

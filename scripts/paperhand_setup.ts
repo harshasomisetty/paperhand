@@ -49,7 +49,7 @@ import {
 } from "../utils/constants";
 import { mintNFTs } from "../utils/createNFTs";
 
-import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
+import { IDL as EXHIBITION_IDL, Exhibition } from "../target/types/exhibition";
 import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
 import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
@@ -399,7 +399,8 @@ export async function initCarnivalAndMarket(
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
     nfts[0]
   );
-  let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
+    await getCarnivalAccounts(exhibit);
 
   // transaction = await createCarnival(connection, nfts[0], users[0].publicKey);
 
@@ -410,7 +411,7 @@ export async function initCarnivalAndMarket(
       carnival: carnival,
       carnivalAuth: carnivalAuth,
       voucherMint: voucherMint,
-      nftMetadata: nft.metadataAccount.publicKey,
+      nftMetadata: nfts[0].metadataAccount.publicKey,
       escrowSol: escrowSol,
       signer: users[0].publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,

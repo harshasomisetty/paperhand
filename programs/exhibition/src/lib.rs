@@ -64,20 +64,6 @@ pub mod exhibition {
             &ctx.accounts.exhibit.exhibit_symbol,
             borrowed_bump,
         );
-
-        anchor_spl::token::mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::MintTo {
-                    mint: ctx.accounts.voucher_mint.to_account_info(),
-                    to: ctx.accounts.user_voucher_wallet.to_account_info(),
-                    authority: ctx.accounts.exhibit.to_account_info(),
-                },
-                &[&seeds],
-            ),
-            1,
-        )?;
-
         anchor_spl::token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -90,23 +76,45 @@ pub mod exhibition {
             1,
         )?;
 
-        anchor_spl::token::approve(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::Approve {
-                    to: ctx.accounts.nft_artifact.to_account_info(),
-                    delegate: ctx.accounts.delegate_signer.to_account_info(),
-                    authority: ctx.accounts.exhibit.to_account_info(),
-                },
-                &[&seeds],
-            ),
-            0,
-        )?;
+        // msg!(
+        //     "assigning delegate: {}",
+        //     ctx.accounts.delegate_signer.key.to_string()
+        // );
+
+        if ctx.accounts.delegate_signer.to_account_info().key()
+            != ctx.accounts.signer.to_account_info().key()
+        {
+            msg!("has delegate");
+            anchor_spl::token::approve(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    anchor_spl::token::Approve {
+                        to: ctx.accounts.nft_artifact.to_account_info(),
+                        delegate: ctx.accounts.delegate_signer.to_account_info(),
+                        authority: ctx.accounts.exhibit.to_account_info(),
+                    },
+                    &[&seeds],
+                ),
+                0,
+            )?;
+        } else {
+            msg!("no delegate");
+            anchor_spl::token::mint_to(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    anchor_spl::token::MintTo {
+                        mint: ctx.accounts.voucher_mint.to_account_info(),
+                        to: ctx.accounts.user_voucher_wallet.to_account_info(),
+                        authority: ctx.accounts.exhibit.to_account_info(),
+                    },
+                    &[&seeds],
+                ),
+                1,
+            )?;
+        }
+
         ctx.accounts.exhibit.artifact_count = ctx.accounts.exhibit.artifact_count + 1;
-        msg!(
-            "assigning delegate: {}",
-            ctx.accounts.delegate_signer.key.to_string()
-        );
+
         Ok(())
     }
 
@@ -123,6 +131,7 @@ pub mod exhibition {
             .unwrap(),
             MyError::ExhibitConstraintViolated
         );
+
         // 1) transfer nft from pda to user nft account
 
         let (_pubkey, bump_seed) = exhibit_pubkey_gen(
@@ -137,6 +146,50 @@ pub mod exhibition {
             &ctx.accounts.exhibit.exhibit_symbol,
             borrowed_bump,
         );
+
+        msg!(
+            "voucher wallet bal {}",
+            ctx.accounts.user_voucher_wallet.amount
+        );
+
+        // match ctx.accounts.nft_artifact.delegate.is_some() {
+        //     true => msg!(
+        //         "has delegate: {}",
+        //         ctx.accounts.nft_artifact.delegate.unwrap().to_string()
+        //     ),
+        //     false => msg!("no delegate"),
+        // }
+        // 2) burn voucher token from user
+
+        // check if there is no delegate, then burn
+        // if there is delegate, check if delegate is signer
+
+        if ctx.accounts.nft_artifact.delegate.is_some()
+            && ctx.accounts.nft_artifact.delegate.unwrap() != ctx.accounts.signer.key()
+        {
+            msg!(
+                "delegate is assigned: {}, delegate is not signer: {}",
+                ctx.accounts.nft_artifact.delegate.unwrap().to_string(),
+                ctx.accounts.signer.key().to_string()
+            );
+
+            return Err(MyError::DelegatedNFT.into());
+        } else if ctx.accounts.nft_artifact.delegate.is_none() {
+            msg!("delegate is not assinged");
+            anchor_spl::token::burn(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info().clone(),
+                    anchor_spl::token::Burn {
+                        from: ctx.accounts.user_voucher_wallet.to_account_info(),
+                        mint: ctx.accounts.voucher_mint.to_account_info(),
+                        authority: ctx.accounts.signer.to_account_info(),
+                    },
+                    &[&seeds],
+                ),
+                1,
+            )?;
+        }
+
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -149,25 +202,6 @@ pub mod exhibition {
             ),
             1,
         )?;
-
-        msg!(
-            "voucher wallet bal {}",
-            ctx.accounts.user_voucher_wallet.amount
-        );
-        // 2) burn voucher token from user
-        anchor_spl::token::burn(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info().clone(),
-                anchor_spl::token::Burn {
-                    from: ctx.accounts.user_voucher_wallet.to_account_info(),
-                    mint: ctx.accounts.voucher_mint.to_account_info(),
-                    authority: ctx.accounts.signer.to_account_info(),
-                },
-                &[&seeds],
-            ),
-            1,
-        )?;
-
         // 3) close pda nft artifact
         anchor_spl::token::close_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
@@ -301,9 +335,6 @@ pub struct ArtifactWithdraw<'info> {
     pub nft_artifact: Account<'info, TokenAccount>,
 
     #[account(mut)]
-    pub delegate_signer: Signer<'info>,
-
-    #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -322,6 +353,8 @@ pub struct Exhibit {
 pub enum MyError {
     #[msg("User NFT account does not have the NFT")]
     UserLacksNFT,
+    #[msg("Delegate is not Withdrawing signer")]
+    DelegatedNFT,
     #[msg("Exhibit pubkey not the same as the verified creators on nft")]
     ExhibitConstraintViolated,
 }

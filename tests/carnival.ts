@@ -56,9 +56,7 @@ const connection = provider.connection;
 const Carnival = anchor.workspace.Carnival as Program<Carnival>;
 const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
-const metaplex = Metaplex.make(provider.connection).use(
-  keypairIdentity(creator)
-);
+const metaplex = Metaplex.make(connection).use(keypairIdentity(creator));
 
 describe("carnival", () => {
   let airdropVal = 60 * LAMPORTS_PER_SOL;
@@ -203,7 +201,7 @@ describe("carnival", () => {
 
   // it("Sell some NFTs", async () => {});
 
-  it.skip("Withdraw Funds (close market)", async () => {
+  it("Withdraw Funds (close market)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
     let nfts = [nftList[0][0], nftList[0][1], nftList[0][2]];
@@ -214,11 +212,12 @@ describe("carnival", () => {
     let marketId = 0;
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
 
+    let preEscrowBal = await connection.getBalance(escrowSol);
     let transaction = await closeCarnivalMarket(
       connection,
       users[0].publicKey,
       exhibit,
-      nfts,
+      [nfts[0]],
       solAmt,
       marketId
     );
@@ -238,9 +237,13 @@ describe("carnival", () => {
       "nft withdrew"
     );
 
-    let escrowBal = await connection.getBalance(escrowSol);
+    let postEscrowBal = await connection.getBalance(escrowSol);
 
-    printAndTest(escrowBal, 0.5 * LAMPORTS_PER_SOL, "Escrow Bal");
+    printAndTest(
+      Number(preEscrowBal),
+      Number(postEscrowBal) + solAmt,
+      "Escrow Bal"
+    );
   });
 
   Carnival.provider.connection.onLogs("all", ({ logs }) => {
