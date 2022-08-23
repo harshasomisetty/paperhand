@@ -23,33 +23,7 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-
-export async function createCarnival(
-  connection: Connection,
-  nft: Nft,
-  publicKey: PublicKey
-): Promise<Transaction> {
-  let provider = await getProvider("http://localhost:8899", creator);
-  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
-  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
-
-  let transaction = new Transaction();
-
-  console.log("after start tx");
-
-  let { exhibit, voucherMint } = await getNftDerivedAddresses(nft);
-
-  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
-    await getCarnivalAccounts(exhibit);
-
-  if (!(await checkIfAccountExists(carnival, connection))) {
-    console.log(" carnival no exist");
-
-    console.log("added tx");
-  }
-
-  return transaction;
-}
+import { getOpenBoothId } from "./carnival_data";
 
 export async function carnivalDepositNft(
   connection: Connection,
@@ -128,7 +102,7 @@ export async function carnivalDepositNft(
       rent: SYSVAR_RENT_PUBKEY,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      exhibitionProgram: Exhibition.programId,
+      exhibitionProgram: EXHIBITION_PROGRAM_ID,
     })
     .transaction();
 
@@ -200,8 +174,7 @@ export async function createCarnivalMarket(
   connection: Connection,
   publicKey: PublicKey,
   nfts: Nft[],
-  solAmt: number,
-  marketId: number
+  solAmt: number
 ): Promise<Transaction> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
@@ -218,6 +191,8 @@ export async function createCarnivalMarket(
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
     await getCarnivalAccounts(exhibit);
 
+  let marketId = await getOpenBoothId(carnival);
+  console.log("createcarnimarket function, market if", marketId);
   // make market
 
   let [market, marketBump] = await PublicKey.findProgramAddress(

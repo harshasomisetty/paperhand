@@ -54,10 +54,8 @@ import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
 import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
 import { airdropAll } from "../utils/helpfulFunctions";
-import {
-  createCarnival,
-  createCarnivalMarket,
-} from "../utils/carnival_actions";
+import { createCarnivalMarket } from "../utils/carnival_actions";
+import { getOpenBoothId } from "../utils/carnival_data";
 const connection = new Connection("http://localhost:8899", "processed");
 
 const metaplex = Metaplex.make(connection)
@@ -182,7 +180,7 @@ export async function insertNft(nft: Nft, signer: Keypair) {
 
   await connection.confirmTransaction(signature, "confirmed");
 
-  console.log("Inserted NFT! Artifact bal, userVoucherBal");
+  console.log("Inserted NFT!");
 }
 
 async function initializeSwap(nft: Nft, user: Keypair, initAmounts: number[]) {
@@ -321,7 +319,6 @@ export async function initializeCheckout(nft: Nft, user: Keypair) {
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
-      exhibitionProgram: EXHIBITION_PROGRAM_ID,
     })
     .transaction();
 
@@ -390,19 +387,12 @@ export async function makeBids(nft: Nft, users: Keypair[]) {
   console.log("finsihed making bids");
 }
 
-export async function initCarnivalAndMarket(
-  nfts: Nft[],
-  solAmt: number,
-  users: Keypair[]
-) {
-  let transaction: Transaction;
-  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
-    nfts[0]
-  );
+export async function initCarnival(nft: Nft, users: Keypair[]) {
+  console.log("In carnival init");
+  let transaction = new Transaction();
+  let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(nft);
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
-
-  // transaction = await createCarnival(connection, nfts[0], users[0].publicKey);
 
   let initCarnTx = await Carnival.methods
     .initializeCarnival()
@@ -411,13 +401,12 @@ export async function initCarnivalAndMarket(
       carnival: carnival,
       carnivalAuth: carnivalAuth,
       voucherMint: voucherMint,
-      nftMetadata: nfts[0].metadataAccount.publicKey,
+      nftMetadata: nft.metadataAccount.publicKey,
       escrowSol: escrowSol,
       signer: users[0].publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
       systemProgram: SystemProgram.programId,
-      exhibitionProgram: Exhibition.programId,
     })
     .transaction();
 
@@ -429,28 +418,31 @@ export async function initCarnivalAndMarket(
     await sendAndConfirmTransaction(connection, transaction, [users[0]]),
     "confirmed"
   );
+}
 
-  let marketId = 0;
-
-  transaction = await createCarnivalMarket(
+export async function instructionExecuteCreateMarket(
+  nfts: Nft[],
+  solAmt: number,
+  user: Keypair
+) {
+  let transaction = await createCarnivalMarket(
     connection,
-    users[0].publicKey,
+    user.publicKey,
     nfts,
-    solAmt,
-    marketId
+    solAmt
   );
 
   connection.confirmTransaction(
-    await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+    await sendAndConfirmTransaction(connection, transaction, [user]),
     "confirmed"
   );
 }
 
 async function initialFlow() {
-  // 1) start by showing off exhibition creation by depositing into exhibit for ABC
+  console.log("1) Airdrop, demonstrate create Exhibit with ABCs");
   await airdropAndMint();
 
-  // 2) go into ape shop to demonstrate trading
+  console.log("2) APE Exhibit: A Primitive NFTAMM");
   await insertNft(nftList[0][0], users[0]);
   await insertNft(nftList[0][2], users[0]);
   await insertNft(nftList[0][4], users[0]);
@@ -458,14 +450,15 @@ async function initialFlow() {
   await initializeSwap(nftList[0][0], users[0], [2, 6]);
   await instructionDepositLiquidity(nftList[0][0], users[0], [1]);
 
-  // 3) go into BEAR exhibit to demonstrate floorbid
+  console.log("3) Bear Exhibit: Floorbid panic sell");
+  await new Promise((r) => setTimeout(r, 2000));
   await insertNft(nftList[1][0], users[0]);
   await initializeCheckout(nftList[0][0], users[0]);
   await makeBids(nftList[0][0], [users[0], users[1]]);
-
-  // 4) go into gods to demonstrate carnival
-  await insertNft(nftList[2][0], users[0]);
-
+  await new Promise((r) => setTimeout(r, 2000));
+  console.log("4) God Exhibit: Carnival AKA Sudoswap");
+  // await insertNft(nftList[2][0], users[0]);
+  console.log("back in main after insert nft");
   let nfts = [
     nftList[2][1],
     nftList[2][2],
@@ -474,7 +467,10 @@ async function initialFlow() {
     nftList[2][5],
   ];
 
-  await initCarnivalAndMarket(nfts, 2 * LAMPORTS_PER_SOL, [users[0]]);
+  console.log("about to start init carnival");
+  await new Promise((r) => setTimeout(r, 2000));
+  // await initCarnival(nfts[0], [users[0]]);
+  // await instructionExecuteCreateMarket(nfts, 2 * LAMPORTS_PER_SOL, users[0]);
 }
 
 initialFlow();

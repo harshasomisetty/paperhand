@@ -144,7 +144,6 @@ export async function instructionInitCheckoutExhibit(
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
-      exhibitionProgram: Exhibition.programId,
     })
     .transaction();
 

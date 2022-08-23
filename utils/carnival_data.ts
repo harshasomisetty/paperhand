@@ -99,3 +99,13 @@ export async function getMarketNfts(
 
   return marketNfts;
 }
+
+export async function getOpenBoothId(carnival: PublicKey): Promise<Number> {
+  let provider = await getProvider("http://localhost:8899", creator);
+  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+
+  let carnivalInfo = await Carnival.account.carnivalAccount.fetch(carnival);
+  console.log("canri info", carnivalInfo);
+
+  return Number(carnivalInfo.marketIdCount);
+}

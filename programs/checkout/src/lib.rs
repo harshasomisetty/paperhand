@@ -7,9 +7,6 @@ use anchor_spl::{
 use solana_program;
 use solana_program::{account_info::AccountInfo, program::invoke, system_instruction};
 
-use exhibition::program::Exhibition;
-use exhibition::{self, Exhibit};
-
 pub mod state;
 use state::checkout_queue::CheckoutQueue;
 use state::orderbook::Orderbook;
@@ -71,7 +68,6 @@ pub mod checkout {
 
         let mut bid_orders = ctx.accounts.bid_orders.load_mut()?;
 
-        // Need a clever way to somehow know the bid price after the let mut Orderbook declaration
         let bid_price_sol = bid_orders.orderbook.cancel_bid(bidder.key(), order_id);
 
         **ctx
@@ -80,8 +76,6 @@ pub mod checkout {
             .to_account_info()
             .try_borrow_mut_lamports()? -= bid_price_sol;
         **ctx.accounts.bidder.try_borrow_mut_lamports()? += bid_price_sol;
-
-        // msg!("canceling Orderbook data: {}", Orderbook.Orderbook);
 
         Ok(())
     }
@@ -221,7 +215,6 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub exhibition_program: Program<'info, Exhibition>,
 }
 
 #[derive(Accounts)]

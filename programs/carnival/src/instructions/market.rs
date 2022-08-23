@@ -47,6 +47,7 @@ pub fn create_market(
     delta: u8,
     fee: u8,
 ) -> Result<()> {
+    msg!("in create market");
     let mut market = &mut ctx.accounts.market;
 
     assert_eq!(market_id, ctx.accounts.carnival.market_id_count);
@@ -61,6 +62,10 @@ pub fn create_market(
     market.delta = delta;
     market.fee = fee;
 
+    msg!(
+        "prev market id count: {}",
+        ctx.accounts.carnival.market_id_count
+    );
     ctx.accounts.carnival.market_id_count = ctx.accounts.carnival.market_id_count + 1;
 
     Ok(())
