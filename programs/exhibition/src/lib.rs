@@ -314,7 +314,7 @@ pub struct ArtifactWithdraw<'info> {
     #[account(
         mut,
         associated_token::mint = voucher_mint,
-        associated_token::authority = signer
+        associated_token::authority = delegate_signer
     )]
     pub user_voucher_wallet: Account<'info, TokenAccount>,
 
@@ -334,6 +334,8 @@ pub struct ArtifactWithdraw<'info> {
     )]
     pub nft_artifact: Account<'info, TokenAccount>,
 
+    #[account(mut)]
+    pub delegate_signer: Signer<'info>,
     #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,

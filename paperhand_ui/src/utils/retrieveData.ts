@@ -74,25 +74,6 @@ export async function checkIfAccountExists(
   }
 }
 
-export async function checkIfExhibitExists(
-  nft: Nft,
-  connection: Connection
-): Promise<boolean> {
-  let { exhibit } = await getNftDerivedAddresses(nft);
-  let exhibitExists = await checkIfAccountExists(exhibit, connection);
-  return exhibitExists;
-}
-
-export async function checkIfSwapExists(
-  exhibit: PublicKey,
-  connection: Connection
-): Promise<boolean> {
-  let { marketAuth } = await getShopAccounts(exhibit);
-
-  let swapExists = await checkIfAccountExists(marketAuth, connection);
-  return swapExists;
-}
-
 export async function getExhibitAccountData(
   exhibit: PublicKey,
   wallet: Wallet

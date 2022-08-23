@@ -50,6 +50,7 @@ const NftammPage = () => {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
       let exhibit = new PublicKey(exhibitAddress);
       let exhibitExists = await checkIfAccountExists(exhibit, connection);
+      let { marketAuth } = await getShopAccounts(exhibit);
 
       let exhibitInfo;
       if (exhibitExists) {
@@ -58,16 +59,11 @@ const NftammPage = () => {
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
       }
 
-      let swapExists = await checkIfSwapExists(exhibit, connection);
+      let swapExists = await checkIfAccountExists(marketAuth, connection);
       setSwapActive(swapExists);
 
       if (swapExists) {
         let { Shop } = await getShopProgramAndProvider(wallet);
-
-        let [marketAuth, temp] = await PublicKey.findProgramAddress(
-          [Buffer.from("market_auth"), exhibit.toBuffer()],
-          SHOP_PROGRAM_ID
-        );
 
         let marketInfo = await Shop.account.marketInfo.fetch(marketAuth);
         setFeesPaid(Number(marketInfo.feesPaid) / LAMPORTS_PER_SOL);

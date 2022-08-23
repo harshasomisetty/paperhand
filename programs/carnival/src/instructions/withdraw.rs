@@ -41,7 +41,7 @@ pub struct WithdrawSol<'info> {
     )]
     pub escrow_sol: AccountInfo<'info>,
 
-    #[account(mut)]
+    #[account(mut, address = market.market_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -88,7 +88,7 @@ pub struct WithdrawNft<'info> {
     #[account(mut)]
     pub nft_artifact: AccountInfo<'info>,
 
-    #[account(mut)]
+    #[account(mut, address = market.market_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -157,6 +157,7 @@ pub fn withdraw_nft(
         nft_metadata: ctx.accounts.nft_metadata.to_account_info(),
         nft_user_token: ctx.accounts.nft_user_token.to_account_info(),
         nft_artifact: ctx.accounts.nft_artifact.to_account_info(),
+        delegate_signer: ctx.accounts.signer.to_account_info(),
         signer: ctx.accounts.market.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
         token_program: ctx.accounts.token_program.to_account_info(),
@@ -172,15 +173,14 @@ pub fn withdraw_nft(
         borrowed_id.as_ref(),
         &[market_bump],
     ];
+
     let pda_seeds = &[&seeds[..]];
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, pda_seeds);
 
-    // let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     exhibition::cpi::artifact_withdraw(cpi_ctx)?;
-    msg!("did cpi");
 
-    msg!("finished withdraw nft");
+    msg!("finished withdraw nft with cpi");
 
     Ok(())
 }

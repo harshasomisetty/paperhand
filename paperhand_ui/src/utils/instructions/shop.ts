@@ -4,10 +4,7 @@ import {
   getShopProgramAndProvider,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
-import {
-  checkIfAccountExists,
-  checkIfExhibitExists,
-} from "@/utils/retrieveData";
+import { checkIfAccountExists } from "@/utils/retrieveData";
 
 import {
   getNftDerivedAddresses,

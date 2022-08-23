@@ -4,10 +4,7 @@ import {
   getShopProgramAndProvider,
   getExhibitProgramAndProvider,
 } from "@/utils/constants";
-import {
-  checkIfAccountExists,
-  checkIfExhibitExists,
-} from "@/utils/retrieveData";
+import { checkIfAccountExists } from "@/utils/retrieveData";
 
 import {
   getNftDerivedAddresses,
@@ -79,7 +76,7 @@ export async function instructionDepositNft(
       publicKey
     );
 
-    if (!(await checkIfExhibitExists(nft, connection))) {
+    if (!(await checkIfAccountExists(exhibit, connection))) {
       const init_tx = await Exhibition.methods
         .initializeExhibit()
         .accounts({

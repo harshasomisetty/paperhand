@@ -444,6 +444,7 @@ export async function instructionAcquireNft(
         nftMetadata: nft.metadataAccount.publicKey,
         nftUserToken: nftUserTokenAccount,
         nftArtifact: nftArtifact,
+        delegateSigner: publicKey,
         signer: publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,

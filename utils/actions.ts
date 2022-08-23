@@ -88,12 +88,3 @@ export async function checkIfAccountExists(
     return false;
   }
 }
-
-export async function checkIfExhibitExists(
-  nft: Nft,
-  connection: Connection
-): Promise<Boolean> {
-  let { exhibit } = await getNftDerivedAddresses(nft);
-  let exhibitExists = await checkIfAccountExists(exhibit, connection);
-  return exhibitExists;
-}

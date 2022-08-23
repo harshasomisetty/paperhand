@@ -34,7 +34,7 @@ import {
   createCarnival,
   createCarnivalMarket,
 } from "../utils/carnival_actions";
-import { getMarketNfts } from "../utils/carnival_data";
+import { getAllMarkets, getMarketNfts } from "../utils/carnival_data";
 import {
   otherCreators,
   creator,
@@ -58,6 +58,7 @@ const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
 const metaplex = Metaplex.make(connection).use(keypairIdentity(creator));
 
+// TODO RENAME carnival markets to booths
 describe("carnival", () => {
   let airdropVal = 60 * LAMPORTS_PER_SOL;
 
@@ -124,6 +125,11 @@ describe("carnival", () => {
       true,
       "check carnival exists"
     );
+
+    console.log(
+      "program accounts count",
+      (await connection.getProgramAccounts(CARNIVAL_PROGRAM_ID)).length
+    );
   });
 
   it("Made all markets", async () => {
@@ -142,8 +148,9 @@ describe("carnival", () => {
 
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
 
-    for (let marketId = 0; marketId < 3; marketId++) {
-      console.log("Starting creating", marketId);
+    let numMarkets = 3;
+    for (let marketId = 0; marketId < numMarkets; marketId++) {
+      console.log("Creating market ", marketId);
       let nftList = [nfts[marketId]];
 
       let [market] = await PublicKey.findProgramAddress(
@@ -169,16 +176,11 @@ describe("carnival", () => {
         "confirmed"
       );
 
-      printAndTest(await checkIfAccountExists(market, connection), true);
-
-      let marketNfts = await getMarketNfts(connection, exhibit, market);
-      let marketDelegate =
-        marketNfts[0].account.data.parsed.info.delegate.toString();
-
-      printAndTest(market.toString(), marketDelegate, "market delegates");
-
-      printAndTest(marketNfts.length, nftList.length);
-      console.log("Created Market", marketId);
+      console.log(
+        "program accounts count",
+        marketId,
+        (await connection.getProgramAccounts(CARNIVAL_PROGRAM_ID)).length
+      );
       printAndTest(
         Number((await getAccount(connection, nftArtifact)).amount),
         1
@@ -190,11 +192,115 @@ describe("carnival", () => {
       regSol(solAmts.reduce((partialSum, a) => partialSum + a, 0))
     );
 
-    // TODO CHECK LIST OF POOLS HERE AND DATA
+    let marketIdCount;
+
+    let marketInfos = await getAllMarkets(connection, exhibit, numMarkets);
+
+    console.log("markts and infos", marketInfos);
+
+    printAndTest(
+      Object.keys(marketInfos).length,
+      numMarkets,
+      "right number of markets were made"
+    );
+
+    for (let index of Object.keys(marketInfos)) {
+      let market = marketInfos[index].publicKey;
+
+      printAndTest(await checkIfAccountExists(market, connection), true);
+
+      let marketNfts = await getMarketNfts(connection, exhibit, market);
+
+      let marketDelegate =
+        marketNfts[0].account.data.parsed.info.delegate.toString();
+
+      printAndTest(
+        market.toString(),
+        marketDelegate,
+        "market delegates between market and nfts accurate"
+      );
+
+      printAndTest(marketNfts.length, 1);
+    }
+
+    // check data of how much nfts each pool contains
 
     console.log("Finsihed Initing all markets");
   });
+  // TODO MAke test that people can't insert or take out from markets that aren't theirs
 
+  it("Tried inserting SOL and nft to a market user doens't own", async () => {
+    let transaction = new Transaction();
+
+    let marketId = 0;
+    let solAmt = 1 * LAMPORTS_PER_SOL;
+
+    let nfts = [nftList[0][0], nftList[0][3], nftList[0][5]];
+
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nfts[0]
+    );
+
+    console.log("actions", nftArtifact.toString());
+    console.log("exhibit", exhibit.toString());
+
+    let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
+      await getCarnivalAccounts(exhibit);
+
+    let [market, marketBump] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("market"),
+        carnival.toBuffer(),
+        new BN(marketId).toArrayLike(Buffer, "le", 8),
+      ],
+      CARNIVAL_PROGRAM_ID
+    );
+
+    let preEscrowBal = await connection.getBalance(escrowSol);
+
+    let depoSolTx = await Carnival.methods
+      .depositSol(
+        new BN(marketId),
+        new BN(solAmt),
+        carnivalAuthBump,
+        escrowSolBump
+      )
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        market: market,
+        escrowSol: escrowSol,
+        signer: users[1].publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(depoSolTx);
+
+    try {
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction, [users[1]]),
+        "confirmed"
+      );
+    } catch (error) {
+      console.log("NOT ALLOWED TO DEPOSIT SOL");
+    }
+
+    // printAndTest(
+    //   await checkIfAccountExists(nftArtifact, connection),
+    //   false,
+    //   "nft withdrew"
+    // );
+
+    let postEscrowBal = await connection.getBalance(escrowSol);
+
+    printAndTest(
+      Number(preEscrowBal),
+      Number(postEscrowBal),
+      "Escrow Bal didn't change, since deposit not allowed"
+    );
+  });
   // it("Buy Specific NFTs", async () => {});
 
   // it("Buy any NFTs", async () => {});

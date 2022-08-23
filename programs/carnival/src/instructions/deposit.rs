@@ -41,13 +41,12 @@ pub struct DepositSol<'info> {
     )]
     pub escrow_sol: AccountInfo<'info>,
 
-    #[account(mut)]
+    #[account(mut, address = market.market_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
-// TODO check the idea in the market matches the depositor
 #[derive(Accounts)]
 #[instruction(market_id: u64, carnival_auth_bump: u8, market_bump: u8)]
 pub struct DepositNft<'info> {
@@ -89,7 +88,7 @@ pub struct DepositNft<'info> {
     #[account(mut)]
     pub nft_artifact: AccountInfo<'info>,
 
-    #[account(mut)]
+    #[account(mut, address = market.market_owner)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -108,6 +107,12 @@ pub fn deposit_sol(
 ) -> Result<()> {
     msg!("in dpepo sol");
 
+    msg!(
+        "signer: {}, marketOwner: {}",
+        ctx.accounts.signer.to_account_info().key(),
+        ctx.accounts.market.market_owner.to_string()
+    );
+
     invoke(
         &system_instruction::transfer(
             ctx.accounts.signer.to_account_info().key,
@@ -122,6 +127,7 @@ pub fn deposit_sol(
     );
     // TODO UPDATE market balance
 
+    ctx.accounts.market.sol = ctx.accounts.market.sol + sol_amt;
     msg!("finished depo sol");
 
     Ok(())
@@ -172,6 +178,8 @@ pub fn deposit_nft(
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, pda_seeds);
 
     exhibition::cpi::artifact_insert(cpi_ctx)?;
+
+    ctx.accounts.market.nfts = ctx.accounts.market.nfts + 1;
 
     msg!("did cpi");
     msg!("finished depo nft");

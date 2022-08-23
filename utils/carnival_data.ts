@@ -1,5 +1,5 @@
 import { Nft } from "@metaplex-foundation/js";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import {
   AccountInfo,
   Connection,
@@ -25,24 +25,51 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { getAllExhibitArtifacts } from "../paperhand_ui/src/utils/retrieveData";
+import { getMultipleAccounts } from "@project-serum/anchor/dist/cjs/utils/rpc";
 
 export async function getAllMarkets(
   connection: Connection,
-  exhibit: PublicKey
+  exhibit: PublicKey,
+  marketIdCount: number
 ): Promise<
-  Array<{
-    pubkey: PublicKey;
-    account: AccountInfo<Buffer>;
-  }>
+  Record<number, { publicKey: PublicKey; account: AccountInfo<Buffer> }>
 > {
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
 
-  let allMarketAccounts = await connection.getTokenAccountsByOwner(carnival, {
-    programId: TOKEN_PROGRAM_ID,
-  });
+  // let allMarketAccounts = await connection.getProgramAccounts(
+  //   CARNIVAL_PROGRAM_ID
+  // );
 
-  return allMarketAccounts;
+  let markets: PublicKey[] = [];
+  for (let i = 0; i < marketIdCount; i++) {
+    let [market, marketBump] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("market"),
+        carnival.toBuffer(),
+        new BN(i).toArrayLike(Buffer, "le", 8),
+      ],
+      CARNIVAL_PROGRAM_ID
+    );
+
+    markets.push(market);
+  }
+
+  let multipleMarkets = await getMultipleAccounts(connection, markets);
+
+  let marketInfos: Record<
+    number,
+    { publicKey: PublicKey; account: AccountInfo<Buffer> }
+  > = {};
+
+  for (let i = 0; i < marketIdCount; i++) {
+    // console.log(multipleMarkets[i]);
+    if (multipleMarkets[i]) {
+      marketInfos[i] = multipleMarkets[i];
+    }
+  }
+
+  return marketInfos;
 }
 
 export async function getMarketNfts(

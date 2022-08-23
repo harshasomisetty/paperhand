@@ -62,6 +62,7 @@ pub fn create_market(
     market.fee = fee;
 
     ctx.accounts.carnival.market_id_count = ctx.accounts.carnival.market_id_count + 1;
+
     Ok(())
 }
 
