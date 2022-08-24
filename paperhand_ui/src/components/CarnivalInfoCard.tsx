@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-
 import { PublicKey } from "@solana/web3.js";
 import {
   getAllExhibitArtifacts,
@@ -33,20 +32,25 @@ const CarnivalInfoCard = ({
       }
     }
     fetchData();
-  }, [wallet]);
+  }, [wallet, carnivalNfts]);
+
+  if (!exhibitImages || !exhibitSymbol || !floor) {
+    return <p>Loading Images!</p>;
+  }
   return (
-    <div className="card card-side bg-base-100 shadow-xl">
+    <div className="card card-side bg-base-300 shadow-xl min-w-max m-7 p-4">
+      <div className="avatar">
+        <div className="w-32 rounded-full">
+          <DisplayImages images={exhibitImages} />
+        </div>
+      </div>
+
       <div className="card-body">
-        {exhibitImages && (
-          <div className="avatar">
-            <div className="w-32 rounded-full">
-              <DisplayImages images={exhibitImages} />
-            </div>
-          </div>
-        )}
-        {exhibitSymbol && <h2 className="card-title">{exhibitSymbol}</h2>}
-        {exhibitImages && <p>Listed: {exhibitImages.length}</p>}
-        {floor && <p>Floor: {floor.toString()}</p>}
+        <div>
+          <h2 className="card-title text-2xl">{exhibitSymbol}</h2>
+          <p>Listed: {exhibitImages.length}</p>
+          <p>Floor: {floor.toString()} ◎</p>
+        </div>
       </div>
     </div>
   );
