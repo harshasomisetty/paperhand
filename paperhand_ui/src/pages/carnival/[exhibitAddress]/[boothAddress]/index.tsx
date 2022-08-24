@@ -70,12 +70,15 @@ const BoothPage = () => {
   }
   return (
     <div>
-      <div className="card flex flex-col space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
+      <div className="card card-side flex flex-col space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
         <p>boot id: {Number(boothInfo.boothId)}</p>
         <p>sol: {(Number(boothInfo.sol) / LAMPORTS_PER_SOL).toFixed(3)}</p>
         <p>nfts: {Number(boothInfo.nfts)}</p>
         <p>Curve: {Object.keys(boothInfo.curve)[0].toString()} </p>
-        <p>Booth type: {Object.keys(boothInfo.boothType)[0].toString()} </p>
+
+        {Object.keys(boothInfo.boothType)[0].toString() == 0 && (
+          <p>Booth type: Buy </p>
+        )}
         <p>Delta: {boothInfo.delta.toString()} </p>
       </div>
       <NftList nftList={boothNfts} title={"Booth NFTs"} />

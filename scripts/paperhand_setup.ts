@@ -431,13 +431,21 @@ export async function initCarnival(nft: Nft, users: Keypair[]) {
 export async function instructionExecuteCreateBooth(
   nfts: Nft[],
   solAmt: number,
-  user: Keypair
+  user: Keypair,
+  curve: number,
+  boothType: number,
+  delta: number,
+  fee: number
 ) {
   let transaction = await createCarnivalBooth(
     connection,
     user.publicKey,
     nfts,
-    solAmt
+    solAmt,
+    curve,
+    boothType,
+    delta,
+    fee
   );
 
   try {
@@ -512,11 +520,27 @@ async function initialFlow() {
   console.log("marketing");
   await new Promise((r) => setTimeout(r, 2000));
   console.log("marketed");
-  await instructionExecuteCreateBooth(nfts, 2 * LAMPORTS_PER_SOL, users[0]);
+  await instructionExecuteCreateBooth(
+    nfts,
+    2 * LAMPORTS_PER_SOL,
+    users[0],
+    0,
+    0,
+    5,
+    1
+  );
 
   let nfts2 = [nftList[2][6], nftList[2][7], nftList[2][8]];
 
-  await instructionExecuteCreateBooth(nfts2, 10 * LAMPORTS_PER_SOL, users[0]);
+  await instructionExecuteCreateBooth(
+    nfts2,
+    10 * LAMPORTS_PER_SOL,
+    users[0],
+    1,
+    2,
+    6,
+    2
+  );
 }
 
 initialFlow();

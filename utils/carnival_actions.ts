@@ -24,6 +24,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { getOpenBoothId } from "./carnival_data";
+import { assert } from "chai";
 
 export async function carnivalDepositNft(
   connection: Connection,
@@ -174,7 +175,11 @@ export async function createCarnivalBooth(
   connection: Connection,
   publicKey: PublicKey,
   nfts: Nft[],
-  solAmt: number
+  solAmt: number,
+  curve: number,
+  boothType: number,
+  delta: number,
+  fee: number
 ): Promise<Transaction> {
   console.log("In Create Carnival Booth function1");
   let provider = await getProvider("http://localhost:8899", creator);
@@ -207,10 +212,20 @@ export async function createCarnivalBooth(
 
   console.log("function booth", booth.toString());
 
+  // TODO CHECK INPUTS
+  assert.ok(curve >= 0 || curve <= 2);
+  assert.ok(boothType >= 0 || boothType <= 1);
   if (!(await checkIfAccountExists(booth, connection))) {
     console.log("booth no exist");
     let initBoothTx = await Carnival.methods
-      .createBooth(users[0].publicKey, new BN(boothId), 0, 2, new BN(1), 1)
+      .createBooth(
+        users[0].publicKey,
+        new BN(boothId),
+        curve,
+        boothType,
+        new BN(delta),
+        fee
+      )
       .accounts({
         exhibit: exhibit,
         carnival: carnival,

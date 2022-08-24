@@ -124,7 +124,9 @@ const CarnivalPage = () => {
           </div>
           {tab == 0 && <NftList nftList={boothNfts} title={"Carnival NFTS"} />}
           {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
-          {tab == 2 && <BoothList boothList={booths} />}
+          {tab == 2 && (
+            <BoothList boothList={booths} exhibitSymbol={exhibitSymbol} />
+          )}
         </div>
       </div>
     </NftProvider>
