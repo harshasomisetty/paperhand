@@ -4,7 +4,10 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount},
 };
 use exhibition::{program::Exhibition, state::metaplex_anchor::TokenMetadata};
-use solana_program::{program::invoke, system_instruction};
+use solana_program::{
+    program::{invoke, invoke_signed},
+    system_instruction,
+};
 
 use crate::state::{
     accounts::{Booth, CarnivalAccount},
@@ -13,7 +16,7 @@ use crate::state::{
 
 // TODO check the right account types (the buy and trade) are being called, otherwises reject
 #[derive(Accounts)]
-#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
+#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8, escrow_auth_bump: u8)]
 pub struct TradeNftForSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -76,22 +79,28 @@ pub fn trade_nft_for_sol(
     booth_id: u64,
     carnival_auth_bump: u8,
     booth_bump: u8,
+    escrow_auth_bump: u8,
 ) -> Result<()> {
     // check user transfer enough sol
 
     // user withdraws sol
-    invoke(
+    invoke_signed(
         &system_instruction::transfer(
-            ctx.accounts.signer.to_account_info().key,
             ctx.accounts.escrow_sol.to_account_info().key,
+            ctx.accounts.signer.to_account_info().key,
             ctx.accounts.booth.spot_price,
         ),
         &[
-            ctx.accounts.signer.to_account_info(),
             ctx.accounts.escrow_sol.to_account_info(),
+            ctx.accounts.signer.to_account_info(),
             ctx.accounts.system_program.to_account_info(),
         ],
-    );
+        &[&[
+            b"escrow_sol".as_ref(),
+            ctx.accounts.carnival.to_account_info().key.as_ref(),
+            &[escrow_auth_bump],
+        ]],
+    )?;
 
     // check booth passed in is correct delegate for nft
 

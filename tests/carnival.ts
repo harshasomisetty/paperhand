@@ -315,9 +315,36 @@ describe("carnival", () => {
 
   it("Buy Specific NFTs", async () => {
     // Try to buy a nft (and deposit sol)
+
+    let nft = nftList[0][0];
     // test after booth spot price, and check to make sure your java calculations are correct
     // test to make sure you have your nft
     // test to make sure booth escrow increased in sol
+
+    // let solToNftTx = await Carnival.methods
+    //   .tradeSolForNft(
+    //     new BN(boothId),
+    //     carnivalAuthBump,
+    //     boothBump
+    //   )
+    //   .accounts({
+    //     exhibit: exhibit,
+    //     carnival: carnival,
+    //     carnivalAuth: carnivalAuth,
+    //     booth: booth,
+    //     escrowSol: escrowSol,
+    //     voucherMint: voucherMint,
+    //     userVoucherWallet: userVoucherWallet,
+    //     nftMint: nftMint,
+    //     nftMetadata
+    //     nftUserToken
+    //     nftArtifact
+    //     signer: users[1].publicKey,
+    //     systemProgram: SystemProgram.programId,
+    //     tokenProgram
+    //     exhibitionProgram
+    //   })
+    //   .transaction();
   });
 
   it("Sell specific NFTs", async () => {

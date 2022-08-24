@@ -71,8 +71,6 @@ const CarnivalPage = () => {
         wallet
       );
 
-      console.log("booth infos", boothInfos[0].data);
-      console.log("booth infos2", boothInfos[1].data);
       setBooths(boothInfos);
 
       // nft maps to mint
@@ -92,7 +90,6 @@ const CarnivalPage = () => {
           i = i + 1;
         }
         boothNfts[booth.toString()] = fetchedNfts;
-        console.log("booth", booth.toString(), fetchedNfts.length);
       }
 
       setPrices(tempPrices);
@@ -163,7 +160,11 @@ const CarnivalPage = () => {
           )}
           {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
           {tab == 2 && (
-            <BoothList boothList={booths} exhibitSymbol={exhibitSymbol} />
+            <BoothList
+              boothList={booths}
+              exhibitSymbol={exhibitSymbol}
+              title={"Existing Booths"}
+            />
           )}
         </div>
       </div>

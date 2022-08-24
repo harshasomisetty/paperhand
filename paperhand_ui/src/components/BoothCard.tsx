@@ -10,8 +10,9 @@ const BoothCard = ({
   boothInfo: any;
   exhibitSymbol: string;
 }) => {
-  function mapBoothType(boothInfo) {
-    let type = Object.keys(boothInfo.data.boothType)[0].toString();
+  function mapBoothType() {
+    console.log("booth info map type", boothInfo);
+    let type = Object.keys(boothInfo.boothType)[0].toString();
     if (type == "buy") {
       return "Buy " + exhibitSymbol;
     } else if (type == "sell") {
@@ -21,6 +22,14 @@ const BoothCard = ({
     }
   }
 
+  // buy / sell / trade
+  // spot price
+  // balance
+  // bonding
+  // delta
+  // fee
+  // volume
+  //
   return (
     <div>
       <div className="card card-side justify-between space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
@@ -33,29 +42,29 @@ const BoothCard = ({
             </div>
           )}
 
-          <p>{exhibitSymbol}</p>
+          <p>{mapBoothType()}</p>
         </div>
         <table className="table">
           <tbody>
             <tr>
               <th>Booth ID</th>
-              <th>{Number(boothInfo.boothId)}</th>
+              <td>{Number(boothInfo.boothId)}</td>
             </tr>
             <tr>
               <th>Sol</th>
-              <th>{(Number(boothInfo.sol) / LAMPORTS_PER_SOL).toFixed(3)}</th>
+              <td>{(Number(boothInfo.sol) / LAMPORTS_PER_SOL).toFixed(3)}</td>
             </tr>
             <tr>
               <th>NFTs:</th>
-              <th>{Number(boothInfo.nfts)}</th>
+              <td>{Number(boothInfo.nfts)}</td>
             </tr>
             <tr>
               <th>Curve: </th>
-              <th>{Object.keys(boothInfo.curve)[0].toString()}</th>
+              <td>{Object.keys(boothInfo.curve)[0].toString()}</td>
             </tr>
             <tr>
               <th>Delta: </th>
-              <th>{boothInfo.delta.toString()}</th>
+              <td>{boothInfo.delta.toString()}</td>
             </tr>
           </tbody>
         </table>

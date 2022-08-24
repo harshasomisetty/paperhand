@@ -67,14 +67,13 @@ pub struct TradeSolForNft<'info> {
     pub exhibition_program: Program<'info, Exhibition>,
 }
 
+// User puts in sol, takes out nft
 pub fn trade_sol_for_nft(
     ctx: Context<TradeSolForNft>,
     booth_id: u64,
     carnival_auth_bump: u8,
     booth_bump: u8,
 ) -> Result<()> {
-    // check user transfer enough sol
-
     // user deposits sol
     invoke(
         &system_instruction::transfer(
@@ -89,10 +88,10 @@ pub fn trade_sol_for_nft(
         ],
     );
 
+    ctx.accounts.booth.sol = ctx.accounts.booth.sol + ctx.accounts.booth.spot_price;
     // check booth passed in is correct delegate for nft
 
     // artifact withdraw from exhibit cpi
-
     let cpi_program = ctx.accounts.exhibition_program.to_account_info();
     let cpi_accounts = exhibition::cpi::accounts::ArtifactWithdraw {
         exhibit: ctx.accounts.exhibit.to_account_info(),
@@ -109,9 +108,6 @@ pub fn trade_sol_for_nft(
     };
 
     // recalculate bids and asks
-
-    let current_spot_price = ctx.accounts.booth.spot_price;
-    let delta = ctx.accounts.booth.delta;
 
     if ctx.accounts.booth.curve == CurveType::Linear {
         let new_spot_price = ctx
@@ -144,9 +140,10 @@ pub fn trade_sol_for_nft(
     }
 
     ctx.accounts.booth.nfts = ctx.accounts.booth.nfts - 1;
-    ctx.accounts.booth.trade_count = ctx.accounts.booth.trade_count.checked_add(1).unwrap();
 
     // TODO NEED TO MAKE SURE POOL CANNOT OVERSELL
+
+    ctx.accounts.booth.trade_count = ctx.accounts.booth.trade_count.checked_add(1).unwrap();
 
     Ok(())
 }
