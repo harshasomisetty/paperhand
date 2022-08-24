@@ -58,6 +58,7 @@ export async function carnivalDepositNft(
     CARNIVAL_PROGRAM_ID
   );
 
+  console.log("carnivalDepositNft", boothId, booth.toString());
   // if (!(await checkIfAccountExists(nftUserTokenAddress, connection))) {
   //   let voucher_tx = createAssociatedTokenAccountInstruction(
   //     publicKey,
@@ -212,9 +213,9 @@ export async function createCarnivalBooth(
 
   console.log("function booth", booth.toString());
 
-  // TODO CHECK INPUTS
-  assert.ok(curve >= 0 || curve <= 2);
-  assert.ok(boothType >= 0 || boothType <= 1);
+  console.log("curve and booth", curve, boothType);
+  assert.ok(curve >= 0 || curve <= 1);
+  assert.ok(boothType >= 0 || boothType <= 2);
   if (!(await checkIfAccountExists(booth, connection))) {
     console.log("booth no exist");
     let initBoothTx = await Carnival.methods

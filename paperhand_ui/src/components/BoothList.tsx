@@ -74,6 +74,7 @@ const BoothList = ({
                       {Number(boothList[booth].data.sol) / LAMPORTS_PER_SOL}
                     </p>
                     <p>Nfts: {Number(boothList[booth].data.nfts)}</p>
+                    <p>addy: {boothList[booth].publicKey.toString()}</p>
                     <p>{mapBoothType(boothList[booth])}</p>
                   </div>
                   <div>

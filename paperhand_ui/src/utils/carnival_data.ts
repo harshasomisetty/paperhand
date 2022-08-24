@@ -50,7 +50,7 @@ export async function getAllBooths(
 
   for (let i = 0; i < boothIdCount; i++) {
     if (multipleBooths[i]) {
-      console.log("in if", multipleBooths[i]);
+      console.log("in if booths", i, multipleBooths[i]);
       boothInfos[i] = { publicKey: booths[i]!, data: multipleBooths[i]! };
     }
   }

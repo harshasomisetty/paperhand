@@ -7,10 +7,12 @@ export default function NftList({
   nftList,
   exhibitKey,
   title,
+  prices,
 }: {
   nftList: Nft[] | null;
   exhibitKey?: string;
   title?: string;
+  prices?: number[];
 }) {
   const [nftImages, setNftImages] = useState<string[]>();
 
@@ -31,13 +33,26 @@ export default function NftList({
             <>
               {nftImages &&
                 nftList.map((nft: Nft, ind) => (
-                  <NftCard
-                    nft={nft}
-                    nftImage={nftImages[ind]}
-                    exhibitKey={exhibitKey}
-                    key={ind}
-                    index={ind}
-                  />
+                  <div>
+                    {prices && prices[ind] ? (
+                      <NftCard
+                        nft={nft}
+                        nftImage={nftImages[ind]}
+                        exhibitKey={exhibitKey}
+                        key={ind}
+                        price={prices[ind]}
+                        index={ind}
+                      />
+                    ) : (
+                      <NftCard
+                        nft={nft}
+                        nftImage={nftImages[ind]}
+                        exhibitKey={exhibitKey}
+                        key={ind}
+                        index={ind}
+                      />
+                    )}
+                  </div>
                 ))}
             </>
           ) : (

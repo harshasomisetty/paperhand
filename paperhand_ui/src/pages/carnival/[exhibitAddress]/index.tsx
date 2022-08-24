@@ -1,4 +1,4 @@
-import { AccountInfo, PublicKey } from "@solana/web3.js";
+import { AccountInfo, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { useState, useEffect, useContext } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
@@ -43,8 +43,15 @@ const CarnivalPage = () => {
   const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
 
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
-  const [tab, setTab] = useState(2);
+  const [tab, setTab] = useState(0);
 
+  const [prices, setPrices] = useState<number[]>([]);
+
+  // TODO dict of chosen nfts that map from mint to price
+  // TODO dict of nft mint that maps to booth
+  // TODO Dict of booth mint to nftList, price, delta, etc
+  // TODO function that takes in booth details, and spits out new price depending on buy or sell
+  // TODO on user selects nft, update booth details, calculate new price array, update lists
   const mx = Metaplex.make(connection);
   useEffect(() => {
     async function fetchData() {
@@ -65,15 +72,32 @@ const CarnivalPage = () => {
       );
 
       console.log("booth infos", boothInfos[0].data);
+      console.log("booth infos2", boothInfos[1].data);
       setBooths(boothInfos);
+
+      // nft maps to mint
+      let nftsToBooth: Record<string, string> = {};
+      let boothNfts: Record<string, Nft[]> = {};
+      let tempPrices = [];
+      let i = 1;
 
       for (let index of Object.keys(boothInfos)) {
         let booth = boothInfos[index].publicKey;
 
         let fetchedNfts = await getBoothNfts(connection, mx, exhibit, booth);
 
-        setBoothNfts(fetchedNfts);
+        for (let nft of fetchedNfts) {
+          nftsToBooth[nft.mint.toString()] = booth.toString();
+          tempPrices.push(i * LAMPORTS_PER_SOL);
+          i = i + 1;
+        }
+        boothNfts[booth.toString()] = fetchedNfts;
+        console.log("booth", booth.toString(), fetchedNfts.length);
       }
+
+      setPrices(tempPrices);
+
+      setBoothNfts(boothNfts);
 
       const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
 
@@ -93,13 +117,19 @@ const CarnivalPage = () => {
   return (
     <NftProvider>
       <div className="grid grid-cols-2">
-        <div className="flex flex-col justify-between w-1/2">
+        <div className="flex flex-col w-1/2">
           <CarnivalInfoCard
-            carnivalNfts={boothNfts}
+            carnivalNfts={Object.keys(boothNfts).reduce(function (res, v) {
+              return res.concat(boothNfts[v]);
+            }, [])}
             exhibitSymbol={exhibitSymbol}
             floor={floor}
           />
-          <CarnivalBidCard carnivalNfts={boothNfts} />
+          <CarnivalBidCard
+            carnivalNfts={Object.keys(boothNfts).reduce(function (res, v) {
+              return res.concat(boothNfts[v]);
+            }, [])}
+          />
         </div>
         <div className="flex flex-col items-center ">
           <div className="tabs justify-self-center">
@@ -119,10 +149,18 @@ const CarnivalPage = () => {
               className={`tab tab-lifted ${tab == 2 && "tab-active"}`}
               onClick={() => setTab(2)}
             >
-              Pools
+              Booths
             </a>
           </div>
-          {tab == 0 && <NftList nftList={boothNfts} title={"Carnival NFTS"} />}
+          {tab == 0 && (
+            <NftList
+              nftList={Object.keys(boothNfts).reduce(function (res, v) {
+                return res.concat(boothNfts[v]);
+              }, [])}
+              title={"Carnival NFTS"}
+              prices={prices}
+            />
+          )}
           {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
           {tab == 2 && (
             <BoothList boothList={booths} exhibitSymbol={exhibitSymbol} />

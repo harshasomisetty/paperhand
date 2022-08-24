@@ -2,19 +2,21 @@ import React, { useContext } from "react";
 import Link from "next/link";
 import { Nft } from "@metaplex-foundation/js";
 import { NftContext } from "@/context/NftContext";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-interface NftCardProps {
-  nft: Nft;
-  nftImage: string;
-  exhibitKey?: String;
-  index: number;
-}
 export default function NftCard({
   nft,
   nftImage,
   exhibitKey,
   index,
-}: NftCardProps) {
+  price,
+}: {
+  nft: Nft;
+  nftImage: string;
+  exhibitKey?: String;
+  index: number;
+  price?: number;
+}) {
   const { chosenNfts, chooseNft, setChosenNfts } = useContext(NftContext);
 
   return (
@@ -45,6 +47,11 @@ export default function NftCard({
               collection
             </p>
           )}
+          <div className="stat">
+            <div className="stat-value">
+              {Number(price / LAMPORTS_PER_SOL).toFixed(2)} ◎
+            </div>
+          </div>
         </div>
         {exhibitKey && (
           <div className="card-actions">

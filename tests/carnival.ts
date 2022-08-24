@@ -170,7 +170,11 @@ describe("carnival", () => {
         connection,
         users[0].publicKey,
         nfts,
-        solAmts[i]
+        solAmts[i],
+        0,
+        2,
+        1,
+        1
       );
       console.log("outside of create carnival booth");
 

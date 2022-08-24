@@ -183,6 +183,12 @@ pub fn deposit_nft(
 
     ctx.accounts.booth.nfts = ctx.accounts.booth.nfts + 1;
 
+    msg!(
+        "\n\ndepoing info: {}, prev nfts: {}\n\n",
+        ctx.accounts.booth.to_account_info().key().to_string(),
+        ctx.accounts.booth.nfts
+    );
+
     msg!("did cpi, finished depo nft");
 
     Ok(())

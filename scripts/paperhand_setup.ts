@@ -458,7 +458,12 @@ export async function instructionExecuteCreateBooth(
   }
 
   await new Promise((r) => setTimeout(r, 500));
-  let i = 0;
+
+  let { exhibit } = await getNftDerivedAddresses(nfts[0]);
+
+  let { carnival } = await getCarnivalAccounts(exhibit);
+
+  let boothId = await getOpenBoothId(carnival, connection);
 
   for (let nft of nfts) {
     console.log("depoing nft", nft.name);
@@ -467,7 +472,7 @@ export async function instructionExecuteCreateBooth(
       connection,
       nft,
       user.publicKey,
-      0
+      boothId - 1
     );
     try {
       connection.confirmTransaction(
@@ -477,7 +482,6 @@ export async function instructionExecuteCreateBooth(
     } catch (error) {
       console.log("trying to create booth loop", error);
     }
-    // console.log("finsihed deoing nft");
   }
 }
 

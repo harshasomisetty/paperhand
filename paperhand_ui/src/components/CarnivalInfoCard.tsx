@@ -25,7 +25,6 @@ const CarnivalInfoCard = ({
 
   useEffect(() => {
     async function fetchData() {
-      console.log("info card nfts passed in count", carnivalNfts);
       if (carnivalNfts) {
         let images = await getAllNftImages(carnivalNfts);
         setExhibitImages(images);

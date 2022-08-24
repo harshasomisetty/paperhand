@@ -26,21 +26,20 @@ const CarnivalBidCard = ({ carnivalNfts }: { carnivalNfts: Nft[] }) => {
   // TODO Add SOL COST, how many selected nfts
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
-      <p>Bid Card all booths: {Object.keys(carnivalNfts).length}</p>
       <div className="card-body space-y-7">
         <div className="flex flex-col space-y-7">
           <div className="shadow flex flex-row items-center">
             <div className="stat">
               <div className="stat-title">
-                Market Sell {Object.keys(chosenNfts).length} NFTs
+                Market Buy {Object.keys(chosenNfts).length} NFTs
               </div>
             </div>
           </div>
           {Object.keys(chosenNfts).length > 0 ? (
-            <button className="btn btn-error">Market Sell</button>
+            <button className="btn btn-error">Market Buy</button>
           ) : (
             <button className="btn" disabled="disabled">
-              Pick NFT To market Sell
+              Pick NFT to Buy
             </button>
           )}
         </div>
