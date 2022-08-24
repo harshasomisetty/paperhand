@@ -1,31 +1,21 @@
 import { keypairIdentity, Metaplex, Nft } from "@metaplex-foundation/js";
-import { BN, Program } from "@project-serum/anchor";
+import { BN, Program, Wallet } from "@project-serum/anchor";
 import {
   AccountInfo,
   Connection,
   ParsedAccountData,
   PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
   Transaction,
 } from "@solana/web3.js";
-import {
-  getCarnivalAccounts,
-  getNftDerivedAddresses,
-} from "./accountDerivation";
-import { checkIfAccountExists, getProvider } from "./actions";
-import { CARNIVAL_PROGRAM_ID, EXHIBITION_PROGRAM_ID } from "./constants";
-import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
-import { otherCreators, creator, users } from "../utils/constants";
-import {
-  Account,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  createAssociatedTokenAccountInstruction,
-  getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
-import { getAllExhibitArtifacts } from "../paperhand_ui/src/utils/retrieveData";
-import { getMultipleAccounts } from "@project-serum/anchor/dist/cjs/utils/rpc";
+import { getCarnivalAccounts } from "@/utils/accountDerivation";
+import { checkIfAccountExists } from "@/utils/retrieveData";
+import { IDL as CARNIVAL_IDL } from "@/target/types/carnival";
+import * as CarnivalJson from "@/target/idl/carnival.json";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getProvider } from "@/utils/provider";
+import { getCarnivalProgramAndProvider } from "./constants";
+
+const CARNIVAL_PROGRAM_ID = new PublicKey(CarnivalJson["metadata"]["address"]);
 
 export async function getAllBooths(
   connection: Connection,
@@ -34,12 +24,11 @@ export async function getAllBooths(
 ): Promise<
   Record<number, { publicKey: PublicKey; account: AccountInfo<Buffer> }>
 > {
-  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
-    await getCarnivalAccounts(exhibit);
+  let { carnival } = await getCarnivalAccounts(exhibit);
 
   let booths: PublicKey[] = [];
   for (let i = 0; i < boothIdCount; i++) {
-    let [booth, boothBump] = await PublicKey.findProgramAddress(
+    let [booth] = await PublicKey.findProgramAddress(
       [
         Buffer.from("booth"),
         carnival.toBuffer(),
@@ -69,6 +58,7 @@ export async function getAllBooths(
 
 export async function getBoothNfts(
   connection: Connection,
+  metaplex: Metaplex,
   exhibit: PublicKey,
   boothKey: PublicKey
 ): Promise<Nft[]> {
@@ -80,13 +70,16 @@ export async function getBoothNfts(
 
   let artifactMints = [];
   for (let artifact of allArtifactAccounts) {
-    let delKey = new PublicKey(artifact.account.data.parsed.info.delegate);
-    if (delKey.toString() === boothKey.toString()) {
-      artifactMints.push(new PublicKey(artifact.account.data.parsed.info.mint));
+    if (artifact.account.data.parsed.info.delegate) {
+      let delKey = new PublicKey(artifact.account.data.parsed.info.delegate);
+      if (delKey.toString() === boothKey.toString()) {
+        artifactMints.push(
+          new PublicKey(artifact.account.data.parsed.info.mint)
+        );
+      }
     }
   }
 
-  const metaplex = Metaplex.make(connection).use(keypairIdentity(creator));
   let allNfts = await metaplex.nfts().findAllByMintList(artifactMints);
 
   return allNfts;
@@ -94,10 +87,12 @@ export async function getBoothNfts(
 
 export async function getOpenBoothId(
   carnival: PublicKey,
-  connection: Connection
+  connection: Connection,
+  wallet: Wallet
 ): Promise<number> {
-  let provider = await getProvider("http://localhost:8899", creator);
-  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
+
+  let bal = await connection.getBalance(carnival);
 
   if (!(await checkIfAccountExists(carnival, connection))) {
     return 0;

@@ -452,9 +452,9 @@ export async function instructionExecuteCreateBooth(
   await new Promise((r) => setTimeout(r, 500));
   let i = 0;
 
-  // let nft = nfts[0];
   for (let nft of nfts) {
     console.log("depoing nft", nft.name);
+    console.log("hypothetical delegate", user.publicKey.toString());
     let transaction2 = await carnivalDepositNft(
       connection,
       nft,

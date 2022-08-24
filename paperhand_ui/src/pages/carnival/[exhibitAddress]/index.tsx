@@ -1,4 +1,4 @@
-import { PublicKey } from "@solana/web3.js";
+import { AccountInfo, PublicKey } from "@solana/web3.js";
 import { useState, useEffect, useContext } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
@@ -17,118 +17,65 @@ import {
 } from "@solana/spl-token";
 
 import { getExhibitProgramAndProvider } from "@/utils/constants";
-
+import { checkIfAccountExists } from "@/utils/retrieveData";
 import {
-  checkIfAccountExists,
-  getAllExhibitArtifacts,
-  getUserData,
-} from "@/utils/retrieveData";
-import { NftContext, NftProvider } from "@/context/NftContext";
-import { UserData } from "@/utils/interfaces";
-import Orderbook from "@/components/Orderbook";
+  getAllBooths,
+  getBoothNfts,
+  getOpenBoothId,
+} from "@/utils/carnival_data";
+import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import NftList from "@/components/NftList";
-import BidCard from "@/components/BidCard";
-import { instructionWithdrawNft } from "@/utils/instructions/exhibition";
 
 const CarnivalPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
-  const [userNftList, setUserNftList] = useState<Nft[]>([]);
-  const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
-  const [userData, setUserData] = useState<UserData>(null);
-
-  const [bidSide, setBidSide] = useState<boolean>(true);
-
-  const { selectedNft } = useContext(NftContext);
 
   const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
   const router = useRouter();
   const { exhibitAddress } = router.query;
 
+  const [booths, setBooths] = useState({});
+  const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
+
   const mx = Metaplex.make(connection);
   useEffect(() => {
     async function fetchData() {
       let { Exhibition } = await getExhibitProgramAndProvider(wallet);
       let exhibit = new PublicKey(exhibitAddress);
-      let exhibitExists = await checkIfAccountExists(exhibit, connection);
 
-      let exhibitInfo;
-      if (exhibitExists) {
-        exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
-        setExhibitSymbol(exhibitInfo.exhibitSymbol);
-        let exhibitNfts = await getAllExhibitArtifacts(exhibit, connection);
-        setExhibitNftList(exhibitNfts);
-        let uData = await getUserData(exhibit, publicKey, connection);
-        setUserData(uData);
+      let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+      setExhibitSymbol(exhibitInfo.exhibitSymbol);
+      let { carnival } = await getCarnivalAccounts(exhibit);
+
+      let numBooths = await getOpenBoothId(carnival, connection, wallet);
+
+      let boothInfos = await getAllBooths(connection, exhibit, numBooths);
+
+      setBooths(boothInfos);
+
+      for (let index of Object.keys(boothInfos)) {
+        let booth = boothInfos[index].publicKey;
+
+        let fetchedNfts = await getBoothNfts(connection, mx, exhibit, booth);
+        setBoothNfts(fetchedNfts);
       }
-
-      const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
-
-      const curNfts = [];
-      for (let nft of allUserNfts!) {
-        if (nft.symbol == exhibitInfo.exhibitSymbol) {
-          curNfts.push(nft);
-        }
-      }
-      setUserNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
     }
   }, [wallet, exhibitAddress, publicKey]);
 
-  async function withdrawNft() {
-    console.log("withdrawing nft");
-
-    await instructionWithdrawNft(
-      wallet,
-      publicKey,
-      signTransaction,
-      selectedNft,
-      connection
-    );
-    router.reload(window.location.pathname);
-  }
-
   return (
-    <>
+    <div>
       {exhibitSymbol && (
-        <NftProvider>
-          <div className="grid grid-cols-2">
-            {bidSide ? (
-              <NftList nftList={exhibitNftList} title={"Buy These NFTs!"} />
-            ) : (
-              <NftList nftList={userNftList} title={"Sell Your NFTs"} />
-            )}
-            <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
-              {userData ? (
-                <>
-                  <ul className="menu menu-horizontal bg-base-300 rounded-box border border-neutral-focus">
-                    <li
-                      onClick={() => {
-                        setBidSide(true);
-                      }}
-                    >
-                      <a className={`${bidSide && "active"}`}>Buy NFTs</a>
-                    </li>
-                    <li
-                      onClick={() => {
-                        setBidSide(false);
-                      }}
-                    >
-                      <a className={`${!bidSide && "active"}`}>Manage Pools</a>
-                    </li>
-                  </ul>
-                  <BidCard bidSide={bidSide} userNftList={userNftList} />
-                </>
-              ) : (
-                <p>Loading market data</p>
-              )}
-            </div>
-          </div>
-        </NftProvider>
+        <>
+          <p>{exhibitSymbol} Carnival</p>
+
+          <p>all booths: {Object.keys(booths).length}</p>
+          <NftList nftList={boothNfts} title={"Booth NFTS"} />
+        </>
       )}
-    </>
+    </div>
   );
 };
 

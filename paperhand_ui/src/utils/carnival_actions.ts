@@ -82,7 +82,6 @@ export async function carnivalDepositNft(
     transaction = transaction.add(userVoucherTx);
   }
 
-  console.log("booth id", booth.toString());
   console.log("booth exists", await checkIfAccountExists(booth, connection));
   let depositNftTx = await Carnival.methods
     .depositNft(new BN(boothId), carnivalAuthBump, boothBump)

@@ -22,7 +22,10 @@ import {
 } from "@/utils/retrieveData";
 import { NftContext, NftProvider } from "@/context/NftContext";
 import NftList from "@/components/NftList";
-import { getCheckoutAccounts } from "@/utils/accountDerivation";
+import {
+  getCheckoutAccounts,
+  getShopAccounts,
+} from "@/utils/accountDerivation";
 import RedeemCard from "@/components/RedeemCard";
 import InitSwapCard from "@/components/InitSwapCard";
 import SwapCard from "@/components/SwapCard";
