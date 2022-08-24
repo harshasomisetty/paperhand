@@ -37,6 +37,7 @@ const CarnivalPage = () => {
   const { exhibitAddress } = router.query;
 
   const [booths, setBooths] = useState({});
+  const [floor, setFloor] = useState<number>(1);
   const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
 
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
@@ -92,12 +93,16 @@ const CarnivalPage = () => {
   // all of right all nfts with prices
   // top right navbar to switch between buy, sell, booths
   return (
-    <div className="flex flex-row">
-      <div className="flex flex-col justify-between w-1/3">
-        <CarnivalInfoCard />
+    <div className="grid grid-cols-2">
+      <div className="flex flex-col justify-between w-1/2">
+        <CarnivalInfoCard
+          carnivalNfts={boothNfts}
+          exhibitSymbol={exhibitSymbol}
+          floor={floor}
+        />
         <p>all booths: {Object.keys(booths).length}</p>
       </div>
-      <div className="flex flex-col items-center w-full">
+      <div className="flex flex-col items-center ">
         <div className="tabs justify-self-center">
           <a
             className={`tab tab-lifted ${tab == 0 && "tab-active"}`}

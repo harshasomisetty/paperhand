@@ -13,7 +13,7 @@ import { useRouter } from "next/router";
 
 export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
   const [exhibitData, setExhibitData] = useState();
-  const [exhibitImages, setExhibitImages] = useState([]);
+  const [exhibitImages, setExhibitImages] = useState<string[]>([]);
   const { connection } = useConnection();
   const router = useRouter();
   let url = router.route;
