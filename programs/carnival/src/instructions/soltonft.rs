@@ -66,7 +66,12 @@ pub struct TradeSolForNft<'info> {
     pub exhibition_program: Program<'info, Exhibition>,
 }
 
-pub fn trade_sol_for_nft(ctx: Context<TradeSolForNft>) -> Result<()> {
+pub fn trade_sol_for_nft(
+    ctx: Context<TradeSolForNft>,
+    booth_id: u64,
+    carnival_auth_bump: u8,
+    booth_bump: u8,
+) -> Result<()> {
     // check user transfer enough sol
 
     // user deposits sol

@@ -17,13 +17,13 @@ pub mod carnival {
     }
 
     pub fn create_booth(
-        ctx: Context<InitializeBooth>,
+        ctx: Context<CreateBooth>,
         booth_owner: Pubkey,
         booth_id: u64,
         curve: u8,
         booth_type: u8,
-        delta: u8,
-        fee: u8,
+        delta: u64,
+        fee: u16,
     ) -> Result<()> {
         instructions::booth::create_booth(ctx, booth_owner, booth_id, curve, booth_type, delta, fee)
     }
@@ -47,12 +47,22 @@ pub mod carnival {
         instructions::deposit::deposit_nft(ctx, booth_id, carnival_auth_bump, booth_bump)
     }
 
-    pub fn trade_sol_for_nft(ctx: Context<TradeSolForNft>) -> Result<()> {
-        instructions::soltonft::trade_sol_for_nft(ctx)
+    pub fn trade_sol_for_nft(
+        ctx: Context<TradeSolForNft>,
+        booth_id: u64,
+        carnival_auth_bump: u8,
+        booth_bump: u8,
+    ) -> Result<()> {
+        instructions::soltonft::trade_sol_for_nft(ctx, booth_id, carnival_auth_bump, booth_bump)
     }
 
-    pub fn trade_nft_for_sol(ctx: Context<TradeNftForSol>) -> Result<()> {
-        instructions::nfttosol::trade_nft_for_sol(ctx)
+    pub fn trade_nft_for_sol(
+        ctx: Context<TradeNftForSol>,
+        booth_id: u64,
+        carnival_auth_bump: u8,
+        booth_bump: u8,
+    ) -> Result<()> {
+        instructions::nfttosol::trade_nft_for_sol(ctx, booth_id, carnival_auth_bump, booth_bump)
     }
 
     pub fn withdraw_sol(
@@ -80,15 +90,8 @@ pub mod carnival {
         instructions::withdraw::withdraw_nft(ctx, booth_id, carnival_auth_bump, booth_bump)
     }
 
-    pub fn close_booth(
-        ctx: Context<InitializeBooth>,
-        booth_owner: Pubkey,
-        booth_id: u64,
-        curve: u8,
-        delta: u8,
-        fee: u8,
-    ) -> Result<()> {
-        instructions::booth::close_booth(ctx, booth_owner, booth_id, curve, delta, fee)
+    pub fn close_booth(ctx: Context<CloseBooth>, booth_owner: Pubkey, booth_id: u64) -> Result<()> {
+        instructions::booth::close_booth(ctx, booth_owner, booth_id)
     }
 }
 

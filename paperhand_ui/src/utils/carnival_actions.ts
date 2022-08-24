@@ -209,7 +209,7 @@ export async function createCarnivalBooth(
   if (!(await checkIfAccountExists(booth, connection))) {
     console.log("booth no exist");
     let initBoothTx = await Carnival.methods
-      .createBooth(users[0].publicKey, new BN(boothId), 0, 1, 1)
+      .createBooth(users[0].publicKey, new BN(boothId), 0, 2, new BN(1), 1)
       .accounts({
         exhibit: exhibit,
         carnival: carnival,

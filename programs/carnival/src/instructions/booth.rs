@@ -3,8 +3,8 @@ use crate::state::curve::{BoothType, CurveType};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(booth_owner: Pubkey, booth_id: u64, curve: u8, booth_type: u8, delta: u8, fee: u8)]
-pub struct InitializeBooth<'info> {
+#[instruction(booth_owner: Pubkey, booth_id: u64, curve: u8, booth_type: u8, delta: u64, fee: u16)]
+pub struct CreateBooth<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 
@@ -40,13 +40,13 @@ pub struct CloseBooth<'info> {
     pub exhibit: AccountInfo<'info>,
 }
 pub fn create_booth(
-    ctx: Context<InitializeBooth>,
+    ctx: Context<CreateBooth>,
     booth_owner: Pubkey,
     booth_id: u64,
     curve: u8,
     booth_type: u8,
-    delta: u8,
-    fee: u8,
+    delta: u64,
+    fee: u16,
 ) -> Result<()> {
     msg!("in create booth");
     let mut booth = &mut ctx.accounts.booth;
@@ -66,7 +66,6 @@ pub fn create_booth(
         2 => BoothType::TRADE,
     };
 
-    // TODO update booth types everywhere
     booth.delta = delta;
     booth.fee = fee;
 
@@ -79,14 +78,7 @@ pub fn create_booth(
     Ok(())
 }
 
-pub fn close_booth(
-    ctx: Context<InitializeBooth>,
-    booth_owner: Pubkey,
-    booth_id: u64,
-    curve: u8,
-    delta: u8,
-    fee: u8,
-) -> Result<()> {
+pub fn close_booth(ctx: Context<CloseBooth>, booth_owner: Pubkey, booth_id: u64) -> Result<()> {
     msg!("in close booth");
 
     // // 3) close pda nft artifact
