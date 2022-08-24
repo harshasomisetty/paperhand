@@ -172,33 +172,105 @@ export async function instructionPlaceBid(
 
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
-  let { bidOrders, escrowSol } = await getCheckoutAccounts(exhibit);
+  let transaction = new Transaction();
 
-  let place_bid_tx = await Checkout.methods
-    .makeBid(new BN(bidSize))
-    .accounts({
-      exhibit: exhibit,
-      bidOrders: bidOrders,
-      escrowSol: escrowSol,
-      bidder: publicKey,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
+  let [voucherMint] = await PublicKey.findProgramAddress(
+    [Buffer.from("voucher_mint"), exhibit.toBuffer()],
+    EXHIBITION_PROGRAM_ID
+  );
 
-  let transaction = new Transaction().add(place_bid_tx);
+  let { matchedStorage, bidOrders, checkoutAuth, escrowSol, escrowVoucher } =
+    await getCheckoutAccounts(exhibit);
 
-  console.log("final trans", transaction);
-  try {
-    console.log("before manual send");
+  if (!(await checkIfAccountExists(bidOrders, connection))) {
+    console.log("checkout doens't exist");
+    let matchedOrdersPair = Keypair.generate();
+    let matchedOrders = matchedOrdersPair.publicKey;
 
-    await manualSendTransaction(
-      transaction,
-      publicKey,
-      connection,
-      signTransaction
-    );
-  } catch (error) {
-    console.log("initing error", error);
+    const init_create_tx = await SystemProgram.createAccount({
+      fromPubkey: publicKey,
+      newAccountPubkey: matchedOrders,
+      space: 3610,
+      lamports: await connection.getMinimumBalanceForRentExemption(3610),
+      programId: Checkout.programId,
+    });
+
+    const init_checkout_tx = await Checkout.methods
+      .initialize()
+      .accounts({
+        exhibit: exhibit,
+        matchedStorage: matchedStorage,
+        matchedOrders: matchedOrders,
+        bidOrders: bidOrders,
+        checkoutAuth: checkoutAuth,
+        voucherMint: voucherMint,
+        escrowVoucher: escrowVoucher,
+        escrowSol: escrowSol,
+        user: publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .transaction();
+
+    transaction = transaction.add(init_create_tx);
+    transaction = transaction.add(init_checkout_tx);
+
+    let place_bid_tx = await Checkout.methods
+      .makeBid(new BN(bidSize))
+      .accounts({
+        exhibit: exhibit,
+        bidOrders: bidOrders,
+        escrowSol: escrowSol,
+        bidder: publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(place_bid_tx);
+
+    console.log("final trans", transaction);
+    try {
+      console.log("before manual send");
+
+      await manualSendTransaction(
+        transaction,
+        publicKey,
+        connection,
+        signTransaction,
+        matchedOrdersPair
+      );
+    } catch (error) {
+      console.log("initing error", error);
+    }
+  } else {
+    let place_bid_tx = await Checkout.methods
+      .makeBid(new BN(bidSize))
+      .accounts({
+        exhibit: exhibit,
+        bidOrders: bidOrders,
+        escrowSol: escrowSol,
+        bidder: publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(place_bid_tx);
+
+    console.log("final trans", transaction);
+    try {
+      console.log("before manual send");
+
+      await manualSendTransaction(
+        transaction,
+        publicKey,
+        connection,
+        signTransaction
+      );
+    } catch (error) {
+      console.log("initing error", error);
+    }
   }
 }
 

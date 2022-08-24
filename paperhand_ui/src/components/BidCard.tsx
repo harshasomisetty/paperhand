@@ -62,6 +62,7 @@ const BidCard = ({
         wallet,
         connection
       );
+      console.log("uvouchers? ", uVouchers);
       setUserVoucher(uVouchers);
     }
     if (wallet && publicKey) {
@@ -82,7 +83,7 @@ const BidCard = ({
         connection
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   async function executeBidFloor() {
@@ -97,7 +98,7 @@ const BidCard = ({
         chosenNfts
       );
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   return (

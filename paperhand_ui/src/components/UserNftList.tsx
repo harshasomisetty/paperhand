@@ -27,6 +27,7 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
   const [inited, setInited] = useState<boolean>(true);
 
   const router = useRouter();
+
   async function executeInitCheckoutAndExhibit() {
     console.log("init checkout exhibit");
 
