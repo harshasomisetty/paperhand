@@ -20,12 +20,16 @@ import { AppProps } from "next/app";
 import { FC, useMemo } from "react";
 // Use require instead of import since order matters
 require("@solana/wallet-adapter-react-ui/styles.css");
+import { BiArrowBack } from "react-icons/bi";
 
 import Navbar from "@/components/Navbar";
+import { useRouter } from "next/router";
 
 // const logo = require("./logo.png");
 const MyApp = ({ Component, pageProps }: AppProps) => {
   // Can be set to 'devnet', 'testnet', or 'mainnet-beta'
+  const router = useRouter();
+  const { asPath } = useRouter();
   const network = WalletAdapterNetwork.Devnet;
   // const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const endpoint = useMemo(() => "http://localhost:8899");
@@ -45,6 +49,13 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <Navbar />
+            <BiArrowBack
+              size={40}
+              onClick={() =>
+                router.push(asPath.substring(0, asPath.lastIndexOf("/")))
+              }
+              className="cursor-pointer"
+            />
             <Component {...pageProps} />
           </WalletModalProvider>
         </WalletProvider>

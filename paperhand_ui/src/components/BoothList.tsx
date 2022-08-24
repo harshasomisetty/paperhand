@@ -65,7 +65,7 @@ const BoothList = ({
           {boothList && (
             <table className="table">
               <thead>
-                <tr>
+                <tr className="cursor-pointer">
                   <th>Id</th>
                   <th>Type</th>
                   <th>Spot</th>

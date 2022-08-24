@@ -37,6 +37,7 @@ import BoothCard from "@/components/BoothCard";
 
 const BoothPage = () => {
   const router = useRouter();
+  const { asPath } = useRouter();
   const { wallet, publicKey, signTransaction } = useWallet();
   const { exhibitAddress, boothAddress } = router.query;
   const { connection } = useConnection();
