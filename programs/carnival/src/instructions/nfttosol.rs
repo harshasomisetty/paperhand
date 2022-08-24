@@ -32,6 +32,7 @@ pub struct TradeNftForSol<'info> {
     )]
     pub booth: Account<'info, Booth>,
 
+    /// CHECK: escrow account
     #[account(
         mut,
         seeds = [b"escrow_sol", carnival.key().as_ref()],

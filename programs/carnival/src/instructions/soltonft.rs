@@ -30,6 +30,7 @@ pub struct TradeSolForNft<'info> {
     )]
     pub booth: Account<'info, Booth>,
 
+    /// CHECK: escrow account
     #[account(
         mut,
         seeds = [b"escrow_sol", carnival.key().as_ref()],
@@ -124,15 +125,20 @@ pub fn trade_sol_for_nft(
     } else {
         // TODO this is a very naive calculation, fix it later
         // CREDIT: https://github.com/RohanKapurDEV/sudoswap-sol/
-        let new_spot_price = ctx.accounts.booth.spot_price.add(
-            ctx.accounts
-                .booth
-                .spot_price
-                .checked_mul(ctx.accounts.booth.delta as u64)
-                .unwrap()
-                .checked_div(10000)
-                .unwrap(),
-        );
+        let new_spot_price = ctx
+            .accounts
+            .booth
+            .spot_price
+            .checked_add(
+                ctx.accounts
+                    .booth
+                    .spot_price
+                    .checked_mul(ctx.accounts.booth.delta as u64)
+                    .unwrap()
+                    .checked_div(10000)
+                    .unwrap(),
+            )
+            .unwrap();
 
         ctx.accounts.booth.spot_price = new_spot_price;
     }

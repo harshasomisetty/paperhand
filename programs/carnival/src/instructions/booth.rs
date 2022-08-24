@@ -57,13 +57,13 @@ pub fn create_booth(
     booth.booth_owner = booth_owner;
     booth.curve = match curve {
         0 => CurveType::Linear,
-        1 => CurveType::Exponential,
+        _ => CurveType::Exponential,
     };
 
     booth.booth_type = match booth_type {
         0 => BoothType::BUY,
         1 => BoothType::SELL,
-        2 => BoothType::TRADE,
+        _ => BoothType::TRADE,
     };
 
     booth.delta = delta;
