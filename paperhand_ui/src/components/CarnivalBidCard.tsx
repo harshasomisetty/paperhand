@@ -23,6 +23,7 @@ const CarnivalBidCard = ({ carnivalNfts }: { carnivalNfts: Nft[] }) => {
     fetchData();
   }, []);
 
+  // TODO Add SOL COST, how many selected nfts
   return (
     <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
       <p>Bid Card all booths: {Object.keys(carnivalNfts).length}</p>

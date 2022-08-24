@@ -37,6 +37,8 @@ const BoothList = ({
   const { exhibitAddress } = router.query;
   const { connection } = useConnection();
 
+  const { asPath, pathname } = useRouter();
+
   useEffect(() => {
     async function fetchData() {}
     if (wallet && publicKey && exhibitAddress) {
@@ -50,20 +52,22 @@ const BoothList = ({
       {boothList && (
         <>
           {Object.keys(boothList).map((booth, ind) => (
-            <div className="card flex flex-col space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
-              <div className="card-body">
-                <p>
-                  Curve: {Object.keys(boothList[0].data.curve)[0].toString()}
-                </p>
-                <p>Delta: {Number(boothList[booth].data.delta)}</p>
-                <p>Sol: {Number(boothList[booth].data.sol)}</p>
-                <p>Nfts: {Number(boothList[booth].data.nfts)}</p>
-                <p>
-                  boothType:{" "}
-                  {Object.keys(boothList[0].data.boothType)[0].toString()}
-                </p>
+            <a href={asPath + "/" + boothList[0].publicKey.toString()}>
+              <div className="card flex flex-col space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
+                <div className="card-body">
+                  <p>
+                    Curve: {Object.keys(boothList[0].data.curve)[0].toString()}
+                  </p>
+                  <p>Delta: {Number(boothList[booth].data.delta)}</p>
+                  <p>Sol: {Number(boothList[booth].data.sol)}</p>
+                  <p>Nfts: {Number(boothList[booth].data.nfts)}</p>
+                  <p>
+                    boothType:{" "}
+                    {Object.keys(boothList[0].data.boothType)[0].toString()}
+                  </p>
+                </div>
               </div>
-            </div>
+            </a>
           ))}
         </>
       )}
