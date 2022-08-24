@@ -25,6 +25,8 @@ import {
 } from "@/utils/carnival_data";
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import NftList from "@/components/NftList";
+import CarnivalInfoCard from "@/components/CarnivalInfoCard";
+import PoolList from "@/components/PoolList";
 
 const CarnivalPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
@@ -36,6 +38,9 @@ const CarnivalPage = () => {
 
   const [booths, setBooths] = useState({});
   const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
+
+  const [userNftList, setUserNftList] = useState<Nft[]>([]);
+  const [tab, setTab] = useState(0);
 
   const mx = Metaplex.make(connection);
   useEffect(() => {
@@ -59,22 +64,57 @@ const CarnivalPage = () => {
         let fetchedNfts = await getBoothNfts(connection, mx, exhibit, booth);
         setBoothNfts(fetchedNfts);
       }
+
+      const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
+
+      const curNfts = [];
+      for (let nft of allUserNfts!) {
+        if (nft.symbol == exhibitInfo.exhibitSymbol) {
+          curNfts.push(nft);
+        }
+      }
+      setUserNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
     }
   }, [wallet, exhibitAddress, publicKey]);
 
+  // carnival about block top left (picture, floor price, num of nfts)
+  // buy modal on bottom left
+  // all of right all nfts with prices
+  // top right navbar to switch between buy, sell, pools
   return (
-    <div>
-      {exhibitSymbol && (
-        <>
-          <p>{exhibitSymbol} Carnival</p>
-
-          <p>all booths: {Object.keys(booths).length}</p>
-          <NftList nftList={boothNfts} title={"Booth NFTS"} />
-        </>
-      )}
+    <div className="flex flex-row">
+      <div className="flex flex-col justify-between w-1/3">
+        <CarnivalInfoCard />
+        <p>all booths: {Object.keys(booths).length}</p>
+      </div>
+      <div className="flex flex-col items-center w-full">
+        <div className="tabs justify-self-center">
+          <a
+            className={`tab tab-lifted ${tab == 0 && "tab-active"}`}
+            onClick={() => setTab(0)}
+          >
+            Tab 0
+          </a>
+          <a
+            className={`tab tab-lifted ${tab == 1 && "tab-active"}`}
+            onClick={() => setTab(1)}
+          >
+            Tab 1
+          </a>
+          <a
+            className={`tab tab-lifted ${tab == 2 && "tab-active"}`}
+            onClick={() => setTab(2)}
+          >
+            Tab 2
+          </a>
+        </div>
+        {tab == 0 && <NftList nftList={boothNfts} title={"Carnival NFTS"} />}
+        {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
+        {tab == 2 && <PoolList />}
+      </div>
     </div>
   );
 };

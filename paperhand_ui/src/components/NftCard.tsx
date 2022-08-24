@@ -55,7 +55,6 @@ export default function NftCard({
             </Link>
           </div>
         )}
-        {/* <p>{selectedNft.mint === nft.mint}</p> */}
       </div>
     </div>
   );

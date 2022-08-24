@@ -15,7 +15,6 @@ import {
 import router from "next/router";
 import { NftContext } from "@/context/NftContext";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
-import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
 import {
   checkIfAccountExists,
   getBidOrderData,
