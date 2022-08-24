@@ -38,7 +38,7 @@ const NftammPage = () => {
   const [marketData, setMarketData] = useState<MarketData>();
   const [feesPaid, setFeesPaid] = useState<number>();
   const [menuDefault, setMenuDefault] = useState(true);
-  const [swapActive, setSwapActive] = useState<boolean>(false);
+  const [shopActive, setShopActive] = useState<boolean>(false);
   const [userData, setUserData] = useState<UserData>();
 
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
@@ -62,10 +62,10 @@ const NftammPage = () => {
         setExhibitSymbol(exhibitInfo.exhibitSymbol);
       }
 
-      let swapExists = await checkIfAccountExists(marketAuth, connection);
-      setSwapActive(swapExists);
+      let shopExists = await checkIfAccountExists(marketAuth, connection);
+      setShopActive(shopExists);
 
-      if (swapExists) {
+      if (shopExists) {
         let { Shop } = await getShopProgramAndProvider(wallet);
 
         let marketInfo = await Shop.account.marketInfo.fetch(marketAuth);
@@ -86,7 +86,7 @@ const NftammPage = () => {
   }
   return (
     <div className="flex flex-col items-center place-content-start space-y-4 m-4">
-      {swapActive ? (
+      {shopActive ? (
         <>
           {marketData && userData ? (
             <>

@@ -19,6 +19,7 @@ import {
   checkIfAccountExists,
   getBidOrderData,
   getFilledOrdersList,
+  getUserVouchersFulfilled,
 } from "@/utils/retrieveData";
 import { getCheckoutAccounts } from "@/utils/accountDerivation";
 import { Nft } from "@metaplex-foundation/js";
@@ -50,30 +51,18 @@ const BidCard = ({
       let uSol = Number(await connection.getBalance(publicKey));
       setUserSol(uSol);
 
-      let { voucherMint, matchedStorage } = await getCheckoutAccounts(exhibit);
-
-      let userVoucherWallet = await getAssociatedTokenAddress(
-        voucherMint,
-        publicKey
-      );
-
       let { prices, bids } = await getBidOrderData(exhibit, connection, wallet);
 
       setAllPrices(prices);
       setAllBids(bids);
 
-      let uVoucher = 0;
-      if (await checkIfAccountExists(userVoucherWallet, connection)) {
-        uVoucher = Number(
-          (await getAccount(connection, userVoucherWallet)).amount
-        );
-      }
-      let orderFilled: Record<string, number> = await getFilledOrdersList(
-        matchedStorage,
-        wallet
+      let uVouchers = await getUserVouchersFulfilled(
+        exhibit,
+        publicKey,
+        wallet,
+        connection
       );
-
-      setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
+      setUserVoucher(uVouchers);
     }
     if (wallet && publicKey) {
       fetchData();
@@ -100,21 +89,6 @@ const BidCard = ({
     console.log("bid floor");
     if (exhibitAddress) {
       await instructionBidFloor(
-        wallet,
-        publicKey,
-        exhibit,
-        signTransaction,
-        connection,
-        chosenNfts
-      );
-    }
-    router.reload(window.location.pathname);
-  }
-
-  async function executeAcquireNft() {
-    if (exhibitAddress) {
-      console.log("acquire nft");
-      await instructionAcquireNft(
         wallet,
         publicKey,
         exhibit,

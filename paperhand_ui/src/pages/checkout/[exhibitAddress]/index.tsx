@@ -37,6 +37,7 @@ const CheckoutPage = () => {
   const [userData, setUserData] = useState<UserData>(null);
 
   const [bidSide, setBidSide] = useState<boolean>(true);
+  const [checkoutActive, setCheckoutActive] = useState<boolean>(true);
 
   // const { chosenNfts, clearNfts } = useContext(NftContext);
 
@@ -77,18 +78,18 @@ const CheckoutPage = () => {
     }
   }, [wallet, exhibitAddress, publicKey]);
 
-  async function withdrawNft() {
-    console.log("withdrawing nft");
+  // async function withdrawNft() {
+  //   console.log("withdrawing nft");
 
-    await instructionWithdrawNft(
-      wallet,
-      publicKey,
-      signTransaction,
-      selectedNft,
-      connection
-    );
-    router.reload(window.location.pathname);
-  }
+  //   await instructionWithdrawNft(
+  //     wallet,
+  //     publicKey,
+  //     signTransaction,
+  //     selectedNft,
+  //     connection
+  //   );
+  //   router.reload(window.location.pathname);
+  // }
 
   return (
     <>

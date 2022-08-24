@@ -245,3 +245,33 @@ export async function getFilledOrdersList(
   }
   return orderFilled;
 }
+
+export async function getUserVouchersFulfilled(
+  exhibit: PublicKey,
+  publicKey: PublicKey,
+  wallet: Wallet,
+  connection: Connection
+): Promise<number> {
+  let { voucherMint, matchedStorage } = await getCheckoutAccounts(exhibit);
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  let uVoucher = 0;
+  if (await checkIfAccountExists(userVoucherWallet, connection)) {
+    uVoucher = Number((await getAccount(connection, userVoucherWallet)).amount);
+  }
+  let uFilled = 0;
+
+  if (await checkIfAccountExists(matchedStorage, connection)) {
+    let orderFilled: Record<string, number> = await getFilledOrdersList(
+      matchedStorage,
+      wallet
+    );
+    uFilled = orderFilled[publicKey.toString()];
+  }
+
+  return uVoucher + uFilled;
+}

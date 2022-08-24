@@ -14,9 +14,10 @@ import {
   Tooltip,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
-import { getBidOrderData } from "@/utils/retrieveData";
+import { checkIfAccountExists, getBidOrderData } from "@/utils/retrieveData";
 import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
 import { instructionCancelBid } from "@/utils/instructions/checkout";
+import { getCheckoutAccounts } from "@/utils/accountDerivation";
 
 ChartJS.register(
   CategoryScale,
@@ -81,50 +82,54 @@ const Orderbook = () => {
     async function fetchData() {
       let exhibit = new PublicKey(exhibitAddress!);
 
-      let { prices, size, bids } = await getBidOrderData(
-        exhibit,
-        connection,
-        wallet
-      );
+      let { bidOrders } = await getCheckoutAccounts(exhibit);
 
-      // let formattedLabels = labels.map((element) => "$" + element.toString());
-      setLabels(prices);
-      setOrderbook(size);
-      setAllBids(bids);
+      if (await checkIfAccountExists(bidOrders, connection)) {
+        let { prices, size, bids } = await getBidOrderData(
+          exhibit,
+          connection,
+          wallet
+        );
 
-      let orderbookData = {};
+        // let formattedLabels = labels.map((element) => "$" + element.toString());
+        setLabels(prices);
+        setOrderbook(size);
+        setAllBids(bids);
 
-      let labColors = [];
-      let normalColor = "rgba(75, 192, 192, .2)"; // green
-      let userColor = "rgba(75, 192, 192, .2)"; // green
-      // let userColor = "rgba(54, 162, 235, .3)"; // Blue
+        let orderbookData = {};
 
-      if (publicKey && bids[publicKey.toString()]) {
-        let userOrders = bids[publicKey.toString()];
-        for (let bid of userOrders) {
-          let bidPrice = Number(bid.bidPrice);
-          // let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
-          if (orderbookData[bidPrice]) {
-            orderbookData[bidPrice].push(Number(bid.sequenceNumber));
-          } else {
-            orderbookData[bidPrice] = [Number(bid.sequenceNumber)];
+        let labColors = [];
+        let normalColor = "rgba(75, 192, 192, .2)"; // green
+        let userColor = "rgba(75, 192, 192, .2)"; // green
+        // let userColor = "rgba(54, 162, 235, .3)"; // Blue
+
+        if (publicKey && bids[publicKey.toString()]) {
+          let userOrders = bids[publicKey.toString()];
+          for (let bid of userOrders) {
+            let bidPrice = Number(bid.bidPrice);
+            // let bidPrice = Number(Number(bid.bidPrice) / LAMPORTS_PER_SOL);
+            if (orderbookData[bidPrice]) {
+              orderbookData[bidPrice].push(Number(bid.sequenceNumber));
+            } else {
+              orderbookData[bidPrice] = [Number(bid.sequenceNumber)];
+            }
           }
-        }
-        setUserBids(orderbookData);
+          setUserBids(orderbookData);
 
-        for (let i = 0; i < prices.length; i++) {
-          if (userOrders.includes(prices[i])) {
-            labColors.push(userColor);
-          } else {
+          for (let i = 0; i < prices.length; i++) {
+            if (userOrders.includes(prices[i])) {
+              labColors.push(userColor);
+            } else {
+              labColors.push(normalColor);
+            }
+          }
+        } else {
+          for (let i = 0; i < prices.length; i++) {
             labColors.push(normalColor);
           }
         }
-      } else {
-        for (let i = 0; i < prices.length; i++) {
-          labColors.push(normalColor);
-        }
+        setLabelColors(labColors);
       }
-      setLabelColors(labColors);
     }
 
     if (!orderbook) {
