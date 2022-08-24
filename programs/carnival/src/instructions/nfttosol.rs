@@ -11,6 +11,7 @@ use crate::state::{
     curve::CurveType,
 };
 
+// TODO check the right account types (the buy and trade) are being called, otherwises reject
 #[derive(Accounts)]
 #[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
 pub struct TradeNftForSol<'info> {

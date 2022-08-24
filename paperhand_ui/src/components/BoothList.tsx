@@ -70,7 +70,8 @@ const BoothList = () => {
 
   return (
     <div>
-      <p>BoothList</p>
+      <p>Booth Card</p>
+      <p></p>
     </div>
   );
 };

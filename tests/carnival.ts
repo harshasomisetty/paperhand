@@ -236,7 +236,7 @@ describe("carnival", () => {
     console.log("Finsihed Initing all booths");
   });
 
-  it.skip("Tried inserting SOL and nft to a booth user doens't own", async () => {
+  it("Tried inserting SOL and nft to a booth user doens't own", async () => {
     let transaction = new Transaction();
 
     let boothId = 0;
@@ -308,13 +308,22 @@ describe("carnival", () => {
       "Escrow Bal didn't change, since deposit not allowed"
     );
   });
-  // it("Buy Specific NFTs", async () => {});
 
-  // it("Buy any NFTs", async () => {});
+  it("Buy Specific NFTs", async () => {
+    // Try to buy a nft (and deposit sol)
+    // test after booth spot price, and check to make sure your java calculations are correct
+    // test to make sure you have your nft
+    // test to make sure booth escrow increased in sol
+  });
 
-  // it("Sell some NFTs", async () => {});
+  it("Sell specific NFTs", async () => {
+    // Try to sell a nft (and deposit sol)
+    // test after booth spot price, and check to make sure your java calculations are correct
+    // test to make sure booth holds nft
+    // test to make sure your bal increased in sol
+  });
 
-  it.skip("Withdraw Funds (close booth)", async () => {
+  it("Withdraw Funds (close booth)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
     let nfts = [nftList[0][0], nftList[0][1], nftList[0][2]];
