@@ -513,6 +513,10 @@ async function initialFlow() {
   await new Promise((r) => setTimeout(r, 2000));
   console.log("marketed");
   await instructionExecuteCreateBooth(nfts, 2 * LAMPORTS_PER_SOL, users[0]);
+
+  let nfts2 = [nftList[2][6], nftList[2][7], nftList[2][8]];
+
+  await instructionExecuteCreateBooth(nfts2, 10 * LAMPORTS_PER_SOL, users[0]);
 }
 
 initialFlow();
