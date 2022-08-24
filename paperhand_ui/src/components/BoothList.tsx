@@ -23,6 +23,7 @@ import {
   getOpenBoothId,
 } from "@/utils/carnival_data";
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
+import BoothCard from "./BoothCard";
 
 const BoothList = ({
   boothList,
@@ -48,17 +49,6 @@ const BoothList = ({
     }
   }, [wallet, exhibitAddress, publicKey]);
 
-  function mapBoothType(boothInfo) {
-    let type = Object.keys(boothInfo.data.boothType)[0].toString();
-    if (type == "buy") {
-      return "Buy " + exhibitSymbol;
-    } else if (type == "sell") {
-      return "Sell " + exhibitSymbol;
-    } else {
-      return "Trade " + exhibitSymbol;
-    }
-  }
-
   return (
     <div>
       <p>Created Booths</p>
@@ -66,26 +56,10 @@ const BoothList = ({
         <>
           {Object.keys(boothList).map((booth, ind) => (
             <a href={asPath + "/" + boothList[booth].publicKey.toString()}>
-              <div className="card card-side space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
-                <div className="card-body flex flex-row">
-                  <div>
-                    <p>
-                      Sol:{" "}
-                      {Number(boothList[booth].data.sol) / LAMPORTS_PER_SOL}
-                    </p>
-                    <p>Nfts: {Number(boothList[booth].data.nfts)}</p>
-                    <p>addy: {boothList[booth].publicKey.toString()}</p>
-                    <p>{mapBoothType(boothList[booth])}</p>
-                  </div>
-                  <div>
-                    <p>
-                      Curve:{" "}
-                      {Object.keys(boothList[booth].data.curve)[0].toString()}
-                    </p>
-                    <p>Delta: {Number(boothList[booth].data.delta)}</p>
-                  </div>
-                </div>
-              </div>
+              <BoothCard
+                exhibitSymbol={exhibitSymbol}
+                boothInfo={boothList[booth].data}
+              />
             </a>
           ))}
         </>
