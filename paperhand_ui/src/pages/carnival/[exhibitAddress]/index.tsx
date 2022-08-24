@@ -26,7 +26,7 @@ import {
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import NftList from "@/components/NftList";
 import CarnivalInfoCard from "@/components/CarnivalInfoCard";
-import PoolList from "@/components/PoolList";
+import BoothList from "@/components/BoothList";
 
 const CarnivalPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
@@ -40,7 +40,7 @@ const CarnivalPage = () => {
   const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
 
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(2);
 
   const mx = Metaplex.make(connection);
   useEffect(() => {
@@ -54,14 +54,21 @@ const CarnivalPage = () => {
 
       let numBooths = await getOpenBoothId(carnival, connection, wallet);
 
-      let boothInfos = await getAllBooths(connection, exhibit, numBooths);
+      let boothInfos = await getAllBooths(
+        connection,
+        exhibit,
+        numBooths,
+        wallet
+      );
 
+      console.log("booth infos", boothInfos[0].data);
       setBooths(boothInfos);
 
       for (let index of Object.keys(boothInfos)) {
         let booth = boothInfos[index].publicKey;
 
         let fetchedNfts = await getBoothNfts(connection, mx, exhibit, booth);
+
         setBoothNfts(fetchedNfts);
       }
 
@@ -83,7 +90,7 @@ const CarnivalPage = () => {
   // carnival about block top left (picture, floor price, num of nfts)
   // buy modal on bottom left
   // all of right all nfts with prices
-  // top right navbar to switch between buy, sell, pools
+  // top right navbar to switch between buy, sell, booths
   return (
     <div className="flex flex-row">
       <div className="flex flex-col justify-between w-1/3">
@@ -96,24 +103,24 @@ const CarnivalPage = () => {
             className={`tab tab-lifted ${tab == 0 && "tab-active"}`}
             onClick={() => setTab(0)}
           >
-            Tab 0
+            Buy
           </a>
           <a
             className={`tab tab-lifted ${tab == 1 && "tab-active"}`}
             onClick={() => setTab(1)}
           >
-            Tab 1
+            Sell
           </a>
           <a
             className={`tab tab-lifted ${tab == 2 && "tab-active"}`}
             onClick={() => setTab(2)}
           >
-            Tab 2
+            Pools
           </a>
         </div>
         {tab == 0 && <NftList nftList={boothNfts} title={"Carnival NFTS"} />}
         {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
-        {tab == 2 && <PoolList />}
+        {tab == 2 && <BoothList />}
       </div>
     </div>
   );

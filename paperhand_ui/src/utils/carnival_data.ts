@@ -20,11 +20,14 @@ const CARNIVAL_PROGRAM_ID = new PublicKey(CarnivalJson["metadata"]["address"]);
 export async function getAllBooths(
   connection: Connection,
   exhibit: PublicKey,
-  boothIdCount: number
+  boothIdCount: number,
+  wallet: Wallet
 ): Promise<
   Record<number, { publicKey: PublicKey; account: AccountInfo<Buffer> }>
 > {
   let { carnival } = await getCarnivalAccounts(exhibit);
+
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
 
   let booths: PublicKey[] = [];
   for (let i = 0; i < boothIdCount; i++) {
@@ -40,16 +43,15 @@ export async function getAllBooths(
     booths.push(booth);
   }
 
-  let multipleBooths = await connection.getMultipleAccountsInfo(booths);
+  let multipleBooths = await Carnival.account.booth.fetchMultiple(booths);
 
-  let boothInfos: Record<
-    number,
-    { publicKey: PublicKey; account: AccountInfo<Buffer> }
-  > = {};
+  console.log("multiple booths", multipleBooths);
+  let boothInfos: Record<number, { publicKey: PublicKey; account: any }> = {};
 
   for (let i = 0; i < boothIdCount; i++) {
     if (multipleBooths[i]) {
-      boothInfos[i] = { publicKey: booths[i], account: multipleBooths[i] };
+      console.log("in if", multipleBooths[i]);
+      boothInfos[i] = { publicKey: booths[i]!, data: multipleBooths[i]! };
     }
   }
 
