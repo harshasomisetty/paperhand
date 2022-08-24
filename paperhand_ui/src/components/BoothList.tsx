@@ -24,45 +24,21 @@ import {
 } from "@/utils/carnival_data";
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
 
-const BoothList = () => {
+const BoothList = ({
+  boothList,
+}: {
+  boothList: Record<
+    number,
+    { publicKey: PublicKey; account: AccountInfo<Buffer> }
+  >;
+}) => {
   const router = useRouter();
   const { wallet, publicKey, signTransaction } = useWallet();
   const { exhibitAddress } = router.query;
   const { connection } = useConnection();
 
   useEffect(() => {
-    async function fetchData() {
-      let exhibit = new PublicKey(exhibitAddress);
-      let { carnival } = await getCarnivalAccounts(exhibit);
-
-      let numBooths = await getOpenBoothId(carnival, connection, wallet);
-
-      let boothInfos = await getAllBooths(
-        connection,
-        exhibit,
-        numBooths,
-        wallet
-      );
-
-      console.log("booth infos", boothInfos[0].data);
-
-      for (let index of Object.keys(boothInfos)) {
-        let booth = boothInfos[index].publicKey;
-
-        // let fetchedNfts = await getBoothNfts(connection, mx, exhibit, booth);
-      }
-
-      // const mx = Metaplex.make(connection);
-      // const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
-
-      // const curNfts = [];
-      // for (let nft of allUserNfts!) {
-      //   if (nft.symbol == exhibitInfo.exhibitSymbol) {
-      //     curNfts.push(nft);
-      //   }
-      // }
-      // setUserNftList(curNfts);
-    }
+    async function fetchData() {}
     if (wallet && publicKey && exhibitAddress) {
       fetchData();
     }
@@ -70,8 +46,27 @@ const BoothList = () => {
 
   return (
     <div>
-      <p>Booth Card</p>
-      <p></p>
+      <p>Created Booths</p>
+      {boothList && (
+        <>
+          {Object.keys(boothList).map((booth, ind) => (
+            <div className="card flex flex-col space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
+              <div className="card-body">
+                <p>
+                  Curve: {Object.keys(boothList[0].data.curve)[0].toString()}
+                </p>
+                <p>Delta: {Number(boothList[booth].data.delta)}</p>
+                <p>Sol: {Number(boothList[booth].data.sol)}</p>
+                <p>Nfts: {Number(boothList[booth].data.nfts)}</p>
+                <p>
+                  boothType:{" "}
+                  {Object.keys(boothList[0].data.boothType)[0].toString()}
+                </p>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 };

@@ -38,7 +38,7 @@ const CheckoutPage = () => {
 
   const [bidSide, setBidSide] = useState<boolean>(true);
 
-  const { selectedNft } = useContext(NftContext);
+  // const { chosenNfts, clearNfts } = useContext(NftContext);
 
   const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
