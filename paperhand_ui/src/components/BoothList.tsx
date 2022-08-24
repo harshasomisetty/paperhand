@@ -57,8 +57,9 @@ const BoothList = ({
     router.push(asPath + "/" + boothList[booth].publicKey.toString());
   };
 
+  // TODO SET SPOT PRICE
   return (
-    <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300">
+    <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 items-center">
       <div className="flex flex-col p-4 m-2">
         {title && <h1 className="text-xl font-extrabold p-2">{title}</h1>}
         <div className="flex flex-row flex-wrap gap-4 place-items-stretch auto-cols-max">
@@ -84,9 +85,14 @@ const BoothList = ({
                     onClick={(e) => {
                       handleClick(e, booth);
                     }}
+                    className="hover cursor-pointer"
                   >
                     <td>{Number(boothList[booth].data.boothId)}</td>
-                    <td>{Number(boothList[booth].data.boothType)}</td>
+                    <td>
+                      {Object.keys(
+                        boothList[booth].data.boothType
+                      )[0].toString()}
+                    </td>
                     <td>{Number(boothList[booth].data.spotPrice)}</td>
                     <td>{Number(boothList[booth].data.nfts)}</td>
                     <td>

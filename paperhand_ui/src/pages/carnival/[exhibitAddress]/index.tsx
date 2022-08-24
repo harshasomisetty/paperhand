@@ -113,7 +113,7 @@ const CarnivalPage = () => {
 
   return (
     <NftProvider>
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-3">
         <div className="flex flex-col w-1/2">
           <CarnivalInfoCard
             carnivalNfts={Object.keys(boothNfts).reduce(function (res, v) {
@@ -128,7 +128,7 @@ const CarnivalPage = () => {
             }, [])}
           />
         </div>
-        <div className="flex flex-col items-center ">
+        <div className="flex flex-col items-center col-span-2">
           <div className="tabs justify-self-center">
             <a
               className={`tab tab-lifted ${tab == 0 && "tab-active"}`}
