@@ -1,5 +1,4 @@
 import { keypairIdentity, Metaplex, Nft } from "@metaplex-foundation/js";
-import { Nft } from "@metaplex-foundation/js";
 import { BN, Program } from "@project-serum/anchor";
 import {
   AccountInfo,
@@ -37,10 +36,6 @@ export async function getAllBooths(
 > {
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
-
-  // let allBoothAccounts = await connection.getProgramAccounts(
-  //   CARNIVAL_PROGRAM_ID
-  // );
 
   let booths: PublicKey[] = [];
   for (let i = 0; i < boothIdCount; i++) {
@@ -98,11 +93,24 @@ export async function getBoothNfts(
   return allNfts;
 }
 
-export async function getOpenBoothId(carnival: PublicKey): Promise<number> {
+export async function getOpenBoothId(
+  carnival: PublicKey,
+  connection: Connection
+): Promise<number> {
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
 
-  let carnivalInfo = await Carnival.account.carnivalAccount.fetch(carnival);
+  let bal = await connection.getBalance(carnival);
+  console.log("bal", bal);
 
-  return Number(carnivalInfo.boothIdCount);
+  if (!(await checkIfAccountExists(carnival, connection))) {
+    console.log("not exist?");
+    return 0;
+  } else {
+    console.log("exist?");
+    let carnivalInfo = await Carnival.account.carnivalAccount.fetch(carnival);
+    console.log("carni info", carnivalInfo.boothIdCount);
+
+    return Number(carnivalInfo.boothIdCount);
+  }
 }

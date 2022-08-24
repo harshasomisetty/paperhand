@@ -54,7 +54,10 @@ import { IDL as SHOP_IDL, Shop } from "../target/types/shop";
 import { IDL as CHECKOUT_IDL, Checkout } from "../target/types/checkout";
 import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
 import { airdropAll } from "../utils/helpfulFunctions";
-import { createCarnivalBooth } from "../utils/carnival_actions";
+import {
+  carnivalDepositNft,
+  createCarnivalBooth,
+} from "../utils/carnival_actions";
 import { getOpenBoothId } from "../utils/carnival_data";
 const connection = new Connection("http://localhost:8899", "processed");
 
@@ -394,6 +397,11 @@ export async function initCarnival(nft: Nft, users: Keypair[]) {
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol } =
     await getCarnivalAccounts(exhibit);
 
+  console.log(
+    "Exhibit is inited",
+    await checkIfAccountExists(exhibit, connection)
+  );
+
   let initCarnTx = await Carnival.methods
     .initializeCarnival()
     .accounts({
@@ -432,10 +440,37 @@ export async function instructionExecuteCreateBooth(
     solAmt
   );
 
-  connection.confirmTransaction(
-    await sendAndConfirmTransaction(connection, transaction, [user]),
-    "confirmed"
-  );
+  try {
+    connection.confirmTransaction(
+      await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+      "confirmed"
+    );
+  } catch (error) {
+    console.log("trying to create booth1", error);
+  }
+
+  await new Promise((r) => setTimeout(r, 500));
+  let i = 0;
+
+  // let nft = nfts[0];
+  for (let nft of nfts) {
+    console.log("depoing nft", nft.name);
+    let transaction2 = await carnivalDepositNft(
+      connection,
+      nft,
+      user.publicKey,
+      0
+    );
+    try {
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction2, [user]),
+        "confirmed"
+      );
+    } catch (error) {
+      console.log("trying to create booth loop", error);
+    }
+    // console.log("finsihed deoing nft");
+  }
 }
 
 async function initialFlow() {
@@ -453,12 +488,15 @@ async function initialFlow() {
   console.log("3) Bear Exhibit: Floorbid panic sell");
   await new Promise((r) => setTimeout(r, 2000));
   await insertNft(nftList[1][0], users[0]);
-  await initializeCheckout(nftList[0][0], users[0]);
-  await makeBids(nftList[0][0], [users[0], users[1]]);
+
+  await initializeCheckout(nftList[1][0], users[0]);
+  await makeBids(nftList[1][0], [users[0], users[1]]);
   await new Promise((r) => setTimeout(r, 2000));
+
   console.log("4) God Exhibit: Carnival AKA Sudoswap");
-  // await insertNft(nftList[2][0], users[0]);
+  await insertNft(nftList[2][0], users[0]);
   console.log("back in main after insert nft");
+
   let nfts = [
     nftList[2][1],
     nftList[2][2],
@@ -470,6 +508,10 @@ async function initialFlow() {
   console.log("about to start init carnival");
   await new Promise((r) => setTimeout(r, 2000));
   await initCarnival(nfts[0], [users[0]]);
+
+  console.log("marketing");
+  await new Promise((r) => setTimeout(r, 2000));
+  console.log("marketed");
   await instructionExecuteCreateBooth(nfts, 2 * LAMPORTS_PER_SOL, users[0]);
 }
 

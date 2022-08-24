@@ -166,6 +166,7 @@ describe("carnival", () => {
       let nfts = [nftList[0][i * 4], nftList[0][i * 4 + 2]];
 
       let { exhibit, nftArtifact } = await getNftDerivedAddresses(nfts[0]);
+      let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
       let transaction = await createCarnivalBooth(
         connection,
         users[0].publicKey,
@@ -183,6 +184,8 @@ describe("carnival", () => {
         console.log("trying to create booth", error);
       }
 
+      let carnivalInfo = await Carnival.account.carnivalAccount.fetch(carnival);
+      console.log("carni info", carnivalInfo.boothIdCount);
       for (let nft of nfts) {
         let transaction = await carnivalDepositNft(
           connection,
@@ -204,7 +207,7 @@ describe("carnival", () => {
     }
 
     let { exhibit, nftArtifact } = await getNftDerivedAddresses(nftList[0][0]);
-    let { escrowSol } = await getCarnivalAccounts(exhibit);
+    let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
     printAndTest(
       regSol(await connection.getBalance(escrowSol)),
       regSol(solAmts.reduce((partialSum, a) => partialSum + a, 0))

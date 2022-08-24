@@ -82,6 +82,7 @@ export async function carnivalDepositNft(
     transaction = transaction.add(userVoucherTx);
   }
 
+  console.log("booth exists", await checkIfAccountExists(booth, connection));
   let depositNftTx = await Carnival.methods
     .depositNft(new BN(boothId), carnivalAuthBump, boothBump)
     .accounts({
@@ -174,13 +175,14 @@ export async function createCarnivalBooth(
   nfts: Nft[],
   solAmt: number
 ): Promise<Transaction> {
-  console.log("In Create Carnival Booth function");
+  console.log("In Create Carnival Booth function1");
   let provider = await getProvider("http://localhost:8899", creator);
   let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
   let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
 
   let transaction = new Transaction();
 
+  console.log("getting exhibit accounts");
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
     nfts[0]
   );
@@ -188,7 +190,8 @@ export async function createCarnivalBooth(
   let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
     await getCarnivalAccounts(exhibit);
 
-  let boothId = await getOpenBoothId(carnival);
+  console.log("getting booth id");
+  let boothId = await getOpenBoothId(carnival, connection);
   console.log("Booth ID", boothId);
   // make booth
 
