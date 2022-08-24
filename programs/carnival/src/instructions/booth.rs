@@ -1,9 +1,9 @@
 use crate::state::accounts::{Booth, CarnivalAccount};
-use crate::state::curve::CurveType;
+use crate::state::curve::{BoothType, CurveType};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(booth_owner: Pubkey, booth_id: u64, curve: u8, delta: u8, fee: u8)]
+#[instruction(booth_owner: Pubkey, booth_id: u64, curve: u8, booth_type: u8, delta: u8, fee: u8)]
 pub struct InitializeBooth<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
@@ -44,6 +44,7 @@ pub fn create_booth(
     booth_owner: Pubkey,
     booth_id: u64,
     curve: u8,
+    booth_type: u8,
     delta: u8,
     fee: u8,
 ) -> Result<()> {
@@ -56,9 +57,16 @@ pub fn create_booth(
     booth.booth_owner = booth_owner;
     booth.curve = match curve {
         0 => CurveType::Linear,
-        _ => CurveType::Exponential,
+        1 => CurveType::Exponential,
     };
 
+    booth.booth_type = match booth_type {
+        0 => BoothType::BUY,
+        1 => BoothType::SELL,
+        2 => BoothType::TRADE,
+    };
+
+    // TODO update booth types everywhere
     booth.delta = delta;
     booth.fee = fee;
 

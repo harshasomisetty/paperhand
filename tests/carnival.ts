@@ -57,7 +57,6 @@ const Exhibition = anchor.workspace.Exhibition as Program<Exhibition>;
 
 const metaplex = Metaplex.make(connection).use(keypairIdentity(creator));
 
-// TODO RENAME carnival booths to booths
 describe("carnival", () => {
   let airdropVal = 60 * LAMPORTS_PER_SOL;
 
@@ -236,7 +235,6 @@ describe("carnival", () => {
 
     console.log("Finsihed Initing all booths");
   });
-  // TODO MAke test that people can't insert or take out from booths that aren't theirs
 
   it.skip("Tried inserting SOL and nft to a booth user doens't own", async () => {
     let transaction = new Transaction();

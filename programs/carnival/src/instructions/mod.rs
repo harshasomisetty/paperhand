@@ -7,8 +7,11 @@ pub mod booth;
 pub use deposit::*;
 pub mod deposit;
 
-pub use trade::*;
-pub mod trade;
+pub use soltonft::*;
+pub mod soltonft;
+
+pub use nfttosol::*;
+pub mod nfttosol;
 
 pub use withdraw::*;
 pub mod withdraw;

@@ -1,26 +1,24 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
-use solana_program;
-use solana_program::{
-    account_info::AccountInfo, program::invoke, program::invoke_signed, system_instruction,
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, Token, TokenAccount},
+};
+use exhibition::{program::Exhibition, state::metaplex_anchor::TokenMetadata};
+use solana_program::{program::invoke, system_instruction};
+
+use crate::state::{
+    accounts::{Booth, CarnivalAccount},
+    curve::CurveType,
 };
 
-use exhibition::program::Exhibition;
-use exhibition::state::metaplex_anchor::TokenMetadata;
-
-use exhibition::{self, Exhibit};
-
-use crate::state::accounts::{Booth, CarnivalAccount};
-
 #[derive(Accounts)]
-#[instruction(booth_id: u64, sol_amt: u64, carnival_auth_bump: u8, booth_bump: u8)]
-pub struct DepositSol<'info> {
+#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
+pub struct TradeNftForSol<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,
 
     #[account(mut, seeds = [b"carnival", exhibit.key().as_ref()], bump)]
-    pub carnival: Account<'info, CarnivalAccount>,
+    pub carnival: Box<Account<'info, CarnivalAccount>>,
 
     /// CHECK: auth only needs to sign for stuff, no metadata
     #[account(mut, seeds = [b"carnival_auth", carnival.key().as_ref()], bump)]
@@ -33,39 +31,12 @@ pub struct DepositSol<'info> {
     )]
     pub booth: Account<'info, Booth>,
 
-    /// CHECK: escrow only purpose is to store sol
     #[account(
         mut,
         seeds = [b"escrow_sol", carnival.key().as_ref()],
         bump
     )]
     pub escrow_sol: AccountInfo<'info>,
-
-    #[account(mut, address = booth.booth_owner)]
-    pub signer: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
-pub struct DepositNft<'info> {
-    #[account(mut)]
-    pub exhibit: Box<Account<'info, Exhibit>>,
-
-    #[account(mut, seeds = [b"carnival", exhibit.key().as_ref()], bump)]
-    pub carnival: Box<Account<'info, CarnivalAccount>>,
-
-    /// CHECK: auth only needs to sign for stuff, no metadata
-    #[account(mut, seeds = [b"carnival_auth", carnival.key().as_ref()], bump=carnival_auth_bump)]
-    pub carnival_auth: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"booth", carnival.key().as_ref(), booth_id.to_le_bytes().as_ref()],
-        bump
-    )]
-    pub booth: Account<'info, Booth>,
 
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
@@ -98,26 +69,20 @@ pub struct DepositNft<'info> {
     pub exhibition_program: Program<'info, Exhibition>,
 }
 
-pub fn deposit_sol(
-    ctx: Context<DepositSol>,
+pub fn trade_nft_for_sol(
+    ctx: Context<TradeNftForSol>,
     booth_id: u64,
-    sol_amt: u64,
     carnival_auth_bump: u8,
     booth_bump: u8,
 ) -> Result<()> {
-    msg!("in dpepo sol");
+    // check user transfer enough sol
 
-    msg!(
-        "signer: {}, boothOwner: {}",
-        ctx.accounts.signer.to_account_info().key(),
-        ctx.accounts.booth.booth_owner.to_string()
-    );
-
+    // user withdraws sol
     invoke(
         &system_instruction::transfer(
             ctx.accounts.signer.to_account_info().key,
             ctx.accounts.escrow_sol.to_account_info().key,
-            sol_amt,
+            ctx.accounts.booth.spot_price,
         ),
         &[
             ctx.accounts.signer.to_account_info(),
@@ -126,29 +91,11 @@ pub fn deposit_sol(
         ],
     );
 
-    ctx.accounts.booth.sol = ctx.accounts.booth.sol + sol_amt;
-    msg!("finished depo sol");
+    // check booth passed in is correct delegate for nft
 
-    Ok(())
-}
+    // artifact withdraw from exhibit cpi
 
-pub fn deposit_nft(
-    ctx: Context<DepositNft>,
-    booth_id: u64,
-    carnival_auth_bump: u8,
-    booth_bump: u8,
-) -> Result<()> {
-    msg!(
-        "in depo nft. boothId: {}, booth pub: {}",
-        &booth_id,
-        ctx.accounts.booth.key().to_string()
-    );
     let cpi_program = ctx.accounts.exhibition_program.to_account_info();
-
-    msg!(
-        "\nartifact: {}\n",
-        ctx.accounts.nft_artifact.to_account_info().key()
-    );
     let cpi_accounts = exhibition::cpi::accounts::ArtifactInsert {
         exhibit: ctx.accounts.exhibit.to_account_info(),
         voucher_mint: ctx.accounts.voucher_mint.to_account_info(),
@@ -181,9 +128,45 @@ pub fn deposit_nft(
 
     exhibition::cpi::artifact_insert(cpi_ctx)?;
 
-    ctx.accounts.booth.nfts = ctx.accounts.booth.nfts + 1;
+    // recalculate bids and asks
 
-    msg!("did cpi, finished depo nft");
+    let current_spot_price = ctx.accounts.booth.spot_price;
+    let delta = ctx.accounts.booth.delta;
+
+    if ctx.accounts.booth.curve == CurveType::Linear {
+        let new_spot_price = ctx
+            .accounts
+            .booth
+            .spot_price
+            .checked_sub(ctx.accounts.booth.delta)
+            .unwrap();
+
+        ctx.accounts.booth.spot_price = new_spot_price;
+    } else {
+        // TODO this is a very naive calculation, fix it later
+        // CREDIT: https://github.com/RohanKapurDEV/sudoswap-sol/
+        let new_spot_price = ctx
+            .accounts
+            .booth
+            .spot_price
+            .checked_div(
+                ctx.accounts
+                    .booth
+                    .delta
+                    .checked_div(10000)
+                    .unwrap()
+                    .checked_add(1)
+                    .unwrap(),
+            )
+            .unwrap();
+
+        ctx.accounts.booth.spot_price = new_spot_price;
+    }
+
+    ctx.accounts.booth.nfts = ctx.accounts.booth.nfts + 1;
+    ctx.accounts.booth.trade_count = ctx.accounts.booth.trade_count.checked_add(1).unwrap();
+
+    // TODO NEED TO MAKE SURE POOL CANNOT OVERSELL
 
     Ok(())
 }

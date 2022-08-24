@@ -1,12 +1,10 @@
 use anchor_lang::prelude::*;
 
 // https://medium.com/linum-labs/intro-to-bonding-curves-and-shapes-bf326bc4e11a
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CurveType {
     Linear,
     Exponential,
-    // Sigmoid,
-    // Taxation
 }
 
 impl Default for CurveType {
@@ -15,4 +13,16 @@ impl Default for CurveType {
     }
 }
 
-// function that can be plugged into, provided details of cur inventory, delta, fee, etc that can calculate next bid/ask
+// https://medium.com/linum-labs/intro-to-bonding-curves-and-shapes-bf326bc4e11a
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BoothType {
+    BUY,
+    SELL,
+    TRADE,
+}
+
+impl Default for BoothType {
+    fn default() -> Self {
+        BoothType::TRADE
+    }
+}
