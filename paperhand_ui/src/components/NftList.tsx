@@ -79,7 +79,7 @@ export default function NftList({
       setNftPrices(nftsToBooth);
       setGroupDetails(tempGroupDetails);
     }
-    if ((exhibitAddress, wallet)) {
+    if (exhibitAddress && wallet) {
       fetchData();
     }
   }, [nftList, exhibitAddress]);
