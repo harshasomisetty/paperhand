@@ -12,6 +12,7 @@ import {
   checkIfAccountExists,
   getAllExhibitArtifacts,
   getFilledOrdersList,
+  getUserVouchersFulfilled,
 } from "@/utils/retrieveData";
 import { NftContext, NftProvider } from "@/context/NftContext";
 import NftList from "@/components/NftList";
@@ -47,30 +48,13 @@ const ExhibitPage = () => {
         setExhibitNftList(exhibitNfts);
       }
 
-      let uVoucher = 0;
-      let { voucherMint, matchedStorage } = await getCheckoutAccounts(exhibit);
-
-      let userVoucherWallet = await getAssociatedTokenAddress(
-        voucherMint,
-        publicKey
+      let uVouchers = await getUserVouchersFulfilled(
+        exhibit,
+        publicKey,
+        wallet,
+        connection
       );
-
-      if (await checkIfAccountExists(userVoucherWallet, connection)) {
-        uVoucher = Number(
-          (await getAccount(connection, userVoucherWallet)).amount
-        );
-      }
-
-      let orderFilled: Record<string, number> = await getFilledOrdersList(
-        matchedStorage,
-        wallet
-      );
-
-      if (orderFilled[publicKey.toString()]) {
-        setUserVoucher(uVoucher + orderFilled[publicKey.toString()]);
-      } else {
-        setUserVoucher(uVoucher);
-      }
+      setUserVoucher(uVouchers);
 
       const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
 

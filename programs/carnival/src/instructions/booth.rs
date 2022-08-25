@@ -2,7 +2,7 @@ use crate::state::accounts::{Booth, CarnivalAccount};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(booth_owner: Pubkey, booth_id: u64, curve: u8, booth_type: u8, delta: u64, fee: u16)]
+#[instruction(booth_owner: Pubkey, booth_id: u64, spot_price: u64, curve: u8, booth_type: u8, delta: u64, fee: u16)]
 pub struct CreateBooth<'info> {
     /// CHECK: just reading pubkey
     pub exhibit: AccountInfo<'info>,

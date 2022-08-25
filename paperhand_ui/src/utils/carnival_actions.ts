@@ -1,5 +1,5 @@
 import { Nft } from "@metaplex-foundation/js";
-import { BN, Program } from "@project-serum/anchor";
+import { BN, Program, Wallet } from "@project-serum/anchor";
 import {
   Connection,
   LAMPORTS_PER_SOL,
@@ -12,11 +12,6 @@ import {
   getCarnivalAccounts,
   getNftDerivedAddresses,
 } from "./accountDerivation";
-import { checkIfAccountExists, getProvider } from "./actions";
-import { CARNIVAL_PROGRAM_ID, EXHIBITION_PROGRAM_ID } from "./constants";
-import { IDL as CARNIVAL_IDL, Carnival } from "../target/types/carnival";
-import { Exhibition, IDL as EXHIBITION_IDL } from "../target/types/exhibition";
-import { otherCreators, creator, users } from "../utils/constants";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
@@ -24,16 +19,23 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { getOpenBoothId } from "./carnival_data";
+import {
+  CARNIVAL_PROGRAM_ID,
+  EXHIBITION_PROGRAM_ID,
+  getCarnivalProgramAndProvider,
+  getExhibitProgramAndProvider,
+} from "./constants";
+import { checkIfAccountExists } from "./retrieveData";
 
 export async function carnivalDepositNft(
   connection: Connection,
   nft: Nft,
   publicKey: PublicKey,
-  boothId: number
+  boothId: number,
+  wallet: Wallet
 ): Promise<Transaction> {
-  let provider = await getProvider("http://localhost:8899", creator);
-  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
-  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
 
   let transaction = new Transaction();
 
@@ -114,9 +116,8 @@ export async function carnivalWithdrawNft(
   publicKey: PublicKey,
   boothId: number
 ): Promise<Transaction> {
-  let provider = await getProvider("http://localhost:8899", creator);
-  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
-  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
 
   let transaction = new Transaction();
 
@@ -174,16 +175,18 @@ export async function createCarnivalBooth(
   publicKey: PublicKey,
   nfts: Nft[],
   solAmt: number,
+  curve: number,
+  boothType: number,
+  delta: number,
+  fee: number,
   wallet: Wallet
 ): Promise<Transaction> {
-  console.log("In Create Carnival Booth function1");
-  let provider = await getProvider("http://localhost:8899", creator);
-  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
-  let Exhibition = new Program(EXHIBITION_IDL, EXHIBITION_PROGRAM_ID, provider);
+  let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
 
   let transaction = new Transaction();
 
-  console.log("getting exhibit accounts");
+  console.log("getting exhibit accounts", nfts[0]);
   let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
     nfts[0]
   );
@@ -207,24 +210,25 @@ export async function createCarnivalBooth(
 
   console.log("function booth", booth.toString());
 
+  console.log("curve and booth", curve, boothType);
   if (!(await checkIfAccountExists(booth, connection))) {
     console.log("booth no exist");
     let initBoothTx = await Carnival.methods
       .createBooth(
-        users[0].publicKey,
+        publicKey,
         new BN(boothId),
         new BN(solAmt),
-        0,
-        2,
-        new BN(1),
-        1
+        curve,
+        boothType,
+        new BN(delta),
+        fee
       )
       .accounts({
         exhibit: exhibit,
         carnival: carnival,
         carnivalAuth: carnivalAuth,
         booth: booth,
-        signer: users[0].publicKey,
+        signer: publicKey,
         systemProgram: SystemProgram.programId,
       })
       .transaction();
@@ -253,7 +257,7 @@ export async function createCarnivalBooth(
         carnivalAuth: carnivalAuth,
         booth: booth,
         escrowSol: escrowSol,
-        signer: users[0].publicKey,
+        signer: publicKey,
         systemProgram: SystemProgram.programId,
       })
       .transaction();
@@ -287,8 +291,7 @@ export async function closeCarnivalBooth(
   solAmt: number,
   boothId: number
 ): Promise<Transaction> {
-  let provider = await getProvider("http://localhost:8899", creator);
-  let Carnival = new Program(CARNIVAL_IDL, CARNIVAL_PROGRAM_ID, provider);
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
 
   let transaction = new Transaction();
 
@@ -321,7 +324,7 @@ export async function closeCarnivalBooth(
       carnivalAuth: carnivalAuth,
       booth: booth,
       escrowSol: escrowSol,
-      signer: users[0].publicKey,
+      signer: publicKey,
       systemProgram: SystemProgram.programId,
     })
     .transaction();

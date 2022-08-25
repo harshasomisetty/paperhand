@@ -17,7 +17,7 @@ export default function NftCard({
   index: number;
   price?: number;
 }) {
-  const { chosenNfts, chooseNft, setChosenNfts } = useContext(NftContext);
+  const { chosenNfts, chooseNft } = useContext(NftContext);
 
   return (
     <div
@@ -26,7 +26,6 @@ export default function NftCard({
       }
 `}
       onClick={() => {
-        console.log("nft index: ", index);
         chooseNft(nft);
       }}
     >
