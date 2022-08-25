@@ -50,11 +50,11 @@ const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
   }
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      <h2 className="font-bold text-2xl">
-        Create SOL {"<->"} {exhibitSymbol}
+    <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 items-center space-y-4">
+      <h2 className="card-title font-bold text-2xl p-2">
+        Create SOL / {exhibitSymbol} Trading Booth
       </h2>
-      <div className="w-full border">
+      <div className="flex flex-col items-center border rounded-xl p-4">
         <label className="label">
           <span className="label-text">Fee Profit % Per Trade</span>
         </label>
@@ -74,9 +74,9 @@ const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
           className="input input-bordered w-32"
         />
 
-        <div className="btn-group m-4">
+        <div className="btn-group m-4 border rounded-xl">
           <button
-            className={`btn ${linear == 0 && "btn-ghost"}`}
+            className={`btn ${linear == 1 && "btn-accent"}`}
             onClick={() => {
               setLinear(1);
             }}
@@ -84,7 +84,7 @@ const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
             Linear
           </button>
           <button
-            className={`btn ${linear == 1 && "btn-ghost"}`}
+            className={`btn ${linear == 0 && "btn-accent"}`}
             onClick={() => {
               setLinear(0);
             }}
@@ -102,7 +102,7 @@ const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
           className="input input-bordered w-32"
         />
       </div>
-      <div className="border">
+      <div className="border rounded-lg p-4">
         <div className="flex flex-row space-x-4 items-center">
           <p className="font-extrabold">Buy up to </p>
           <input

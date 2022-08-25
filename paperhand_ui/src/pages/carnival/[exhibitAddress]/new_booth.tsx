@@ -60,7 +60,10 @@ const NewBooth = () => {
     <NftProvider>
       <div className="grid grid-cols-2">
         <BoothSetup exhibitSymbol={exhibitSymbol} />
-        <NftList nftList={userNftList} title={"Your NFTs"} />
+        <NftList
+          nftList={userNftList}
+          title={"Your NFTs to Deposit into Booth"}
+        />
       </div>
     </NftProvider>
   );
