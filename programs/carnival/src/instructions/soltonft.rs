@@ -3,17 +3,15 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use exhibition::{program::Exhibition, state::metaplex_anchor::TokenMetadata};
 use solana_program::{program::invoke, system_instruction};
 
-use crate::state::{
-    accounts::{Booth, CarnivalAccount},
-    curve::CurveType,
-};
+use crate::state::accounts::{Booth, CarnivalAccount};
 
 // TODO check the right account types (the sell and trade) are being called, otherwises reject
 
 #[derive(Accounts)]
-#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8)]
+#[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8, escrow_auth_bump: u8)]
 pub struct TradeSolForNft<'info> {
     /// CHECK: just reading pubkey
+    #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
     #[account(mut, seeds = [b"carnival", exhibit.key().as_ref()], bump)]
@@ -59,7 +57,7 @@ pub struct TradeSolForNft<'info> {
     #[account(mut)]
     pub nft_artifact: AccountInfo<'info>,
 
-    #[account(mut, address = booth.booth_owner)]
+    #[account(mut)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -73,6 +71,7 @@ pub fn trade_sol_for_nft(
     booth_id: u64,
     carnival_auth_bump: u8,
     booth_bump: u8,
+    escrow_auth_bump: u8,
 ) -> Result<()> {
     // user deposits sol
     invoke(
@@ -107,9 +106,25 @@ pub fn trade_sol_for_nft(
         token_program: ctx.accounts.token_program.to_account_info(),
     };
 
+    let borrowed_id = booth_id.clone().to_le_bytes().to_owned();
+
+    let carnival_key = ctx.accounts.carnival.key();
+
+    let seeds = &[
+        b"booth",
+        carnival_key.as_ref(),
+        borrowed_id.as_ref(),
+        &[booth_bump],
+    ];
+    let pda_seeds = &[&seeds[..]];
+
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, pda_seeds);
+
+    exhibition::cpi::artifact_withdraw(cpi_ctx)?;
     // recalculate bids and asks
 
-    if ctx.accounts.booth.curve == CurveType::Linear {
+    if ctx.accounts.booth.curve == 0 {
+        // linear curve
         let new_spot_price = ctx
             .accounts
             .booth
@@ -119,6 +134,7 @@ pub fn trade_sol_for_nft(
 
         ctx.accounts.booth.spot_price = new_spot_price;
     } else {
+        // exponential curve
         // TODO this is a very naive calculation, fix it later
         // CREDIT: https://github.com/RohanKapurDEV/sudoswap-sol/
         let new_spot_price = ctx

@@ -173,7 +173,8 @@ export async function createCarnivalBooth(
   connection: Connection,
   publicKey: PublicKey,
   nfts: Nft[],
-  solAmt: number
+  solAmt: number,
+  wallet: Wallet
 ): Promise<Transaction> {
   console.log("In Create Carnival Booth function1");
   let provider = await getProvider("http://localhost:8899", creator);
@@ -191,7 +192,7 @@ export async function createCarnivalBooth(
     await getCarnivalAccounts(exhibit);
 
   console.log("getting booth id");
-  let boothId = await getOpenBoothId(carnival, connection);
+  let boothId = await getOpenBoothId(carnival, connection, wallet);
   console.log("Booth ID", boothId);
   // make booth
 
@@ -209,7 +210,15 @@ export async function createCarnivalBooth(
   if (!(await checkIfAccountExists(booth, connection))) {
     console.log("booth no exist");
     let initBoothTx = await Carnival.methods
-      .createBooth(users[0].publicKey, new BN(boothId), 0, 2, new BN(1), 1)
+      .createBooth(
+        users[0].publicKey,
+        new BN(boothId),
+        new BN(solAmt),
+        0,
+        2,
+        new BN(1),
+        1
+      )
       .accounts({
         exhibit: exhibit,
         carnival: carnival,

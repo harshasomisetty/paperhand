@@ -149,6 +149,7 @@ pub fn deposit_nft(
         "\nartifact: {}\n",
         ctx.accounts.nft_artifact.to_account_info().key()
     );
+
     let cpi_accounts = exhibition::cpi::accounts::ArtifactInsert {
         exhibit: ctx.accounts.exhibit.to_account_info(),
         voucher_mint: ctx.accounts.voucher_mint.to_account_info(),

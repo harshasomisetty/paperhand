@@ -222,6 +222,7 @@ export async function createCarnivalBooth(
       .createBooth(
         users[0].publicKey,
         new BN(boothId),
+        new BN(solAmt),
         curve,
         boothType,
         new BN(delta),

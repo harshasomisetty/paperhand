@@ -14,6 +14,7 @@ import * as CarnivalJson from "@/target/idl/carnival.json";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { getProvider } from "@/utils/provider";
 import { getCarnivalProgramAndProvider } from "./constants";
+import { BoothAccount } from "./interfaces";
 
 const CARNIVAL_PROGRAM_ID = new PublicKey(CarnivalJson["metadata"]["address"]);
 
@@ -55,6 +56,30 @@ export async function getAllBooths(
   }
 
   return boothInfos;
+}
+
+export async function getBoothInfo(
+  connection: Connection,
+  exhibit: PublicKey,
+  boothId: number,
+  wallet: Wallet
+) {
+  let { carnival } = await getCarnivalAccounts(exhibit);
+
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
+
+  let [booth] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("booth"),
+      carnival.toBuffer(),
+      new BN(boothId).toArrayLike(Buffer, "le", 8),
+    ],
+    CARNIVAL_PROGRAM_ID
+  );
+
+  let fetchedBoothInfo = await Carnival.account.booth.fetch(booth);
+
+  return fetchedBoothInfo;
 }
 
 export async function getBoothNfts(

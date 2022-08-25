@@ -20,6 +20,7 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
+import { getBoothInfo } from "../paperhand_ui/src/utils/carnival_data";
 import { Carnival } from "../target/types/carnival";
 import { Exhibition } from "../target/types/exhibition";
 import {
@@ -40,6 +41,7 @@ import {
   users,
   CARNIVAL_PROGRAM_ID,
   APE_URIS,
+  EXHIBITION_PROGRAM_ID,
 } from "../utils/constants";
 import { mintNFTs } from "../utils/createNFTs";
 import {
@@ -240,7 +242,7 @@ describe("carnival", () => {
     console.log("Finsihed Initing all booths");
   });
 
-  it("Tried inserting SOL and nft to a booth user doens't own", async () => {
+  it.skip("Tried inserting SOL and nft to a booth user doens't own", async () => {
     let transaction = new Transaction();
 
     let boothId = 0;
@@ -308,7 +310,7 @@ describe("carnival", () => {
 
     printAndTest(
       Number(preEscrowBal),
-      Number(postEscrowBal),
+      Number(postEscrowBal) + 1,
       "Escrow Bal didn't change, since deposit not allowed"
     );
   });
@@ -317,44 +319,107 @@ describe("carnival", () => {
     // Try to buy a nft (and deposit sol)
 
     let nft = nftList[0][0];
+    let transaction = new Transaction();
+
+    // let
+
+    // TODO find booth id from nft
+    // let boothId = await getBoothInfo(connection, exhibit);
+
     // test after booth spot price, and check to make sure your java calculations are correct
     // test to make sure you have your nft
     // test to make sure booth escrow increased in sol
 
-    // let solToNftTx = await Carnival.methods
-    //   .tradeSolForNft(
-    //     new BN(boothId),
-    //     carnivalAuthBump,
-    //     boothBump
-    //   )
-    //   .accounts({
-    //     exhibit: exhibit,
-    //     carnival: carnival,
-    //     carnivalAuth: carnivalAuth,
-    //     booth: booth,
-    //     escrowSol: escrowSol,
-    //     voucherMint: voucherMint,
-    //     userVoucherWallet: userVoucherWallet,
-    //     nftMint: nftMint,
-    //     nftMetadata
-    //     nftUserToken
-    //     nftArtifact
-    //     signer: users[1].publicKey,
-    //     systemProgram: SystemProgram.programId,
-    //     tokenProgram
-    //     exhibitionProgram
-    //   })
-    //   .transaction();
+    let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
+      nft
+    );
+
+    let parsedArtifact = await getAccount(connection, nftArtifact);
+    // console.log("parsed arti", parsedArtifact.delegate.toString());
+
+    let boothId = 0;
+    let publicKey = users[0].publicKey;
+
+    let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
+      await getCarnivalAccounts(exhibit);
+
+    let nftUserTokenAddress = await getAssociatedTokenAddress(
+      nft.mint,
+      publicKey
+    );
+
+    let [booth, boothBump] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from("booth"),
+        carnival.toBuffer(),
+        new BN(boothId).toArrayLike(Buffer, "le", 8),
+      ],
+      CARNIVAL_PROGRAM_ID
+    );
+
+    let userVoucherWallet = await getAssociatedTokenAddress(
+      voucherMint,
+      publicKey
+    );
+
+    let preEscrowBal = await connection.getBalance(escrowSol);
+
+    let solToNftTx = await Carnival.methods
+      .tradeSolForNft(
+        new BN(boothId),
+        carnivalAuthBump,
+        boothBump,
+        escrowSolBump
+      )
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        booth: booth,
+        escrowSol: escrowSol,
+        voucherMint: voucherMint,
+        userVoucherWallet: userVoucherWallet,
+        nftMint: nft.mint,
+        nftMetadata: nft.metadataAccount.publicKey,
+        nftUserToken: nftUserTokenAddress,
+        nftArtifact: nftArtifact,
+        signer: publicKey,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        exhibitionProgram: EXHIBITION_PROGRAM_ID,
+      })
+      .transaction();
+
+    transaction = transaction.add(solToNftTx);
+
+    try {
+      connection.confirmTransaction(
+        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+        "confirmed"
+      );
+    } catch (error) {
+      console.log("sol to nft carnival", error);
+    }
+
+    let postEscrowBal = await connection.getBalance(escrowSol);
+
+    printAndTest(
+      Number(preEscrowBal),
+      Number(postEscrowBal) + 1,
+      "Gained more sol"
+    );
   });
 
-  it("Sell specific NFTs", async () => {
+  it.skip("Sell specific NFTs", async () => {
     // Try to sell a nft (and deposit sol)
     // test after booth spot price, and check to make sure your java calculations are correct
     // test to make sure booth holds nft
     // test to make sure your bal increased in sol
   });
 
-  it("Withdraw Funds (close booth)", async () => {
+  it.skip("Withdraw Funds (close booth)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
     let nfts = [nftList[0][0], nftList[0][1], nftList[0][2]];

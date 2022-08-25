@@ -1,3 +1,5 @@
+import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import DisplayImages from "./DisplayImages";
 
@@ -10,6 +12,8 @@ const BoothCard = ({
   boothInfo: any;
   exhibitSymbol: string;
 }) => {
+  const { publicKey } = useWallet();
+
   function mapBoothType() {
     console.log("booth info map type", boothInfo);
     let type = Object.keys(boothInfo.boothType)[0].toString();
@@ -43,6 +47,7 @@ const BoothCard = ({
           )}
 
           <p>{mapBoothType()}</p>
+          <p className="truncate">Booth owner</p>
         </div>
         <table className="table">
           <tbody>
@@ -68,11 +73,13 @@ const BoothCard = ({
             </tr>
           </tbody>
         </table>
-
-        {Object.keys(boothInfo.boothType)[0].toString() == 0 && (
-          <p>Booth type: Buy </p>
-        )}
       </div>
+
+      {publicKey.toString() === boothInfo.boothOwner.toString() ? (
+        <button className="btn">Your Booth</button>
+      ) : (
+        <button className="btn">Trade with this Booth</button>
+      )}
     </div>
   );
 };

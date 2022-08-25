@@ -1,5 +1,4 @@
 use crate::state::accounts::{Booth, CarnivalAccount};
-use crate::state::curve::{BoothType, CurveType};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -43,6 +42,7 @@ pub fn create_booth(
     ctx: Context<CreateBooth>,
     booth_owner: Pubkey,
     booth_id: u64,
+    spot_price: u64,
     curve: u8,
     booth_type: u8,
     delta: u64,
@@ -53,19 +53,11 @@ pub fn create_booth(
 
     assert_eq!(booth_id, ctx.accounts.carnival.booth_id_count);
 
+    booth.spot_price = spot_price;
     booth.booth_id = ctx.accounts.carnival.booth_id_count;
     booth.booth_owner = booth_owner;
-    booth.curve = match curve {
-        0 => CurveType::Linear,
-        _ => CurveType::Exponential,
-    };
-
-    booth.booth_type = match booth_type {
-        0 => BoothType::BUY,
-        1 => BoothType::SELL,
-        _ => BoothType::TRADE,
-    };
-
+    booth.curve = curve;
+    booth.booth_type = booth_type;
     booth.delta = delta;
     booth.fee = fee;
 

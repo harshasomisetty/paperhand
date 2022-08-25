@@ -20,12 +20,22 @@ pub mod carnival {
         ctx: Context<CreateBooth>,
         booth_owner: Pubkey,
         booth_id: u64,
+        spot_price: u64,
         curve: u8,
         booth_type: u8,
         delta: u64,
         fee: u16,
     ) -> Result<()> {
-        instructions::booth::create_booth(ctx, booth_owner, booth_id, curve, booth_type, delta, fee)
+        instructions::booth::create_booth(
+            ctx,
+            booth_owner,
+            booth_id,
+            spot_price,
+            curve,
+            booth_type,
+            delta,
+            fee,
+        )
     }
 
     pub fn deposit_sol(
@@ -52,8 +62,15 @@ pub mod carnival {
         booth_id: u64,
         carnival_auth_bump: u8,
         booth_bump: u8,
+        escrow_auth_bump: u8,
     ) -> Result<()> {
-        instructions::soltonft::trade_sol_for_nft(ctx, booth_id, carnival_auth_bump, booth_bump)
+        instructions::soltonft::trade_sol_for_nft(
+            ctx,
+            booth_id,
+            carnival_auth_bump,
+            booth_bump,
+            escrow_auth_bump,
+        )
     }
 
     pub fn trade_nft_for_sol(
@@ -61,8 +78,15 @@ pub mod carnival {
         booth_id: u64,
         carnival_auth_bump: u8,
         booth_bump: u8,
+        escrow_auth_bump: u8,
     ) -> Result<()> {
-        instructions::nfttosol::trade_nft_for_sol(ctx, booth_id, carnival_auth_bump, booth_bump)
+        instructions::nfttosol::trade_nft_for_sol(
+            ctx,
+            booth_id,
+            carnival_auth_bump,
+            booth_bump,
+            escrow_auth_bump,
+        )
     }
 
     pub fn withdraw_sol(

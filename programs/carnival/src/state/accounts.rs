@@ -3,8 +3,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use super::curve::{BoothType, CurveType};
-
 #[account]
 #[derive(Default)]
 #[repr(C)]
@@ -15,8 +13,8 @@ pub struct Booth {
     pub sol: u64,
     pub nfts: u64,
 
-    pub curve: CurveType,
-    pub booth_type: BoothType,
+    pub curve: u8,
+    pub booth_type: u8,
 
     pub spot_price: u64,
     pub delta: u64,

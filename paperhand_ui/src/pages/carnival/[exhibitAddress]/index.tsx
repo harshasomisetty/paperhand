@@ -43,7 +43,7 @@ const CarnivalPage = () => {
   const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
 
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(2);
 
   const [prices, setPrices] = useState<number[]>([]);
 

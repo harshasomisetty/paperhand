@@ -9,16 +9,15 @@ use solana_program::{
     system_instruction,
 };
 
-use crate::state::{
-    accounts::{Booth, CarnivalAccount},
-    curve::CurveType,
-};
+use crate::state::accounts::{Booth, CarnivalAccount};
 
 // TODO check the right account types (the buy and trade) are being called, otherwises reject
 #[derive(Accounts)]
 #[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8, escrow_auth_bump: u8)]
 pub struct TradeNftForSol<'info> {
     /// CHECK: just reading pubkey
+
+    #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
     #[account(mut, seeds = [b"carnival", exhibit.key().as_ref()], bump)]
@@ -64,7 +63,7 @@ pub struct TradeNftForSol<'info> {
     #[account(mut)]
     pub nft_artifact: AccountInfo<'info>,
 
-    #[account(mut, address = booth.booth_owner)]
+    #[account(mut)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -101,6 +100,8 @@ pub fn trade_nft_for_sol(
             &[escrow_auth_bump],
         ]],
     )?;
+
+    ctx.accounts.booth.sol = ctx.accounts.booth.sol - ctx.accounts.booth.spot_price;
 
     // check booth passed in is correct delegate for nft
 
@@ -144,7 +145,8 @@ pub fn trade_nft_for_sol(
     let current_spot_price = ctx.accounts.booth.spot_price;
     let delta = ctx.accounts.booth.delta;
 
-    if ctx.accounts.booth.curve == CurveType::Linear {
+    if ctx.accounts.booth.curve == 0 {
+        // linear
         let new_spot_price = ctx
             .accounts
             .booth
@@ -154,6 +156,7 @@ pub fn trade_nft_for_sol(
 
         ctx.accounts.booth.spot_price = new_spot_price;
     } else {
+        // exponential
         // TODO this is a very naive calculation, fix it later
         // CREDIT: https://github.com/RohanKapurDEV/sudoswap-sol/
         let new_spot_price = ctx
