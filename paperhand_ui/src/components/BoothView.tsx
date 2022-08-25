@@ -68,25 +68,34 @@ const BoothView = ({
   return (
     <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 items-center">
       <div className="flex flex-col p-4 m-2">
-        <div className="flex flex row">
-          <h1
-            className={`text-xl font-extrabold p-2 ${!left && "opacity-40"}`}
-            onClick={() => {
-              setViewBooths(boothList);
-              setLeft(true);
-            }}
+        <div className="flex flex row justify-between">
+          <div className="flex flex-row">
+            {" "}
+            <h1
+              className={`text-xl font-extrabold p-2 ${!left && "opacity-40"}`}
+              onClick={() => {
+                setViewBooths(boothList);
+                setLeft(true);
+              }}
+            >
+              All Booths
+            </h1>
+            <h1
+              className={`text-xl font-extrabold p-2 ${left && "opacity-40"}`}
+              onClick={() => {
+                setViewBooths(userBooths);
+                setLeft(false);
+              }}
+            >
+              Your Booths
+            </h1>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => router.push(asPath + "/new_booth")}
           >
-            All Booths
-          </h1>
-          <h1
-            className={`text-xl font-extrabold p-2 ${left && "opacity-40"}`}
-            onClick={() => {
-              setViewBooths(userBooths);
-              setLeft(false);
-            }}
-          >
-            Your Booths
-          </h1>
+            Create a Booth
+          </button>
         </div>
         <div className="flex flex-row flex-wrap gap-4 place-items-stretch auto-cols-max">
           {viewBooths && (
