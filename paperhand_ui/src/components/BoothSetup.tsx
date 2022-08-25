@@ -20,7 +20,6 @@ const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
 
   async function executeCreateBooth() {
     console.log("fee", fee);
-    console.log("price", price);
     console.log("nfts", chosenNfts);
 
     await instructionExecuteCreateBooth(

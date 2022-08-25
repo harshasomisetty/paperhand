@@ -18,11 +18,19 @@ export async function getNftDerivedAddresses(nft: Nft): Promise<{
   // export async function getVoucherAddress(nft: Nft): Promise<PublicKey[]> {
   let seeds: Buffer[] = [];
 
+  if (!nft.metadataTask.isRunning()) {
+    await nft.metadataTask.run();
+  } else {
+    await nft.metadataTask.reset().run();
+  }
+
   nft.creators?.forEach((creatorKey: Creator) => {
     if (creatorKey.verified) {
       seeds.push(creatorKey.address.toBuffer());
     }
   });
+
+  console.log("Symbol", nft.metadata.symbol);
 
   let [exhibit] = await PublicKey.findProgramAddress(
     [...seeds, Buffer.from("exhibit"), Buffer.from(nft.metadata?.symbol)],

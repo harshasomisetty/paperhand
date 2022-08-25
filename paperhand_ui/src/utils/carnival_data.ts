@@ -46,7 +46,6 @@ export async function getAllBooths(
 
   let multipleBooths = await Carnival.account.booth.fetchMultiple(booths);
 
-  console.log("multiple booths", multipleBooths);
   let boothInfos: Record<number, { publicKey: PublicKey; account: any }> = {};
 
   for (let i = 0; i < boothIdCount; i++) {

@@ -24,49 +24,74 @@ import {
 } from "@/utils/carnival_data";
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import BoothCard from "./BoothCard";
+import { NftContext } from "@/context/NftContext";
 
-const BoothView = ({
-  boothList,
-  exhibitSymbol,
-}: {
-  boothList: Record<
-    number,
-    { publicKey: PublicKey; data: AccountInfo<Buffer> }
-  >;
-  exhibitSymbol: string;
-}) => {
+const BoothView = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
   const router = useRouter();
   const { wallet, publicKey, signTransaction } = useWallet();
   const { asPath, pathname } = useRouter();
-  const [left, setLeft] = useState(true);
-  const [viewBooths, setViewBooths] = useState(boothList);
+  const [left, setLeft] = useState(false);
+  const [boothList, setBoothList] = useState({});
+  const [userBooths, setUserBooths] = useState({});
+
+  const { exhibitAddress } = router.query;
+  const { connection } = useConnection();
 
   useEffect(() => {
-    setViewBooths(boothList);
-  }, [boothList]);
+    async function fetchData() {
+      let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+      let exhibit = new PublicKey(exhibitAddress);
 
-  const userBooths = {};
+      let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
+      let { carnival } = await getCarnivalAccounts(exhibit);
 
-  Object.keys(boothList).forEach((element, index) => {
-    if (
-      boothList[element].data.boothOwner.toString() === publicKey.toString()
-    ) {
-      userBooths[element] = boothList[element];
+      let numBooths = await getOpenBoothId(carnival, connection, wallet);
+
+      let boothInfos = await getAllBooths(
+        connection,
+        exhibit,
+        numBooths,
+        wallet
+      );
+
+      setBoothList(boothInfos);
+
+      console.log("booths", boothInfos);
+
+      let tempUserBooths = {};
+
+      Object.keys(boothInfos).forEach((element, index) => {
+        console.log("index and element? ", element, index);
+        if (
+          boothInfos[element].data.boothOwner.toString() ===
+          publicKey.toString()
+        ) {
+          let boothKey = boothInfos[index].publicKey.toString();
+          tempUserBooths[boothKey] = boothInfos[index];
+        }
+      });
+
+      console.log("BOOBSTHS", boothInfos);
+
+      console.log("GOT USER BOOTHS", tempUserBooths);
+      setUserBooths(tempUserBooths);
     }
-  });
 
-  const handleClick = (e, booth) => {
+    if (exhibitAddress && publicKey) {
+      fetchData();
+    }
+  }, [publicKey, exhibitAddress]);
+
+  const handleClick = (e, val) => {
     e.preventDefault();
-    // console.log("as path", asPath);
-    router.push(asPath + "/" + boothList[booth].publicKey.toString());
+    router.push(asPath + "/" + val.publicKey.toString());
   };
 
-  if (!viewBooths) {
+  if (!boothList) {
     return <p>loading booth list</p>;
   } else {
   }
 
-  // TODO SET SPOT PRICE
   return (
     <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 items-center">
       <div className="flex flex-col p-4 m-2">
@@ -75,7 +100,6 @@ const BoothView = ({
             <h1
               className={`text-xl font-extrabold p-2 ${!left && "opacity-40"}`}
               onClick={() => {
-                setViewBooths(boothList);
                 setLeft(true);
               }}
             >
@@ -84,7 +108,6 @@ const BoothView = ({
             <h1
               className={`text-xl font-extrabold p-2 ${left && "opacity-40"}`}
               onClick={() => {
-                setViewBooths(userBooths);
                 setLeft(false);
               }}
             >
@@ -99,45 +122,40 @@ const BoothView = ({
           </button>
         </div>
         <div className="flex flex-row flex-wrap gap-4 place-items-stretch auto-cols-max">
-          {viewBooths && (
-            <table className="table">
-              <thead>
-                <tr className="cursor-pointer">
-                  <th>Id</th>
-                  <th>Spot</th>
-                  <th>{exhibitSymbol}s</th>
-                  <th>Sol ◎</th>
-                  <th>Delta</th>
-                  <th>Fee</th>
-                  <th>Volume</th>
-                </tr>
-              </thead>
+          <table className="table">
+            <thead>
+              <tr className="cursor-pointer">
+                <th>Id</th>
+                <th>Spot</th>
+                <th>{exhibitSymbol}s</th>
+                <th>Sol ◎</th>
+                <th>Delta</th>
+                <th>Fee</th>
+                <th>Volume</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {Object.keys(viewBooths).map((booth, ind) => (
-                  <tr
-                    onClick={(e) => {
-                      handleClick(e, booth);
-                    }}
-                    className="hover cursor-pointer"
-                  >
-                    <td>{Number(viewBooths[booth].data.boothId)}</td>
-                    <td>{Number(viewBooths[booth].data.spotPrice)}</td>
-                    <td>{Number(viewBooths[booth].data.nfts)}</td>
-                    <td>
-                      {(
-                        Number(viewBooths[booth].data.sol) / LAMPORTS_PER_SOL
-                      ).toFixed(3)}{" "}
-                      ◎
-                    </td>
-                    <td>{viewBooths[booth].data.delta.toString()}</td>
-                    <td>{Number(viewBooths[booth].data.fee)}</td>
-                    <td>{Number(viewBooths[booth].data.tradeCount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+            <tbody>
+              {Object.values(left ? boothList : userBooths).map((val) => (
+                <tr
+                  onClick={(e) => {
+                    handleClick(e, val);
+                  }}
+                  className="hover cursor-pointer"
+                >
+                  <td>{Number(val.data.boothId)}</td>
+                  <td>{Number(val.data.spotPrice)}</td>
+                  <td>{Number(val.data.nfts)}</td>
+                  <td>
+                    {(Number(val.data.sol) / LAMPORTS_PER_SOL).toFixed(3)} ◎
+                  </td>
+                  <td>{val.data.delta.toString()}</td>
+                  <td>{Number(val.data.fee)}</td>
+                  <td>{Number(val.data.tradeCount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

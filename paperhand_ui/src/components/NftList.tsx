@@ -1,29 +1,93 @@
 import NftCard from "@/components/NftCard";
+import { NftContext } from "@/context/NftContext";
+import { getCarnivalAccounts } from "@/utils/accountDerivation";
+import {
+  getAllBooths,
+  getBoothNfts,
+  getOpenBoothId,
+} from "@/utils/carnival_data";
 import { getAllNftImages } from "@/utils/retrieveData";
-import { Nft } from "@metaplex-foundation/js";
-import { useEffect, useState } from "react";
+import { Metaplex, Nft } from "@metaplex-foundation/js";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import { useRouter } from "next/router";
+import { useContext, useEffect, useState } from "react";
 
 export default function NftList({
   nftList,
   exhibitKey,
   title,
-  prices,
 }: {
   nftList: Nft[] | null;
   exhibitKey?: string;
   title?: string;
-  prices?: number[];
 }) {
   const [nftImages, setNftImages] = useState<string[]>();
+  const { connection } = useConnection();
+  const { wallet, publicKey, signTransaction } = useWallet();
 
+  const router = useRouter();
+  const { exhibitAddress } = router.query;
+
+  const { nftPrices, setNftPrices, groupDetails, setGroupDetails } =
+    useContext(NftContext);
+
+  const mx = Metaplex.make(connection);
   useEffect(() => {
     // fetch data is run twice, so need to see if metadata task is currently running
     async function fetchData() {
       let images = await getAllNftImages(nftList);
       setNftImages(images);
+
+      let exhibit = new PublicKey(exhibitAddress);
+      let { carnival } = await getCarnivalAccounts(exhibit);
+
+      let numBooths = await getOpenBoothId(carnival, connection, wallet);
+
+      let boothInfos = await getAllBooths(
+        connection,
+        exhibit,
+        numBooths,
+        wallet
+      );
+
+      // nft maps to mint
+      let nftsToBooth: Record<string, string> = {};
+      let boothNfts: Record<string, Nft[]> = {};
+
+      let tempGroupDetails: {
+        [groupKey: string]: { startPrice: number; delta: number; fee: number };
+      } = {};
+
+      // TODO CALC THESE
+      // nftPrices?: { [mintKey: string]: string | number };
+      // groupDetails?: { [mintKey: string]: number };
+
+      for (let index of Object.keys(boothInfos)) {
+        let booth = boothInfos[index].publicKey;
+        let boothInfo = boothInfos[index].data;
+
+        let fetchedNfts = await getBoothNfts(connection, mx, exhibit, booth);
+
+        for (let nft of fetchedNfts) {
+          nftsToBooth[nft.mint.toString()] = booth.toString();
+        }
+        tempGroupDetails[booth.toString()] = {
+          startPrice: boothInfo.spotPrice,
+          delta: boothInfo.delta,
+          fee: boothInfo.fee,
+        };
+        boothNfts[booth.toString()] = fetchedNfts;
+      }
+
+      setNftPrices(nftsToBooth);
+      setGroupDetails(tempGroupDetails);
     }
-    fetchData();
-  }, [nftList]);
+    if ((exhibitAddress, wallet)) {
+      fetchData();
+    }
+  }, [nftList, exhibitAddress]);
+
   return (
     <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300">
       <div className="flex flex-col p-4 m-2">
@@ -34,20 +98,20 @@ export default function NftList({
               {nftImages &&
                 nftList.map((nft: Nft, ind) => (
                   <div>
-                    {prices && prices[ind] ? (
-                      <NftCard
-                        nft={nft}
-                        nftImage={nftImages[ind]}
-                        exhibitKey={exhibitKey}
-                        key={ind}
-                        price={prices[ind]}
-                        index={ind}
-                      />
+                    {nftPrices ? (
+                      <>
+                        <NftCard
+                          nft={nft}
+                          nftImage={nftImages[ind]}
+                          key={ind}
+                          price={nftPrices[nft.mint.toString()]}
+                          index={ind}
+                        />
+                      </>
                     ) : (
                       <NftCard
                         nft={nft}
                         nftImage={nftImages[ind]}
-                        exhibitKey={exhibitKey}
                         key={ind}
                         index={ind}
                       />

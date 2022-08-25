@@ -16,6 +16,12 @@ interface NftContextInterface {
   clearNfts: () => void;
   addNft: (pickedNft: Nft) => void;
   removeNft: (pickedNft: Nft) => void;
+  nftPrices: { [mintKey: string]: string | number };
+  setNftPrices: () => void;
+  groupDetails: {
+    [groupKey: string]: { startPrice: number; delta: number; fee: number };
+  };
+  setGroupDetails: () => void;
 }
 
 export const NftContext = createContext<NftContextInterface>({
@@ -24,12 +30,25 @@ export const NftContext = createContext<NftContextInterface>({
   clearNfts: () => {},
   addNft: (pickedNft: Nft) => {},
   removeNft: (pickedNft: Nft) => {},
+  nftPrices: {},
+  setNftPrices: () => {},
+  groupDetails: {},
+  setGroupDetails: () => {},
 });
 
 export const useNftContext = () => useContext(NftContext);
 
 export const NftProvider = ({ children }) => {
   const [chosenNfts, setChosenNfts] = useState<Record<string, Nft>>({});
+
+  // nft prices maps from nft mint to either group key, or a specific price
+  const [nftPrices, setNftPrices] = useState<{
+    [mintKey: string]: string | number;
+  }>({});
+
+  const [groupDetails, setGroupDetails] = useState<{
+    [groupKey: string]: { startPrice: number; delta: number; fee: number };
+  }>({});
 
   let oldChosen = { ...chosenNfts };
 
@@ -52,19 +71,19 @@ export const NftProvider = ({ children }) => {
     setChosenNfts({});
   }
 
-  // function indexedNfts(indexed: Nft[]) {
-  //   let oldChosen = { ...chosenNfts };
-  //   if (oldChosen[pickedNft.mint.toString()]) {
-  //     delete oldChosen[pickedNft.mint.toString()];
-  //   } else {
-  //     oldChosen[pickedNft.mint.toString()] = pickedNft;
-  //   }
-  //   setChosenNfts(oldChosen);
-  // }
-
   return (
     <NftContext.Provider
-      value={{ chosenNfts, chooseNft, addNft, removeNft, clearNfts }}
+      value={{
+        chosenNfts,
+        chooseNft,
+        addNft,
+        removeNft,
+        clearNfts,
+        nftPrices,
+        setNftPrices,
+        groupDetails,
+        setGroupDetails,
+      }}
     >
       {children}
     </NftContext.Provider>
