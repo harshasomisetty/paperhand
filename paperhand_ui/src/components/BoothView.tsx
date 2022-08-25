@@ -30,7 +30,7 @@ const BoothView = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
   const router = useRouter();
   const { wallet, publicKey, signTransaction } = useWallet();
   const { asPath, pathname } = useRouter();
-  const [left, setLeft] = useState(false);
+  const [left, setLeft] = useState(true);
   const [boothList, setBoothList] = useState({});
   const [userBooths, setUserBooths] = useState({});
 
@@ -56,12 +56,9 @@ const BoothView = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
 
       setBoothList(boothInfos);
 
-      console.log("booths", boothInfos);
-
       let tempUserBooths = {};
 
       Object.keys(boothInfos).forEach((element, index) => {
-        console.log("index and element? ", element, index);
         if (
           boothInfos[element].data.boothOwner.toString() ===
           publicKey.toString()
@@ -71,9 +68,6 @@ const BoothView = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
         }
       });
 
-      console.log("BOOBSTHS", boothInfos);
-
-      console.log("GOT USER BOOTHS", tempUserBooths);
       setUserBooths(tempUserBooths);
     }
 

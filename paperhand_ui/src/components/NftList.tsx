@@ -59,10 +59,6 @@ export default function NftList({
         [groupKey: string]: { startPrice: number; delta: number; fee: number };
       } = {};
 
-      // TODO CALC THESE
-      // nftPrices?: { [mintKey: string]: string | number };
-      // groupDetails?: { [mintKey: string]: number };
-
       for (let index of Object.keys(boothInfos)) {
         let booth = boothInfos[index].publicKey;
         let boothInfo = boothInfos[index].data;

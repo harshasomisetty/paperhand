@@ -6,6 +6,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getNftDerivedAddresses } from "@/utils/accountDerivation";
 import { getAccount } from "@solana/spl-token";
 import { useConnection } from "@solana/wallet-adapter-react";
+import BN from "bn.js";
 
 export default function NftCard({
   nft,
@@ -19,8 +20,15 @@ export default function NftCard({
   index: number;
   price?: number | string;
 }) {
-  const { chosenNfts, chooseNft, removeNft, addNft, groupDetails } =
-    useContext(NftContext);
+  const {
+    chosenNfts,
+    chooseNft,
+    removeNft,
+    addNft,
+    groupDetails,
+    nftPrices,
+    setNftPrices,
+  } = useContext(NftContext);
   const { connection } = useConnection();
 
   const [exhibitKey, setExhibitKey] = useState();
@@ -29,8 +37,6 @@ export default function NftCard({
 
   useEffect(() => {
     async function fetchData() {
-      console.log("pre sending nft", nft, nft.metadata.symbol);
-
       let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
         nft
       );
@@ -58,29 +64,51 @@ export default function NftCard({
 
         let boothDeet = oldDetails[boothKey.toString()];
 
+        let newBoothDeet = boothDeet;
+
+        let oldNftPrices = { ...nftPrices };
+
         if (oldChosen[nft.mint.toString()]) {
           console.log("backwards booth deet", boothDeet);
-          let newBoothDeet = boothDeet;
           newBoothDeet.startPrice =
             newBoothDeet.startPrice - newBoothDeet.delta;
-          oldDetails[boothKey.toString()] = newBoothDeet;
+
           console.log("backwards after", newBoothDeet);
-          // oldDetails[]
+          oldNftPrices[nft.mint.toString()] = boothKey.toString();
+
           removeNft(nft);
-          // TODO Lock in nft price
         } else {
           console.log("forwards booth deet", boothDeet);
-          let newBoothDeet = boothDeet;
+
           console.log(
             "prices? ",
             Number(newBoothDeet.startPrice + newBoothDeet.delta)
           );
-          newBoothDeet.startPrice =
-            newBoothDeet.startPrice + newBoothDeet.delta;
-          oldDetails[boothKey.toString()] = newBoothDeet;
-          console.log("backwards after", newBoothDeet);
+
+          // TODO Lock in nft price
+
+          console.log("locking in pirce", Number(newBoothDeet.startPrice));
+          oldNftPrices[nft.mint.toString()] = Number(newBoothDeet.startPrice);
+          console.log(
+            "type of error?",
+            typeof oldNftPrices[nft.mint.toString()],
+            oldNftPrices[nft.mint.toString()]
+          );
+          setNftPrices(oldNftPrices);
+
+          newBoothDeet.startPrice = new BN(
+            Number(newBoothDeet.startPrice) + Number(newBoothDeet.delta)
+          );
+
+          console.log(
+            "forwards after",
+            Number(newBoothDeet.startPrice),
+            Number(newBoothDeet.delta)
+          );
           addNft(nft);
         }
+
+        /* oldDetails[boothKey.toString()] = newBoothDeet; */
 
         /* chooseNft(nft); */
       }}

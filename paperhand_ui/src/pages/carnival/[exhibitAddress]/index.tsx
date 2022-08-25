@@ -44,7 +44,7 @@ const CarnivalPage = () => {
     Record<number, { publicKey: PublicKey; account: AccountInfo<Buffer> }>
   >({});
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
-  const [tab, setTab] = useState(2);
+  const [tab, setTab] = useState(0);
 
   const { chosenNfts, clearNfts } = useContext(NftContext);
 
