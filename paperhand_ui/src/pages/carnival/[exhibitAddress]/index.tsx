@@ -26,7 +26,7 @@ import {
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import NftList from "@/components/NftList";
 import CarnivalInfoCard from "@/components/CarnivalInfoCard";
-import BoothList from "@/components/BoothList";
+import BoothView from "@/components/BoothView";
 import CarnivalBidCard from "@/components/CarnivalBidCard";
 import { NftProvider } from "@/context/NftContext";
 
@@ -160,11 +160,7 @@ const CarnivalPage = () => {
           )}
           {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
           {tab == 2 && (
-            <BoothList
-              boothList={booths}
-              exhibitSymbol={exhibitSymbol}
-              title={"Existing Booths"}
-            />
+            <BoothView boothList={booths} exhibitSymbol={exhibitSymbol} />
           )}
         </div>
       </div>
