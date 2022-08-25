@@ -46,7 +46,7 @@ const CarnivalBidCard = ({
 
   // TODO Add SOL COST, how many selected nfts
   return (
-    <div className="card w-max max-w-sm border border-neutral-focus shadow-lg bg-base-300">
+    <div className="card card-side border border-neutral-focus bg-base-300 shadow-xl min-w-max m-7 p-4">
       <div className="card-body space-y-7">
         <h2 className="card-title">Buy NFTs</h2>
         <div className="flex flex-col space-y-7">

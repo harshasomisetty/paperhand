@@ -37,7 +37,7 @@ const CarnivalInfoCard = ({
     return <p>Loading Images!</p>;
   }
   return (
-    <div className="card card-side bg-base-300 shadow-xl min-w-max m-7 p-4">
+    <div className="card card-side border border-neutral-focus bg-base-300 shadow-xl min-w-max m-7 p-4">
       <div className="avatar">
         <div className="w-32 rounded-full">
           <DisplayImages images={exhibitImages} />

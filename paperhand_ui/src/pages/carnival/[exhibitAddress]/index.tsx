@@ -115,7 +115,7 @@ const CarnivalPage = () => {
   return (
     <NftProvider>
       <div className="grid grid-cols-3">
-        <div className="flex flex-col w-1/2">
+        <div className="flex flex-col items-stretch col-span-1">
           <CarnivalInfoCard
             carnivalNfts={boothNfts}
             exhibitSymbol={exhibitSymbol}
