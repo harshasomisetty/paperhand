@@ -16,7 +16,6 @@ use crate::state::accounts::{Booth, CarnivalAccount};
 #[instruction(booth_id: u64, carnival_auth_bump: u8, booth_bump: u8, escrow_auth_bump: u8)]
 pub struct TradeNftForSol<'info> {
     /// CHECK: just reading pubkey
-
     #[account(mut)]
     pub exhibit: AccountInfo<'info>,
 
@@ -41,7 +40,6 @@ pub struct TradeNftForSol<'info> {
         bump
     )]
     pub escrow_sol: AccountInfo<'info>,
-
     #[account(mut)]
     pub voucher_mint: Account<'info, Mint>,
 
@@ -65,7 +63,6 @@ pub struct TradeNftForSol<'info> {
 
     #[account(mut)]
     pub signer: Signer<'info>,
-
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
@@ -80,7 +77,7 @@ pub fn trade_nft_for_sol(
     booth_bump: u8,
     escrow_auth_bump: u8,
 ) -> Result<()> {
-    // check user transfer enough sol
+    msg!("in trade_nft_for_sol");
 
     // user withdraws sol
     invoke_signed(
