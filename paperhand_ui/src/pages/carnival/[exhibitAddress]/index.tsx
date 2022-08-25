@@ -46,7 +46,8 @@ const CarnivalPage = () => {
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
   const [tab, setTab] = useState(0);
 
-  const { chosenNfts, clearNfts } = useContext(NftContext);
+  const { chosenNfts, clearNfts, nftPrices, groupDetails } =
+    useContext(NftContext);
 
   // TODO dict of chosen nfts that map from mint to price
   // TODO dict of nft mint that maps to booth
@@ -121,6 +122,7 @@ const CarnivalPage = () => {
             floor={floor}
           />
           <CarnivalBidCard
+            exhibitSymbol={exhibitSymbol}
             carnivalNfts={Object.keys(boothNfts).reduce(function (res, v) {
               return res.concat(boothNfts[v]);
             }, [])}
