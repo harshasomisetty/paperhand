@@ -37,13 +37,13 @@ const BoothView = ({
 }) => {
   const router = useRouter();
   const { wallet, publicKey, signTransaction } = useWallet();
-  const { exhibitAddress } = router.query;
-  const { connection } = useConnection();
-
   const { asPath, pathname } = useRouter();
-
   const [left, setLeft] = useState(true);
   const [viewBooths, setViewBooths] = useState(boothList);
+
+  useEffect(() => {
+    setViewBooths(boothList);
+  }, [boothList]);
 
   const userBooths = {};
 
@@ -61,16 +61,17 @@ const BoothView = ({
     router.push(asPath + "/" + boothList[booth].publicKey.toString());
   };
 
-  if (!boothList) {
+  if (!viewBooths) {
     return <p>loading booth list</p>;
+  } else {
   }
+
   // TODO SET SPOT PRICE
   return (
     <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300 items-center">
       <div className="flex flex-col p-4 m-2">
         <div className="flex flex row justify-between">
           <div className="flex flex-row">
-            {" "}
             <h1
               className={`text-xl font-extrabold p-2 ${!left && "opacity-40"}`}
               onClick={() => {
@@ -103,11 +104,9 @@ const BoothView = ({
               <thead>
                 <tr className="cursor-pointer">
                   <th>Id</th>
-                  <th>Type</th>
                   <th>Spot</th>
                   <th>{exhibitSymbol}s</th>
                   <th>Sol ◎</th>
-                  <th>Curve</th>
                   <th>Delta</th>
                   <th>Fee</th>
                   <th>Volume</th>
@@ -123,11 +122,6 @@ const BoothView = ({
                     className="hover cursor-pointer"
                   >
                     <td>{Number(viewBooths[booth].data.boothId)}</td>
-                    <td>
-                      {Object.keys(
-                        viewBooths[booth].data.boothType
-                      )[0].toString()}
-                    </td>
                     <td>{Number(viewBooths[booth].data.spotPrice)}</td>
                     <td>{Number(viewBooths[booth].data.nfts)}</td>
                     <td>
@@ -135,9 +129,6 @@ const BoothView = ({
                         Number(viewBooths[booth].data.sol) / LAMPORTS_PER_SOL
                       ).toFixed(3)}{" "}
                       ◎
-                    </td>
-                    <td>
-                      {Object.keys(viewBooths[booth].data.curve)[0].toString()}
                     </td>
                     <td>{viewBooths[booth].data.delta.toString()}</td>
                     <td>{Number(viewBooths[booth].data.fee)}</td>
