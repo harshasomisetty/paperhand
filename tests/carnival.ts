@@ -64,6 +64,7 @@ describe("carnival", () => {
   let airdropVal = 60 * LAMPORTS_PER_SOL;
 
   let nftList: Nft[][] = [];
+  let solAmts = [4 * LAMPORTS_PER_SOL, 5 * LAMPORTS_PER_SOL];
 
   before("Init create and mint exhibits and Metadata", async () => {
     let airdropees = [creator, ...otherCreators, ...users];
@@ -73,7 +74,6 @@ describe("carnival", () => {
     nftList.push(
       await mintNFTs(metaplex, connection, APE_URIS, otherCreators[0], [
         users[0].publicKey,
-        users[1].publicKey,
       ])
     );
 
@@ -158,14 +158,12 @@ describe("carnival", () => {
   });
 
   it("Made all booths", async () => {
-    // console.log("nft list", nftList);
-
-    let solAmts = [2 * LAMPORTS_PER_SOL, 4 * LAMPORTS_PER_SOL];
+    // start price
 
     let numBooths = 2;
     for (let i = 0; i < numBooths; i++) {
       console.log("Creating booth ", i);
-      let nfts = [nftList[0][i * 4], nftList[0][i * 4 + 2]];
+      let nfts = nftList[0].slice(0 + i * 5, 5 + i * 5);
 
       let { exhibit, nftArtifact } = await getNftDerivedAddresses(nfts[0]);
       let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
@@ -176,7 +174,7 @@ describe("carnival", () => {
         solAmts[i],
         0,
         2,
-        1,
+        0.1 * LAMPORTS_PER_SOL,
         1
       );
       console.log("outside of create carnival booth");
@@ -214,6 +212,7 @@ describe("carnival", () => {
 
     let { exhibit, nftArtifact } = await getNftDerivedAddresses(nftList[0][0]);
     let { carnival, escrowSol } = await getCarnivalAccounts(exhibit);
+
     printAndTest(
       regSol(await connection.getBalance(escrowSol)),
       regSol(solAmts.reduce((partialSum, a) => partialSum + a, 0))
@@ -234,7 +233,7 @@ describe("carnival", () => {
 
       let boothNfts = await getBoothNfts(connection, exhibit, booth);
 
-      printAndTest(boothNfts.length, 2);
+      printAndTest(boothNfts.length, 5);
       console.log("booth nfts", boothNfts[0].name, boothNfts[1].name);
     }
 
@@ -243,7 +242,7 @@ describe("carnival", () => {
     console.log("Finsihed Initing all booths");
   });
 
-  it.skip("Tried inserting SOL and nft to a booth user doens't own", async () => {
+  it("Tried inserting SOL and nft to a booth user doens't own", async () => {
     let transaction = new Transaction();
 
     let boothId = 0;
@@ -311,7 +310,7 @@ describe("carnival", () => {
 
     printAndTest(
       Number(preEscrowBal),
-      Number(postEscrowBal) + 1,
+      Number(postEscrowBal),
       "Escrow Bal didn't change, since deposit not allowed"
     );
   });
@@ -333,7 +332,7 @@ describe("carnival", () => {
     // console.log("parsed arti", parsedArtifact.delegate.toString());
 
     let boothId = 0;
-    let publicKey = users[0].publicKey;
+    let publicKey = users[1].publicKey;
 
     let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
       await getCarnivalAccounts(exhibit);
@@ -357,7 +356,34 @@ describe("carnival", () => {
       publicKey
     );
 
+    if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+      console.log("voucher_wallet_ttx");
+      let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
+        publicKey,
+        userVoucherWallet,
+        publicKey,
+        voucherMint
+      );
+      transaction = transaction.add(voucher_wallet_tx);
+    } else {
+      console.log("user voucher already created");
+    }
+
+    if (!(await checkIfAccountExists(nftUserTokenAddress, connection))) {
+      console.log("user nft_wallet_ttx");
+      let user_nft_tx = createAssociatedTokenAccountInstruction(
+        publicKey,
+        nftUserTokenAddress,
+        publicKey,
+        nft.mint
+      );
+      transaction = transaction.add(user_nft_tx);
+    } else {
+      console.log("user user wallet already created");
+    }
+
     let preEscrowBal = await connection.getBalance(escrowSol);
+    let preFetchedBoothInfo = await Carnival.account.booth.fetch(booth);
 
     let solToNftTx = await Carnival.methods
       .tradeSolForNft(
@@ -389,7 +415,7 @@ describe("carnival", () => {
 
     try {
       connection.confirmTransaction(
-        await sendAndConfirmTransaction(connection, transaction, [users[0]]),
+        await sendAndConfirmTransaction(connection, transaction, [users[1]]),
         "confirmed"
       );
     } catch (error) {
@@ -401,27 +427,31 @@ describe("carnival", () => {
     // TODO get right sol change
 
     printAndTest(
-      Number(preEscrowBal),
-      Number(postEscrowBal) - 1,
+      Number(preEscrowBal) + solAmts[0],
+      Number(postEscrowBal),
       "Gained more sol"
     );
 
-    printAndTest(1, 2, "nft transferred");
+    let postFetchedBoothInfo = await Carnival.account.booth.fetch(booth);
+
+    printAndTest(
+      Number(preFetchedBoothInfo.nfts) - 1,
+      Number(postFetchedBoothInfo.nfts),
+      "nft transferred back"
+    );
   });
 
   it("Sell specific NFTs", async () => {
-    let nft = nftList[0][1];
+    let nft = nftList[0][0];
     let transaction = new Transaction();
 
+    console.log("starting sell secific");
     // TODO find booth id from nft
     // let boothId = await getBoothInfo(connection, exhibit);
 
     let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
       nft
     );
-
-    let parsedArtifact = await getAccount(connection, nftArtifact);
-    // console.log("parsed arti", parsedArtifact.delegate.toString());
 
     let boothId = 0;
     let publicKey = users[1].publicKey;
@@ -432,6 +462,10 @@ describe("carnival", () => {
     let nftUserTokenAddress = await getAssociatedTokenAddress(
       nft.mint,
       publicKey
+    );
+    console.log(
+      "past nftUserTokenAdd?",
+      await checkIfAccountExists(nftUserTokenAddress, connection)
     );
 
     // let nftUser?
@@ -452,14 +486,7 @@ describe("carnival", () => {
 
     let preEscrowBal = await connection.getBalance(escrowSol);
 
-    console.log("", await checkIfAccountExists(userVoucherWallet, connection));
-    console.log(
-      "",
-      await checkIfAccountExists(nftUserTokenAddress, connection)
-    );
-
     if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-      console.log("voucher_wallet_ttx");
       let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
         publicKey,
         userVoucherWallet,
@@ -470,6 +497,8 @@ describe("carnival", () => {
     } else {
       console.log("user voucher already created");
     }
+
+    let preFetchedBoothInfo = await Carnival.account.booth.fetch(booth);
 
     try {
       let nftToSolTx = await Carnival.methods
@@ -514,12 +543,22 @@ describe("carnival", () => {
 
     // TODO get right sol change
 
-    printAndTest(Number(preEscrowBal), Number(postEscrowBal) - 1, "Lost sol");
+    let postFetchedBoothInfo = await Carnival.account.booth.fetch(booth);
 
-    printAndTest(1, 2, "nft transferred");
+    printAndTest(
+      regSol(Number(preEscrowBal) - Number(postFetchedBoothInfo.spotPrice)),
+      regSol(Number(postEscrowBal)),
+      "Lost sol"
+    );
+
+    printAndTest(
+      Number(preFetchedBoothInfo.nfts) + 1,
+      Number(postFetchedBoothInfo.nfts),
+      "nft transferred back"
+    );
   });
 
-  it.skip("Withdraw Funds (close booth)", async () => {
+  it("Withdraw Funds (close booth)", async () => {
     let solAmt = 1.5 * LAMPORTS_PER_SOL;
 
     let nfts = [nftList[0][0], nftList[0][1], nftList[0][2]];

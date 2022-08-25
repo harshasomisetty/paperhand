@@ -5,6 +5,7 @@ use anchor_spl::{
 };
 use exhibition::{program::Exhibition, state::metaplex_anchor::TokenMetadata};
 use solana_program::{
+    native_token::LAMPORTS_PER_SOL,
     program::{invoke, invoke_signed},
     system_instruction,
 };
@@ -77,8 +78,6 @@ pub fn trade_nft_for_sol(
     booth_bump: u8,
     escrow_auth_bump: u8,
 ) -> Result<()> {
-    msg!("in trade_nft_for_sol");
-
     // user withdraws sol
     invoke_signed(
         &system_instruction::transfer(
@@ -142,6 +141,7 @@ pub fn trade_nft_for_sol(
     let current_spot_price = ctx.accounts.booth.spot_price;
     let delta = ctx.accounts.booth.delta;
 
+    // TODO Check if i'm transferring right amt of sol (like am i subtracted delta from from what I'm taking from escrow_sol)
     if ctx.accounts.booth.curve == 0 {
         // linear
         let new_spot_price = ctx
@@ -153,7 +153,6 @@ pub fn trade_nft_for_sol(
 
         ctx.accounts.booth.spot_price = new_spot_price;
     } else {
-        // exponential
         // TODO this is a very naive calculation, fix it later
         // CREDIT: https://github.com/RohanKapurDEV/sudoswap-sol/
         let new_spot_price = ctx
