@@ -5,6 +5,7 @@ import { instructionExecuteCreateBooth } from "@/utils/instructions/carnival";
 import { useContext, useState } from "react";
 import { NftContext } from "@/context/NftContext";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
   const [fee, setFee] = useState<number | null>(1);
@@ -29,7 +30,7 @@ const BoothSetup = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
       price,
       linear,
       2,
-      delta,
+      delta * LAMPORTS_PER_SOL,
       fee,
       connection,
       signTransaction

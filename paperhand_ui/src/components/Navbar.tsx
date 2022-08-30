@@ -7,7 +7,6 @@ const tabs: string[] = ["home", "exhibition", "nftamm", "checkout", "carnival"];
 const Navbar = () => {
   const router = useRouter();
 
-  const { exhibitAddress } = router.query;
   return (
     <div className="navbar flex flex-row justify-between border-b border-neutral ">
       <div className="navbar-start">
@@ -28,11 +27,7 @@ const Navbar = () => {
               } `}
               key={tabName}
             >
-              <Link
-                href={
-                  "/" + tabName + "/" + (exhibitAddress ? exhibitAddress : "")
-                }
-              >
+              <Link href={"/" + tabName}>
                 <div>{tabName.charAt(0).toUpperCase() + tabName.slice(1)}</div>
               </Link>
             </li>

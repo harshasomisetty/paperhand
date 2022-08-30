@@ -18,5 +18,5 @@ export default function DisplayImages({ images }: { images: string[] }) {
   }, []);
 
   const image = images[count % images.length];
-  return <> {images && <img src={image} />}</>;
+  return <>{images && images.length > 0 && <img src={image} />}</>;
 }

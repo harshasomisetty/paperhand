@@ -67,10 +67,13 @@ const CheckoutPage = () => {
 
       const curNfts = [];
       for (let nft of allUserNfts!) {
+        console.log("nft symbols", nft.symbol, exhibitInfo.exhibitSymbol);
         if (nft.symbol == exhibitInfo.exhibitSymbol) {
+          console.log("pushing nft", nft.name);
           curNfts.push(nft);
         }
       }
+      console.log("cur nfts", curNfts);
       setUserNftList(curNfts);
     }
     if (wallet && publicKey && exhibitAddress) {
@@ -124,7 +127,11 @@ const CheckoutPage = () => {
                       </a>
                     </li>
                   </ul>
-                  <BidCard bidSide={bidSide} userNftList={userNftList} />
+                  {bidSide ? (
+                    <BidCard bidSide={bidSide} userNftList={userNftList} />
+                  ) : (
+                    <BidCard bidSide={bidSide} userNftList={userNftList} />
+                  )}
                 </>
               ) : (
                 <p>Loading market data</p>

@@ -58,7 +58,6 @@ export async function getAllBooths(
 }
 
 export async function getBoothInfo(
-  connection: Connection,
   exhibit: PublicKey,
   boothId: number,
   wallet: Wallet

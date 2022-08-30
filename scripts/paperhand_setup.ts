@@ -530,7 +530,7 @@ async function initialFlow() {
     users[0],
     0,
     0,
-    5,
+    0.5 * LAMPORTS_PER_SOL,
     1
   );
 
@@ -542,7 +542,7 @@ async function initialFlow() {
     users[0],
     1,
     2,
-    6,
+    6 * LAMPORTS_PER_SOL,
     2
   );
 }

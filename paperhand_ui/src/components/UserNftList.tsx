@@ -81,6 +81,7 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
         console.log("in symbol", nftSymbol);
         let nfts = colLists[nftSymbol].slice(0, 3);
         let images = await getAllNftImages(nfts);
+        console.log("all nft imaage?", nfts, images, nftSymbol);
         colImages[nftSymbol] = images;
       }
       setNftColPics(colImages);
@@ -91,16 +92,19 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
   }, [nftList]);
 
   async function curUserView(nftSymbol: string) {
-    let nft = nftColLists[nftSymbol][0];
-    let { exhibit } = await getNftDerivedAddresses(nft);
+    console.log("colLists", nftSymbol);
+    let nfts = nftColLists[nftSymbol];
+    let { exhibit } = await getNftDerivedAddresses(nfts[0]);
     let { checkoutAuth } = await getCheckoutAccounts(exhibit);
 
-    setInited(!(await checkIfAccountExists(checkoutAuth, connection)));
-    console.log("ehxibit", exhibit.toString());
-    let { prices } = await getBidOrderData(exhibit, connection, wallet);
-    console.log("prices", prices);
+    console.log("nftlist", nftColLists[nftSymbol]);
 
-    setAllPrices(prices);
+    // setInited(!(await checkIfAccountExists(checkoutAuth, connection)));
+    // console.log("ehxibit", exhibit.toString());
+    // let { prices } = await getBidOrderData(exhibit, connection, wallet);
+    // console.log("prices", prices);
+
+    // setAllPrices(prices);
   }
 
   return (
@@ -121,6 +125,8 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
                       e.preventDefault();
                       window.location.href = "#" + nftSymbol + "-modal";
                       curUserView(nftSymbol);
+
+                      /* set(nftSymbol); */
                     }}
                   >
                     Your {nftSymbol}s
@@ -132,7 +138,10 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
                           {nftSymbol} Exhibit
                         </h3>
                       </div>
-                      <NftList nftList={nftColLists[nftSymbol]} />
+                      <NftList
+                        nftList={nftColLists[nftSymbol]}
+                        /* exhibitKey={exhibit} */
+                      />
 
                       <div className="sticky bottom-0 left-0 right-0 p-2 pt-4 mt-4 z-20 bg-base-100 border-t border-accent btn-group gap-3 flex flex-row items-end justify-end space-x-6">
                         {inited ? (

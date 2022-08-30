@@ -7,6 +7,7 @@ import { getNftDerivedAddresses } from "@/utils/accountDerivation";
 import { getAccount } from "@solana/spl-token";
 import { useConnection } from "@solana/wallet-adapter-react";
 import BN from "bn.js";
+import { checkIfAccountExists } from "@/utils/retrieveData";
 
 export default function NftCard({
   nft,
@@ -16,7 +17,6 @@ export default function NftCard({
 }: {
   nft: Nft;
   nftImage: string;
-  exhibitKey?: string;
   index: number;
   price?: number | string;
 }) {
@@ -26,6 +26,7 @@ export default function NftCard({
     removeNft,
     addNft,
     groupDetails,
+    setGroupDetails,
     nftPrices,
     setNftPrices,
   } = useContext(NftContext);
@@ -40,15 +41,32 @@ export default function NftCard({
       let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
         nft
       );
-      let parsedArtifact = await getAccount(connection, nftArtifact);
 
-      setExhibitKey(exhibit);
-      setBoothKey(parsedArtifact.delegate);
+      // console.log(
+      // "account exists",
+      // await checkIfAccountExists(nftArtifact, connection)
+      // );
+
+      if (await checkIfAccountExists(nftArtifact, connection)) {
+        let parsedArtifact = await getAccount(connection, nftArtifact);
+        console.log("account exists", parsedArtifact.delegate, nftImage);
+        setExhibitKey(exhibit);
+        setBoothKey(parsedArtifact.delegate);
+      } else {
+        // let parsedArtifact = await getAccount(connection, nftArtifact);
+        // console.log("parsed arti", parsedArtifact);
+        // setExhibitKey(exhibit);
+        // setBoothKey(parsedArtifact.delegate);
+      }
     }
     if (nft && nft.metadata) {
       fetchData();
     }
   }, [nft]);
+
+  // if (!boothKey) {
+  // return <p>no booth key</p>;
+  // }
 
   return (
     <div
@@ -59,69 +77,61 @@ export default function NftCard({
       onClick={() => {
         let oldChosen = { ...chosenNfts };
         let oldDetails = { ...groupDetails };
-        /* console.log("old details", oldDetails); */
-        /* console.log("clicked nft", nft); */
-
-        let boothDeet = oldDetails[boothKey.toString()];
-
-        let newBoothDeet = boothDeet;
-
         let oldNftPrices = { ...nftPrices };
 
+        if (boothKey) {
+          let boothDeet = oldDetails[boothKey.toString()];
+
+          let newBoothDeet = boothDeet;
+
+          if (price) {
+            if (oldChosen[nft.mint.toString()]) {
+              oldNftPrices[nft.mint.toString()] = boothKey.toString();
+
+              newBoothDeet.startPrice =
+                Number(newBoothDeet.startPrice) - Number(newBoothDeet.delta);
+            } else {
+              oldNftPrices[nft.mint.toString()] = Number(
+                newBoothDeet.startPrice
+              );
+
+              newBoothDeet.startPrice =
+                Number(newBoothDeet.startPrice) + Number(newBoothDeet.delta);
+            }
+
+            oldDetails[boothKey.toString()] = newBoothDeet;
+            setGroupDetails(oldDetails);
+            setNftPrices(oldNftPrices);
+          }
+        }
         if (oldChosen[nft.mint.toString()]) {
-          console.log("backwards booth deet", boothDeet);
-          newBoothDeet.startPrice =
-            newBoothDeet.startPrice - newBoothDeet.delta;
-
-          console.log("backwards after", newBoothDeet);
-          oldNftPrices[nft.mint.toString()] = boothKey.toString();
-
           removeNft(nft);
         } else {
-          console.log("forwards booth deet", boothDeet);
-
-          console.log(
-            "prices? ",
-            Number(newBoothDeet.startPrice + newBoothDeet.delta)
-          );
-
-          // TODO Lock in nft price
-
-          console.log("locking in pirce", Number(newBoothDeet.startPrice));
-          oldNftPrices[nft.mint.toString()] = Number(newBoothDeet.startPrice);
-          console.log(
-            "type of error?",
-            typeof oldNftPrices[nft.mint.toString()],
-            oldNftPrices[nft.mint.toString()]
-          );
-          setNftPrices(oldNftPrices);
-
-          newBoothDeet.startPrice = new BN(
-            Number(newBoothDeet.startPrice) + Number(newBoothDeet.delta)
-          );
-
-          console.log(
-            "forwards after",
-            Number(newBoothDeet.startPrice),
-            Number(newBoothDeet.delta)
-          );
           addNft(nft);
         }
-
-        /* oldDetails[boothKey.toString()] = newBoothDeet; */
-
-        /* chooseNft(nft); */
       }}
     >
       {nftImage ? (
         <figure>
+          {exhibitKey && (
+            <div className="absolute left-1.5 top-1.5">
+              <Link
+                href={"/exhibition/" + exhibitKey + "/" + nft.mint.toString()}
+              >
+                <button className="btn  btn-info btn-circle btn-xs btn-outline hover:btn-info">
+                  i
+                </button>
+              </Link>
+            </div>
+          )}
+
           <img src={nftImage} alt={nft.name} />
         </figure>
       ) : (
         <p>loading image</p>
       )}
 
-      <div className="card-body flex flex-row justify-between">
+      <div className="card-body">
         <div>
           <h2 className="card-title">{nft.name}</h2>
           {!exhibitKey && (
@@ -130,34 +140,18 @@ export default function NftCard({
               collection
             </p>
           )}
-          <div className="stat">
-            <div className="stat-value">
-              {Number(
-                (typeof price === "string"
-                  ? Number(groupDetails[price].startPrice)
-                  : price) / LAMPORTS_PER_SOL
-              ).toFixed(2)}{" "}
-              ◎
-            </div>
-          </div>
         </div>
-        {exhibitKey && (
-          <div className="card-actions">
-            <Link
-              href={"/exhibition/" + exhibitKey + "/" + nft.mint.toString()}
-            >
-              <button className="btn btn-info">info</button>
-            </Link>
+        {price && (
+          <div className="stat-value text-xl bg-neutral-focus rounded-xl px-2">
+            {Number(
+              (typeof price === "string"
+                ? Number(groupDetails[price].startPrice)
+                : price) / LAMPORTS_PER_SOL
+            ).toFixed(2)}{" "}
+            ◎
           </div>
         )}
       </div>
     </div>
   );
-}
-function removeNft(pickedNft: any) {
-  throw new Error("Function not implemented.");
-}
-
-function addNft(pickedNft: any) {
-  throw new Error("Function not implemented.");
 }

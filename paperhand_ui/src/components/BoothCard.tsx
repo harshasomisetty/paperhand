@@ -16,24 +16,20 @@ const BoothCard = ({
 
   function mapBoothType() {
     console.log("booth info map type", boothInfo);
-    let type = Object.keys(boothInfo.boothType)[0].toString();
-    if (type == "buy") {
-      return "Buy " + exhibitSymbol;
-    } else if (type == "sell") {
-      return "Sell " + exhibitSymbol;
+    // console.log("object stuf", Object.keys(boothInfo).boothInfo);
+    // let type = Object.keys(boothInfo).boothInfo;
+    let type = boothInfo.boothType;
+    if (type == 0) {
+      return "Buy ";
+    } else if (type == 1) {
+      return "Sell ";
     } else {
-      return "Trade " + exhibitSymbol;
+      return "Trade ";
     }
   }
 
-  // buy / sell / trade
-  // spot price
-  // balance
-  // bonding
-  // delta
   // fee
   // volume
-  //
   return (
     <div>
       <div className="card card-side justify-between space-y-2 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300">
@@ -45,9 +41,6 @@ const BoothCard = ({
               </div>
             </div>
           )}
-
-          <p>{mapBoothType()}</p>
-          <p className="truncate">Booth owner</p>
         </div>
         <table className="table">
           <tbody>
@@ -56,20 +49,30 @@ const BoothCard = ({
               <td>{Number(boothInfo.boothId)}</td>
             </tr>
             <tr>
-              <th>Sol</th>
+              <th>Trade Type</th>
+              <td>{mapBoothType()}</td>
+            </tr>
+            <tr>
+              <th>SOL Value</th>
               <td>{(Number(boothInfo.sol) / LAMPORTS_PER_SOL).toFixed(3)}</td>
             </tr>
             <tr>
-              <th>NFTs:</th>
+              <th>NFT Count</th>
               <td>{Number(boothInfo.nfts)}</td>
             </tr>
             <tr>
               <th>Curve: </th>
-              <td>{Object.keys(boothInfo.curve)[0].toString()}</td>
+              <td>{boothInfo.curve == 0 ? "Linear" : "Exponential"}</td>
+            </tr>
+            <tr>
+              <th>Start Price: </th>
+              <td>
+                {Number(boothInfo.spotPrice / LAMPORTS_PER_SOL).toFixed(3)}
+              </td>
             </tr>
             <tr>
               <th>Delta: </th>
-              <td>{boothInfo.delta.toString()}</td>
+              <td>{Number(boothInfo.delta / LAMPORTS_PER_SOL).toFixed(3)}</td>
             </tr>
           </tbody>
         </table>

@@ -1,6 +1,9 @@
 import NftCard from "@/components/NftCard";
 import { NftContext } from "@/context/NftContext";
-import { getCarnivalAccounts } from "@/utils/accountDerivation";
+import {
+  getCarnivalAccounts,
+  getNftDerivedAddresses,
+} from "@/utils/accountDerivation";
 import {
   getAllBooths,
   getBoothNfts,
@@ -27,7 +30,7 @@ export default function NftList({
   const { wallet, publicKey, signTransaction } = useWallet();
 
   const router = useRouter();
-  const { exhibitAddress } = router.query;
+  // const { exhibitAddress } = router.query;
 
   const { nftPrices, setNftPrices, groupDetails, setGroupDetails } =
     useContext(NftContext);
@@ -39,7 +42,7 @@ export default function NftList({
       let images = await getAllNftImages(nftList);
       setNftImages(images);
 
-      let exhibit = new PublicKey(exhibitAddress);
+      let { exhibit } = await getNftDerivedAddresses(nftList[0]);
       let { carnival } = await getCarnivalAccounts(exhibit);
 
       let numBooths = await getOpenBoothId(carnival, connection, wallet);
@@ -68,32 +71,34 @@ export default function NftList({
         for (let nft of fetchedNfts) {
           nftsToBooth[nft.mint.toString()] = booth.toString();
         }
+
         tempGroupDetails[booth.toString()] = {
           startPrice: boothInfo.spotPrice,
           delta: boothInfo.delta,
           fee: boothInfo.fee,
         };
+
         boothNfts[booth.toString()] = fetchedNfts;
       }
 
       setNftPrices(nftsToBooth);
       setGroupDetails(tempGroupDetails);
     }
-    if (exhibitAddress && wallet) {
+    if (wallet && nftList.length > 0) {
       fetchData();
     }
-  }, [nftList, exhibitAddress]);
+  }, [nftList]);
 
   return (
     <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300">
       <div className="flex flex-col p-4 m-2">
         {title && <h1 className="text-xl font-extrabold p-2">{title}</h1>}
         <div className="flex flex-row flex-wrap gap-4 place-items-stretch auto-cols-max">
-          {nftList.length > 0 ? (
+          {nftList && nftList.length > 0 ? (
             <>
               {nftImages &&
                 nftList.map((nft: Nft, ind) => (
-                  <div>
+                  <div key={ind}>
                     {nftPrices ? (
                       <>
                         <NftCard

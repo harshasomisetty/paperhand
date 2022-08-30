@@ -48,6 +48,7 @@ const BidCard = ({
 
   useEffect(() => {
     async function fetchData() {
+      clearNfts();
       let uSol = Number(await connection.getBalance(publicKey));
       setUserSol(uSol);
 
@@ -62,7 +63,6 @@ const BidCard = ({
         wallet,
         connection
       );
-      console.log("uvouchers? ", uVouchers);
       setUserVoucher(uVouchers);
     }
     if (wallet && publicKey) {
@@ -148,7 +148,8 @@ const BidCard = ({
                   +{" "}
                   {allPrices
                     .slice(0, Object.keys(chosenNfts).length)
-                    .reduce((a, b) => a + b, 0)}{" "}
+                    .reduce((a, b) => a + b, 0)
+                    .toFixed(3)}{" "}
                   SOL
                 </div>
               </div>

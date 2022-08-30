@@ -145,7 +145,7 @@ export async function instructionSolToNft(
     // console.log("parsed arti", parsedArtifact.delegate.toString());
 
     // let boothId = boothInfo.boothId;
-    // let boothInfo = await getBoothInfo(connection, exhibit, boothId, wallet);
+    // let boothInfo = await getBoothInfo(exhibit, boothId, wallet);
     let fetchedBoothInfo = await Carnival.account.booth.fetch(booth1);
     let boothId = fetchedBoothInfo.boothId;
     let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =

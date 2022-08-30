@@ -171,7 +171,11 @@ const Orderbook = () => {
   }
 
   if (!orderbook) {
-    return <p>Loading data</p>;
+    return (
+      <div className="card flex-shrink-0 w-full max-w-sm border border-neutral-focus shadow-lg bg-base-300 p-2">
+        <p className="text-center">No Orders Currently</p>
+      </div>
+    );
   }
 
   return (

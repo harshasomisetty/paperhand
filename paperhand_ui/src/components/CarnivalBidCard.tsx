@@ -16,9 +16,11 @@ import { instructionSolToNft } from "@/utils/instructions/carnival";
 const CarnivalBidCard = ({
   carnivalNfts,
   exhibitSymbol,
+  buy,
 }: {
   carnivalNfts: Nft[];
   exhibitSymbol: string;
+  buy: boolean;
 }) => {
   const { publicKey, wallet, signTransaction } = useWallet();
   const [exhibitImages, setExhibitImages] = useState<string[]>([]);
@@ -60,6 +62,7 @@ const CarnivalBidCard = ({
       connection,
       signTransaction
     );
+
     await instructionSolToNft(
       wallet,
       publicKey,
@@ -67,29 +70,72 @@ const CarnivalBidCard = ({
       connection,
       signTransaction
     );
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
-  // TODO Add SOL COST, how many selected nfts
+
+  async function executeCarnivalNftToSol() {
+    console.log("sol to nft execute");
+    console.log(
+      "wallet",
+      wallet,
+      publicKey,
+      Object.values(chosenNfts),
+      connection,
+      signTransaction
+    );
+    // await instructionNftToSol(
+    //   wallet,
+    //   publicKey,
+    //   Object.values(chosenNfts),
+    //   connection,
+    //   signTransaction
+    // );
+    router.reload(window.location.pathname);
+  }
+
   return (
     <>
       {publicKey && (
         <div className="card card-side border border-neutral-focus bg-base-300 shadow-xl min-w-max m-7 p-4">
           <div className="card-body space-y-7">
-            <h2 className="card-title">Buy NFTs</h2>
+            <h2 className="card-title">Market {buy ? "Buy" : "Sell"} NFTs</h2>
             <div className="flex flex-col space-y-7">
               <div className="stat">
-                <div className="stat-value text-error">{cart} SOL</div>
-                <div className="stat-value text-success">
+                <div
+                  className={`stat-value ${
+                    buy ? "text-error" : "text-success"
+                  }`}
+                >
+                  {cart.toFixed(2)} SOL
+                </div>
+                <div
+                  className={`stat-value ${
+                    buy ? "text-success" : "text-error"
+                  }`}
+                >
                   {Object.keys(chosenNfts).length} {exhibitSymbol}s
                 </div>
               </div>
               {Object.keys(chosenNfts).length > 0 ? (
-                <button
-                  className="btn btn-success"
-                  onClick={executeCarnivalSolToNft}
-                >
-                  Market Buy
-                </button>
+                <>
+                  {buy ? (
+                    <button
+                      className="btn btn-success"
+                      onClick={
+                        buy ? executeCarnivalSolToNft : executeCarnivalNftToSol
+                      }
+                    >
+                      Market {buy ? "Buy" : "Sell"}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-success"
+                      onClick={executeCarnivalSolToNft}
+                    >
+                      Market sell
+                    </button>
+                  )}
+                </>
               ) : (
                 <button className="btn" disabled="disabled">
                   Pick NFT to Buy

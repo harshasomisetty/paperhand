@@ -108,10 +108,6 @@ const CarnivalPage = () => {
     }
   }, [wallet, exhibitAddress, publicKey]);
 
-  // useEffect(() => {
-  //   setNftPrices({});
-  // }, [chosenNfts]);
-
   return (
     <NftProvider>
       <div className="grid grid-cols-3">
@@ -126,6 +122,7 @@ const CarnivalPage = () => {
             carnivalNfts={Object.keys(boothNfts).reduce(function (res, v) {
               return res.concat(boothNfts[v]);
             }, [])}
+            buy={tab == 0 ? true : false}
           />
         </div>
         <div className="flex flex-col items-center col-span-2">
