@@ -43,9 +43,7 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
         <a href={base + "/" + exhibit.toString()}>
           <div className="card-body">
             <DisplayImages images={exhibitImages} />
-            <div className="card-title">
-              {exhibitData.exhibitSymbol} Exhibit
-            </div>
+            <div className="card-title">{exhibitData.exhibitSymbol}</div>
             <button className="btn btn-primary">Enter</button>
           </div>
         </a>

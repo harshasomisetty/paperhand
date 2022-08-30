@@ -32,11 +32,7 @@ const CarnivalPage: NextPage = () => {
   }, []);
   return (
     <>
-      <h2 className="text-2xl font-extrabold m-2">
-        Carnival Trading, Permissionless fully on-chain aggregated nft amm
-        marketplace
-      </h2>
-      <p className="text-xs m-2 mb-4">Sudoswap on Solana</p>
+      <h2 className="text-2xl font-extrabold m-2">solana's pseudo sudoswap</h2>
       {publicKey ? (
         <div>
           {exhibits.length > 0 ? (

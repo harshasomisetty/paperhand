@@ -33,7 +33,7 @@ const NftammPage: NextPage = () => {
   return (
     <>
       <h2 className="text-2xl font-extrabold m-2 mb-4">
-        V1: A primitive NFTAMM
+        literally trade nfts on a homemade amm
       </h2>
       {publicKey ? (
         <div>
