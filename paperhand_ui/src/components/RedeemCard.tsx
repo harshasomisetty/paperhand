@@ -26,18 +26,18 @@ const RedeemCard = ({
 
   const { chosenNfts, clearNfts } = useContext(NftContext);
 
-  // async function depositNft() {
-  //   console.log("depositing", chosenNfts);
+  async function depositNft() {
+    console.log("depositing", chosenNfts);
 
-  //   await instructionDepositNft(
-  //     wallet,
-  //     publicKey,
-  //     signTransaction,
-  //     chosenNfts,
-  //     connection
-  //   );
-  //   router.reload(window.location.pathname);
-  // }
+    await instructionDepositNft(
+      wallet,
+      publicKey,
+      signTransaction,
+      chosenNfts,
+      connection
+    );
+    router.reload(window.location.pathname);
+  }
 
   async function executeAcquireNft() {
     let exhibit = new PublicKey(exhibitAddress);
@@ -56,11 +56,11 @@ const RedeemCard = ({
         console.log("acquire nft buf", error);
       }
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
   }
 
   return (
-    <div className="card min-w-max bg-base-100 shadow-xl">
+    <div className="card bg-base-100 shadow-xl">
       <div className="btn-group justify-center">
         <button
           className={`btn btn-ghost ${
@@ -86,16 +86,17 @@ const RedeemCard = ({
         </button>
       </div>
 
-      <div className="card-body">
+      <div className="card-body items-center text-center space-y-2">
         {/* TODO add in how many nfts are being voucherized with a slider like from bidcard */}
-        <div className="card-actions justify-end">
-          <div className="stat">
-            <div className="stat-title">{leftButton ? "Vouchers" : "NFTs"}</div>
-            <div className="stat-value">
-              {leftButton ? userVoucher : Object.keys(userNftList).length}
-            </div>
+        <div className="stat">
+          <div className="stat-title">
+            {leftButton ? "Vouchers" : "NFTs to Voucherize"}
           </div>
-
+          <div className="stat-value">
+            {leftButton ? userVoucher : Object.keys(chosenNfts).length}
+          </div>
+        </div>
+        <div className="card-actions">
           {leftButton ? (
             <>
               {Object.keys(chosenNfts).length <= userVoucher &&
@@ -111,7 +112,7 @@ const RedeemCard = ({
             <>
               {Object.keys(chosenNfts).length > 0 ? (
                 <button className="btn btn-primary" onClick={depositNft}>
-                  Voucherize NFT
+                  Voucherize
                 </button>
               ) : (
                 <button className="btn btn-disabled">

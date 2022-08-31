@@ -33,7 +33,7 @@ const ExhibitionPage: NextPage = () => {
   return (
     <>
       <h2 className="text-2xl font-extrabold m-2 mb-4">
-        relating nfts to a programmatic contract
+        associate nft to a contract
       </h2>
       {publicKey ? (
         <div>

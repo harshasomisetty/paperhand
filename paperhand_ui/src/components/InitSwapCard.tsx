@@ -28,14 +28,13 @@ const InitSwapCard = ({ userData }: { userData: UserData }) => {
     );
     router.reload(window.location.pathname);
   }
-  console.log(userData);
 
   if (!userData) return <p>sldjfLoading Market Data:</p>;
   return (
     <>
       <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-300">
         <div className="card-body">
-          <h2 className="card-title">Init Shop for this Exhibit!</h2>
+          <h2 className="card-title">Init voucher/sol swap</h2>
 
           <div className="stat place-items-center">
             <div className="stat-title">Vouchers</div>
@@ -86,9 +85,13 @@ const InitSwapCard = ({ userData }: { userData: UserData }) => {
           </div>
         </div>
         <div className="form-control">
-          <button className="btn btn-primary" onClick={executeInitSwap}>
-            Activate Shop
-          </button>
+          {vouchers > 0 ? (
+            <button className="btn btn-primary" onClick={executeInitSwap}>
+              Activate Shop
+            </button>
+          ) : (
+            <button className="btn btn-disabled">Get More vouchers!</button>
+          )}
         </div>
       </div>
     </>

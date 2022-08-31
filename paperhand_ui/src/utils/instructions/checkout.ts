@@ -27,6 +27,7 @@ import {
   checkIfAccountExists,
   getFilledOrdersList,
   getMatchedOrdersAccountData,
+  getUserVouchersFulfilled,
 } from "@/utils/retrieveData";
 import {
   getNftDerivedAddresses,
@@ -383,7 +384,6 @@ export async function instructionAcquireNft(
 
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
-  console.log("fff");
 
   let {
     voucherMint,
@@ -393,88 +393,75 @@ export async function instructionAcquireNft(
     escrowVoucher,
   } = await getCheckoutAccounts(exhibit);
 
-  let transaction = new Transaction();
-
-  let uVouchers = await getUserVouchersFulfilled(
-    exhibit,
-    publicKey,
-    wallet,
-    connection
-  );
+  let matchedOrders = (
+    await getMatchedOrdersAccountData(matchedStorage, wallet)
+  ).matchedOrders;
 
   let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
     publicKey
   );
 
-  let matchedOrders;
-  if (await checkIfAccountExists(matchedStorage, connection)) {
-    let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
-      matchedStorage
+  let transaction = new Transaction();
+
+  let uVoucher = 0;
+  if (await checkIfAccountExists(userVoucherWallet, connection)) {
+    uVoucher = Number((await getAccount(connection, userVoucherWallet)).amount);
+  } else {
+    let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint
     );
-    matchedOrders = matchedOrdersInfo.matchedOrders;
+    transaction = transaction.add(voucher_wallet_tx);
+  }
+
+  let uFilled = 0;
+
+  if (await checkIfAccountExists(matchedStorage, connection)) {
+    let orderFilled: Record<string, number> = await getFilledOrdersList(
+      matchedStorage,
+      wallet
+    );
+    uFilled = orderFilled[publicKey.toString()];
+  }
+
+  if (Object.keys(chosenNfts).length > uVoucher + uFilled) {
+    return;
+  }
+
+  for (let i = 0; i < Object.keys(chosenNfts).length - uVoucher; i++) {
+    console.log("i");
+
+    const fulfill_tx = await Checkout.methods
+      .fulfillOrder(publicKey, checkoutAuthBump)
+      .accounts({
+        exhibit: exhibit,
+        matchedOrders: matchedOrders,
+        matchedStorage: matchedStorage,
+        checkoutAuth: checkoutAuth,
+        voucherMint: voucherMint,
+        escrowVoucher: escrowVoucher,
+        orderVoucher: userVoucherWallet,
+        orderUser: publicKey,
+        user: publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .transaction();
+    transaction = transaction.add(fulfill_tx);
+
+    console.log("added fulfill_tx");
   }
 
   for (let nft of Object.values(chosenNfts)) {
     let { nftArtifact } = await getNftDerivedAddresses(nft);
-    console.log("in for loop", nft);
+    console.log("in for loop", nft.name);
 
     let nftUserTokenAccount = await getAssociatedTokenAddress(
       nft.mint,
       publicKey
     );
-
-    let totalVouchers = 0;
-
-    if (await checkIfAccountExists(userVoucherWallet, connection)) {
-      totalVouchers = Number(
-        (await getAccount(connection, userVoucherWallet)).amount
-      );
-    }
-
-    if (await checkIfAccountExists(matchedStorage, connection)) {
-      let orderFilled: Record<string, number> = await getFilledOrdersList(
-        matchedStorage,
-        wallet
-      );
-
-      totalVouchers = totalVouchers + orderFilled[publicKey.toString()];
-    }
-
-    console.log("voucher cont", currentVouchers);
-
-    if (currentVouchers == 0) {
-      if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-        let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
-          publicKey,
-          userVoucherWallet,
-          publicKey,
-          voucherMint
-        );
-        transaction = transaction.add(voucher_wallet_tx);
-      } else {
-        console.log("user voucher already created");
-      }
-
-      const fulfill_tx = await Checkout.methods
-        .fulfillOrder(publicKey, checkoutAuthBump)
-        .accounts({
-          exhibit: exhibit,
-          matchedOrders: matchedOrders,
-          matchedStorage: matchedStorage,
-          checkoutAuth: checkoutAuth,
-          voucherMint: voucherMint,
-          escrowVoucher: escrowVoucher,
-          orderVoucher: userVoucherWallet,
-          orderUser: publicKey,
-          user: publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .transaction();
-      transaction = transaction.add(fulfill_tx);
-
-      console.log("added fulfill_tx");
-    }
 
     if (!(await checkIfAccountExists(nftUserTokenAccount, connection))) {
       let nft_token_account_tx = createAssociatedTokenAccountInstruction(

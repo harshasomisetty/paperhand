@@ -264,16 +264,21 @@ export async function getUserVouchersFulfilled(
     uVoucher = Number((await getAccount(connection, userVoucherWallet)).amount);
   }
 
-  let uFilled = 0;
+  let uFilled;
 
   if (await checkIfAccountExists(matchedStorage, connection)) {
     let orderFilled: Record<string, number> = await getFilledOrdersList(
       matchedStorage,
       wallet
     );
+    console.log("ordre filled", orderFilled);
     uFilled = orderFilled[publicKey.toString()];
   }
   console.log("uVouchers, uFilled", uVoucher, uFilled);
 
-  return uVoucher + uFilled;
+  if (uFilled) {
+    return uVoucher + uFilled;
+  } else {
+    return uVoucher;
+  }
 }

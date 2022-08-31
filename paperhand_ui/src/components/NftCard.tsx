@@ -49,7 +49,7 @@ export default function NftCard({
 
       if (await checkIfAccountExists(nftArtifact, connection)) {
         let parsedArtifact = await getAccount(connection, nftArtifact);
-        console.log("account exists", parsedArtifact.delegate, nftImage);
+        // console.log("account exists", parsedArtifact.delegate, nftImage);
         setExhibitKey(exhibit);
         setBoothKey(parsedArtifact.delegate);
       } else {
