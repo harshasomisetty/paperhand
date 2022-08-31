@@ -27,7 +27,7 @@ const ExhibitPage = () => {
   const [exhibitNftList, setExhibitNftList] = useState<Nft[]>([]);
   const [userVoucher, setUserVoucher] = useState(0);
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
-  const [leftButton, setLeftButton] = useState<boolean>(false);
+  const [leftButton, setLeftButton] = useState<boolean>(true);
 
   const router = useRouter();
   const { exhibitAddress } = router.query;

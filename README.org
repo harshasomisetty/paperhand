@@ -31,3 +31,5 @@ Carnival is a an aggregator of mulitple amms for a single collection, the idea h
 *** bid on certain features
 **** market sell certain features
 *** check token account pubkeys to see if they are owned properly by the user
+*** make bid and panicsell two seperate cards
+*** make each card reload reset user selected nfts

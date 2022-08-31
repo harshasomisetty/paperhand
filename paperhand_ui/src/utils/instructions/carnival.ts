@@ -35,27 +35,7 @@ import {
   getCarnivalProgramAndProvider,
 } from "../constants";
 import { checkIfAccountExists } from "../retrieveData";
-
-async function manualSendTransaction(
-  transaction: Transaction,
-  publicKey: PublicKey,
-  connection: Connection,
-  signTransaction: any
-) {
-  console.log("in man send tx");
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
-
-  transaction = await signTransaction(transaction);
-
-  const rawTransaction = transaction.serialize();
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  console.log("sent raw, waiting");
-  await connection.confirmTransaction(signature, "confirmed");
-  console.log("sent tx!!!");
-}
+import { manualSendTransaction } from "./general";
 
 export async function instructionExecuteCreateBooth(
   wallet: Wallet,

@@ -32,32 +32,7 @@ import {
   getNftDerivedAddresses,
   getCheckoutAccounts,
 } from "@/utils/accountDerivation";
-
-async function manualSendTransaction(
-  transaction: Transaction,
-  publicKey: PublicKey,
-  connection: Connection,
-  signTransaction: any,
-  otherSigner?: Keypair
-) {
-  console.log("in man send tx");
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
-
-  if (otherSigner) {
-    transaction.sign(otherSigner);
-  }
-
-  transaction = await signTransaction(transaction);
-  const rawTransaction = transaction.serialize();
-
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  console.log("sent raw, waiting");
-  await connection.confirmTransaction(signature, "confirmed");
-  console.log("sent tx!!!");
-}
+import { manualSendTransaction } from "./general";
 
 export async function instructionInitCheckoutExhibit(
   wallet: Wallet,
@@ -408,6 +383,7 @@ export async function instructionAcquireNft(
 
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
+  console.log("fff");
 
   let {
     voucherMint,
@@ -419,15 +395,25 @@ export async function instructionAcquireNft(
 
   let transaction = new Transaction();
 
+  let uVouchers = await getUserVouchersFulfilled(
+    exhibit,
+    publicKey,
+    wallet,
+    connection
+  );
+
   let userVoucherWallet = await getAssociatedTokenAddress(
     voucherMint,
     publicKey
   );
 
-  let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
-    matchedStorage
-  );
-  let matchedOrders = matchedOrdersInfo.matchedOrders;
+  let matchedOrders;
+  if (await checkIfAccountExists(matchedStorage, connection)) {
+    let matchedOrdersInfo = await Checkout.account.matchedStorage.fetch(
+      matchedStorage
+    );
+    matchedOrders = matchedOrdersInfo.matchedOrders;
+  }
 
   for (let nft of Object.values(chosenNfts)) {
     let { nftArtifact } = await getNftDerivedAddresses(nft);
@@ -439,28 +425,23 @@ export async function instructionAcquireNft(
     );
 
     let totalVouchers = 0;
-    let currentVouchers = 0;
+
     if (await checkIfAccountExists(userVoucherWallet, connection)) {
-      currentVouchers = Number(
+      totalVouchers = Number(
         (await getAccount(connection, userVoucherWallet)).amount
       );
     }
-    let orderFilled: Record<string, number> = await getFilledOrdersList(
-      matchedStorage,
-      wallet
-    );
 
-    totalVouchers = currentVouchers + orderFilled[publicKey.toString()];
-    console.log(
-      "voucher cont",
-      currentVouchers,
-      orderFilled[publicKey.toString()]
-    );
+    if (await checkIfAccountExists(matchedStorage, connection)) {
+      let orderFilled: Record<string, number> = await getFilledOrdersList(
+        matchedStorage,
+        wallet
+      );
 
-    if (totalVouchers == 0) {
-      console.log("not enough vouchers");
-      return;
+      totalVouchers = totalVouchers + orderFilled[publicKey.toString()];
     }
+
+    console.log("voucher cont", currentVouchers);
 
     if (currentVouchers == 0) {
       if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
@@ -531,6 +512,7 @@ export async function instructionAcquireNft(
     connection,
     signTransaction
   );
+
   console.log("Acquired nft!");
 }
 

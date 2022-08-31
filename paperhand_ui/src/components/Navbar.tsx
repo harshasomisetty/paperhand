@@ -28,7 +28,7 @@ const Navbar = () => {
               key={tabName}
             >
               <Link href={"/" + tabName}>
-                <div>{tabName.charAt(0).toUpperCase() + tabName.slice(1)}</div>
+                <div>{tabName}</div>
               </Link>
             </li>
           ))}

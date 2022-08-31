@@ -26,33 +26,37 @@ const RedeemCard = ({
 
   const { chosenNfts, clearNfts } = useContext(NftContext);
 
-  async function depositNft() {
-    console.log("depositing", chosenNfts);
+  // async function depositNft() {
+  //   console.log("depositing", chosenNfts);
 
-    await instructionDepositNft(
-      wallet,
-      publicKey,
-      signTransaction,
-      chosenNfts,
-      connection
-    );
-    router.reload(window.location.pathname);
-  }
+  //   await instructionDepositNft(
+  //     wallet,
+  //     publicKey,
+  //     signTransaction,
+  //     chosenNfts,
+  //     connection
+  //   );
+  //   router.reload(window.location.pathname);
+  // }
 
   async function executeAcquireNft() {
     let exhibit = new PublicKey(exhibitAddress);
     if (exhibitAddress) {
       console.log("acquire nft");
-      await instructionAcquireNft(
-        wallet,
-        publicKey,
-        exhibit,
-        signTransaction,
-        connection,
-        chosenNfts
-      );
+      try {
+        await instructionAcquireNft(
+          wallet,
+          publicKey,
+          exhibit,
+          signTransaction,
+          connection,
+          chosenNfts
+        );
+      } catch (error) {
+        console.log("acquire nft buf", error);
+      }
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   return (

@@ -28,26 +28,7 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-
-async function manualSendTransaction(
-  transaction: Transaction,
-  publicKey: PublicKey,
-  connection: Connection,
-  signTransaction: any
-) {
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
-
-  transaction = await signTransaction(transaction);
-
-  const rawTransaction = transaction.serialize();
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  console.log("sent raw, waiting");
-  await connection.confirmTransaction(signature, "confirmed");
-  console.log("sent tx!!!");
-}
+import { manualSendTransaction } from "./general";
 
 export async function instructionDepositNft(
   wallet: Wallet,

@@ -263,6 +263,7 @@ export async function getUserVouchersFulfilled(
   if (await checkIfAccountExists(userVoucherWallet, connection)) {
     uVoucher = Number((await getAccount(connection, userVoucherWallet)).amount);
   }
+
   let uFilled = 0;
 
   if (await checkIfAccountExists(matchedStorage, connection)) {
@@ -272,6 +273,7 @@ export async function getUserVouchersFulfilled(
     );
     uFilled = orderFilled[publicKey.toString()];
   }
+  console.log("uVouchers, uFilled", uVoucher, uFilled);
 
   return uVoucher + uFilled;
 }
