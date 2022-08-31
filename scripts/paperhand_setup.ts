@@ -489,62 +489,62 @@ async function initialFlow() {
   console.log("1) Airdrop, demonstrate create Exhibit with ABCs");
   await airdropAndMint();
 
-  // console.log("2) APE Exhibit: A Primitive NFTAMM");
-  // await insertNft(nftList[0][0], users[0]);
-  // await insertNft(nftList[0][2], users[0]);
-  // await insertNft(nftList[0][4], users[0]);
-  // await insertNft(nftList[0][6], users[0]);
-  // await initializeSwap(nftList[0][0], users[0], [2, 6]);
-  // await instructionDepositLiquidity(nftList[0][0], users[0], [1]);
+  console.log("2) APE Exhibit: A Primitive NFTAMM");
+  await insertNft(nftList[0][0], users[0]);
+  await insertNft(nftList[0][2], users[0]);
+  await insertNft(nftList[0][4], users[0]);
+  await insertNft(nftList[0][6], users[0]);
+  await initializeSwap(nftList[0][0], users[0], [2, 6]);
+  await instructionDepositLiquidity(nftList[0][0], users[0], [1]);
 
-  // console.log("3) Bear Exhibit: Floorbid panic sell");
-  // await new Promise((r) => setTimeout(r, 2000));
-  // await insertNft(nftList[1][0], users[0]);
+  console.log("3) Bear Exhibit: Floorbid panic sell");
+  await new Promise((r) => setTimeout(r, 2000));
+  await insertNft(nftList[1][0], users[0]);
 
-  // await initializeCheckout(nftList[1][0], users[0]);
-  // await makeBids(nftList[1][0], [users[0], users[1]]);
-  // await new Promise((r) => setTimeout(r, 2000));
+  await initializeCheckout(nftList[1][0], users[0]);
+  await makeBids(nftList[1][0], [users[0], users[1]]);
+  await new Promise((r) => setTimeout(r, 2000));
 
-  // console.log("4) God Exhibit: Carnival AKA Sudoswap");
-  // await insertNft(nftList[2][0], users[0]);
-  // console.log("back in main after insert nft");
+  console.log("4) God Exhibit: Carnival AKA Sudoswap");
+  await insertNft(nftList[2][0], users[0]);
+  console.log("back in main after insert nft");
 
-  // let nfts = [
-  //   nftList[2][1],
-  //   nftList[2][2],
-  //   nftList[2][3],
-  //   nftList[2][4],
-  //   nftList[2][5],
-  // ];
+  let nfts = [
+    nftList[2][1],
+    nftList[2][2],
+    nftList[2][3],
+    nftList[2][4],
+    nftList[2][5],
+  ];
 
-  // console.log("about to start init carnival");
-  // await new Promise((r) => setTimeout(r, 2000));
-  // await initCarnival(nfts[0], [users[0]]);
+  console.log("about to start init carnival");
+  await new Promise((r) => setTimeout(r, 2000));
+  await initCarnival(nfts[0], [users[0]]);
 
-  // console.log("marketing");
-  // await new Promise((r) => setTimeout(r, 2000));
-  // console.log("marketed");
-  // await instructionExecuteCreateBooth(
-  //   nfts,
-  //   2 * LAMPORTS_PER_SOL,
-  //   users[0],
-  //   0,
-  //   0,
-  //   0.5 * LAMPORTS_PER_SOL,
-  //   1
-  // );
+  console.log("marketing");
+  await new Promise((r) => setTimeout(r, 2000));
+  console.log("marketed");
+  await instructionExecuteCreateBooth(
+    nfts,
+    2 * LAMPORTS_PER_SOL,
+    users[0],
+    0,
+    0,
+    0.5 * LAMPORTS_PER_SOL,
+    1
+  );
 
-  // let nfts2 = [nftList[2][6], nftList[2][7], nftList[2][8]];
+  let nfts2 = [nftList[2][6], nftList[2][7], nftList[2][8]];
 
-  // await instructionExecuteCreateBooth(
-  //   nfts2,
-  //   10 * LAMPORTS_PER_SOL,
-  //   users[0],
-  //   1,
-  //   2,
-  //   6 * LAMPORTS_PER_SOL,
-  //   2
-  // );
+  await instructionExecuteCreateBooth(
+    nfts2,
+    10 * LAMPORTS_PER_SOL,
+    users[0],
+    1,
+    2,
+    6 * LAMPORTS_PER_SOL,
+    2
+  );
 }
 
 initialFlow();

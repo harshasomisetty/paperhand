@@ -49,13 +49,13 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <Navbar />
-            <BiArrowBack
-              size={40}
-              onClick={() =>
-                router.push(asPath.substring(0, asPath.lastIndexOf("/")))
-              }
-              className="cursor-pointer"
-            />
+            {/* <BiArrowBack */}
+            {/*   size={40} */}
+            {/*   onClick={() => */}
+            {/*     router.push(asPath.substring(0, asPath.lastIndexOf("/"))) */}
+            {/*   } */}
+            {/*   className="cursor-pointer" */}
+            {/* /> */}
             <Component {...pageProps} />
           </WalletModalProvider>
         </WalletProvider>
