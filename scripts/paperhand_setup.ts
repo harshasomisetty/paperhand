@@ -92,13 +92,13 @@ export async function airdropAndMint() {
     ])
   );
   nftList.push(
-    await mintNFTs(metaplex, connection, BEAR_URIS, otherCreators[1], [
+    await mintNFTs(metaplex, connection, GOD_URIS, otherCreators[1], [
       users[0].publicKey,
       users[1].publicKey,
     ])
   );
   nftList.push(
-    await mintNFTs(metaplex, connection, GOD_URIS, otherCreators[0], [
+    await mintNFTs(metaplex, connection, BEAR_URIS, otherCreators[0], [
       users[0].publicKey,
     ])
   );
@@ -497,7 +497,7 @@ async function initialFlow() {
   await initializeSwap(nftList[0][0], users[0], [2, 6]);
   await instructionDepositLiquidity(nftList[0][0], users[0], [1]);
 
-  console.log("3) Bear Exhibit: Floorbid panic sell");
+  console.log("3) God Exhibit: Floorbid panic sell");
   await new Promise((r) => setTimeout(r, 2000));
   await insertNft(nftList[1][0], users[0]);
 
@@ -505,7 +505,7 @@ async function initialFlow() {
   await makeBids(nftList[1][0], [users[0], users[1]]);
   await new Promise((r) => setTimeout(r, 2000));
 
-  console.log("4) God Exhibit: Carnival AKA Sudoswap");
+  console.log("4) Bear Exhibit: Carnival AKA Sudoswap");
   await insertNft(nftList[2][0], users[0]);
   console.log("back in main after insert nft");
 

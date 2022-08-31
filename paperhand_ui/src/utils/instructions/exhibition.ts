@@ -113,6 +113,7 @@ export async function instructionDepositNft(
     transaction = transaction.add(insert_nft_tx);
   }
 
+  console.log("about to depo nft");
   await manualSendTransaction(
     transaction,
     publicKey,

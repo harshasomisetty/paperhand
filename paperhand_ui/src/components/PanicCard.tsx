@@ -24,7 +24,7 @@ import {
 import { getCheckoutAccounts } from "@/utils/accountDerivation";
 import { Nft } from "@metaplex-foundation/js";
 
-const BidCard = ({ userNftList }: { userNftList: Nft[] }) => {
+const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
   const { wallet, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
 
@@ -64,17 +64,16 @@ const BidCard = ({ userNftList }: { userNftList: Nft[] }) => {
     }
   }, [wallet, publicKey]);
 
-  // TODO place multiple bids
-  async function executePlaceBid() {
-    console.log("placing bid");
+  async function executeBidFloor() {
+    console.log("bid floor");
     if (exhibitAddress) {
-      await instructionPlaceBid(
+      await instructionBidFloor(
         wallet,
         publicKey,
         exhibit,
-        bidValue,
         signTransaction,
-        connection
+        connection,
+        chosenNfts
       );
     }
     // router.reload(window.location.pathname);
@@ -86,32 +85,56 @@ const BidCard = ({ userNftList }: { userNftList: Nft[] }) => {
         <div className="flex flex-col space-y-7">
           <div className="shadow flex flex-row items-center">
             <div className="stat">
-              <div className="stat-title">Price</div>
-              <div className="stat-value">
-                {(bidValue / LAMPORTS_PER_SOL).toFixed(2)} SOL
+              <div className="stat-title">
+                phb (Market Sell {Object.keys(chosenNfts).length} NFTs)
               </div>
-              <div className="stat-desc">
-                Sol Balance: {(userSol / LAMPORTS_PER_SOL).toFixed(2)}
+              <div className="stat-value text-success">
+                +{" "}
+                {allPrices
+                  .slice(0, Object.keys(chosenNfts).length)
+                  .reduce((a, b) => a + b, 0)
+                  .toFixed(2)}{" "}
+                SOL
               </div>
             </div>
           </div>
           <input
             type="range"
             min={0}
-            max={userSol}
-            value={bidValue}
+            max={userNftList.length}
+            value={sellSlider}
             className="range range-sm"
-            onChange={(e) => setBidValue(e.target.value)}
+            onChange={(e) => {
+              let eNum = Number(e.target.value);
+
+              if (eNum > sellSlider) {
+                eNum = sellSlider + 1;
+              } else if (eNum < sellSlider) {
+                eNum = sellSlider - 1;
+              } else {
+                return;
+              }
+
+              if (eNum > sellSlider) {
+                if (!chosenNfts[userNftList[eNum - 1].mint.toString()]) {
+                  addNft(userNftList[eNum - 1]);
+                }
+                setSellSlider(eNum);
+              } else if (eNum < sellSlider) {
+                if (chosenNfts[userNftList[eNum].mint.toString()]) {
+                  removeNft(userNftList[eNum]);
+                }
+                setSellSlider(eNum);
+              }
+            }}
           />
-          {bidValue > 0 ? (
-            <>
-              <button className="btn btn-success" onClick={executePlaceBid}>
-                Place Bid
-              </button>
-            </>
+          {Object.keys(chosenNfts).length > 0 ? (
+            <button className="btn btn-error" onClick={executeBidFloor}>
+              Market Sell
+            </button>
           ) : (
             <button className="btn" disabled="disabled">
-              Place Bid
+              Pick NFT To market Sell
             </button>
           )}
         </div>
@@ -120,4 +143,4 @@ const BidCard = ({ userNftList }: { userNftList: Nft[] }) => {
   );
 };
 
-export default BidCard;
+export default PanicCard;

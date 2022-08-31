@@ -15,9 +15,6 @@ const BoothCard = ({
   const { publicKey } = useWallet();
 
   function mapBoothType() {
-    console.log("booth info map type", boothInfo);
-    // console.log("object stuf", Object.keys(boothInfo).boothInfo);
-    // let type = Object.keys(boothInfo).boothInfo;
     let type = boothInfo.boothType;
     if (type == 0) {
       return "Buy ";

@@ -91,6 +91,9 @@ const Orderbook = () => {
           wallet
         );
 
+        for (let i = 0; i < prices.length; i++) {
+          prices[i] = Number(prices[i]).toFixed(2).toString();
+        }
         // let formattedLabels = labels.map((element) => "$" + element.toString());
         setLabels(prices);
         setOrderbook(size);
@@ -231,8 +234,9 @@ const Orderbook = () => {
             <tbody>
               {userBids &&
                 Object.keys(userBids)
-                  .sort()
-                  .reverse()
+                  .sort(function (a, b) {
+                    return Number(b) - Number(a);
+                  })
                   .map((bid, index) => (
                     <tr
                       onClick={(e) => {
@@ -244,7 +248,7 @@ const Orderbook = () => {
                       }`}
                     >
                       <td>
-                        {Number(Number(bid) / LAMPORTS_PER_SOL).toFixed(3)}
+                        {Number(Number(bid) / LAMPORTS_PER_SOL).toFixed(2)}
                       </td>
                       <td>{userBids[bid].length}</td>
                     </tr>

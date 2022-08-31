@@ -23,10 +23,13 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
     useContext(NftContext);
   const { connection } = useConnection();
   const { wallet, publicKey, signTransaction } = useWallet();
-  const [allPrices, setAllPrices] = useState<number[]>([]);
-  const [inited, setInited] = useState<boolean>(true);
+  // const [allPrices, setAllPrices] = useState<number[]>([]);
+  // const [inited, setInited] = useState<boolean>(true);
 
   const router = useRouter();
+  // let url = router.route;
+
+  let base = router.route;
 
   async function executeInitCheckoutAndExhibit() {
     console.log("init checkout exhibit");
@@ -63,6 +66,7 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
 
   const [nftColLists, setNftColLists] = useState();
   const [nftColPics, setNftColPics] = useState();
+  const [nftExhibits, setNftExhibits] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -77,14 +81,18 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
       setNftColLists(colLists);
 
       let colImages = {};
+      let colExhibits = [];
       for (let nftSymbol of Object.keys(colLists)) {
         console.log("in symbol", nftSymbol);
         let nfts = colLists[nftSymbol].slice(0, 3);
         let images = await getAllNftImages(nfts);
         console.log("all nft imaage?", nfts, images, nftSymbol);
         colImages[nftSymbol] = images;
+        let { exhibit } = await getNftDerivedAddresses(nfts[0]);
+        colExhibits.push(exhibit.toString());
       }
       setNftColPics(colImages);
+      setNftExhibits(colExhibits);
     }
     if (nftList) {
       fetchData();
@@ -119,86 +127,79 @@ export default function UserNftList({ nftList }: { nftList: Nft[] | null }) {
               >
                 {nftColPics && <DisplayImages images={nftColPics[nftSymbol]} />}
                 <div className="card-body">
-                  <button
-                    className="btn btn-primary"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = "#" + nftSymbol + "-modal";
-                      curUserView(nftSymbol);
+                  <a href={base + "/" + nftExhibits[ind]}>
+                    {" "}
+                    <button className="btn btn-primary">
+                      Your {nftSymbol}s
+                    </button>
+                  </a>
+                  {/* <div className="modal" id={`${nftSymbol}-modal`}> */}
+                  {/*   <div className="modal-box relative"> */}
+                  {/*     <div className="sticky top-0 p-2 pb-4 z-20 bg-base-100 border-b border-accent rounded-sm mb-4"> */}
+                  {/*       <h3 className="font-bold text-lg "> */}
+                  {/*         {nftSymbol} Exhibit */}
+                  {/*       </h3> */}
+                  {/*     </div> */}
+                  {/*     <NftList */}
+                  {/*       nftList={nftColLists[nftSymbol]} */}
+                  {/*       /\* exhibitKey={exhibit} *\/ */}
+                  {/*     /> */}
 
-                      /* set(nftSymbol); */
-                    }}
-                  >
-                    Your {nftSymbol}s
-                  </button>
-                  <div className="modal" id={`${nftSymbol}-modal`}>
-                    <div className="modal-box relative">
-                      <div className="sticky top-0 p-2 pb-4 z-20 bg-base-100 border-b border-accent rounded-sm mb-4">
-                        <h3 className="font-bold text-lg ">
-                          {nftSymbol} Exhibit
-                        </h3>
-                      </div>
-                      <NftList
-                        nftList={nftColLists[nftSymbol]}
-                        /* exhibitKey={exhibit} */
-                      />
+                  {/*     <div className="sticky bottom-0 left-0 right-0 p-2 pt-4 mt-4 z-20 bg-base-100 border-t border-accent btn-group gap-3 flex flex-row items-end justify-end space-x-6"> */}
+                  {/*       {inited ? ( */}
+                  {/*         <button */}
+                  {/*           className="btn btn-info " */}
+                  {/*           onClick={() => { */}
+                  {/*             executeInitCheckoutAndExhibit(); */}
+                  {/*             /\* setBidSide(true); *\/ */}
+                  {/*             /\* clearNfts(); *\/ */}
+                  {/*           }} */}
+                  {/*         > */}
+                  {/*           Create Collection */}
+                  {/*         </button> */}
+                  {/*       ) : ( */}
+                  {/*         <> */}
+                  {/*           {Object.keys(chosenNfts).length > 0 && ( */}
+                  {/*             <> */}
+                  {/*               <div className="shadow shadow-base-300 "> */}
+                  {/*                 <div className="stat-title"> */}
+                  {/*                   Market Sell {0} {nftSymbol}s */}
+                  {/*                 </div> */}
+                  {/*                 <div className="stat-value text-success"> */}
+                  {/*                   +{" "} */}
+                  {/*                   {allPrices */}
+                  {/*                     .slice(0, Object.keys(chosenNfts).length) */}
+                  {/*                     .reduce((a, b) => a + b, 0)}{" "} */}
+                  {/*                   SOL */}
+                  {/*                 </div> */}
+                  {/*               </div> */}
 
-                      <div className="sticky bottom-0 left-0 right-0 p-2 pt-4 mt-4 z-20 bg-base-100 border-t border-accent btn-group gap-3 flex flex-row items-end justify-end space-x-6">
-                        {inited ? (
-                          <button
-                            className="btn btn-info "
-                            onClick={() => {
-                              executeInitCheckoutAndExhibit();
-                              /* setBidSide(true); */
-                              /* clearNfts(); */
-                            }}
-                          >
-                            Start Market
-                          </button>
-                        ) : (
-                          <>
-                            {Object.keys(chosenNfts).length > 0 && (
-                              <>
-                                <div className="shadow shadow-base-300 ">
-                                  <div className="stat-title">
-                                    {" "}
-                                    Market Sell {0} {nftSymbol}s
-                                  </div>
-                                  <div className="stat-value text-success">
-                                    +{" "}
-                                    {allPrices
-                                      .slice(0, Object.keys(chosenNfts).length)
-                                      .reduce((a, b) => a + b, 0)}{" "}
-                                    SOL
-                                  </div>
-                                </div>
-
-                                <div
-                                  className="modal-action"
-                                  onClick={() => {
-                                    executeBidFloor();
-                                    clearNfts();
-                                  }}
-                                >
-                                  <a
-                                    href="#"
-                                    className="btn btn-success btn-outline"
-                                  >
-                                    Sell
-                                  </a>
-                                </div>
-                              </>
-                            )}
-                          </>
-                        )}
-                        <div className="modal-action" onClick={clearNfts}>
-                          <a href="#" className="btn btn-error btn-outline">
-                            Cancel
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/*               <div */}
+                  {/*                 className="modal-action" */}
+                  {/*                 onClick={() => { */}
+                  {/*                   executeBidFloor(); */}
+                  {/*                   clearNfts(); */}
+                  {/*                 }} */}
+                  {/*               > */}
+                  {/*                 <a */}
+                  {/*                   href="#" */}
+                  {/*                   className="btn btn-success btn-outline" */}
+                  {/*                 > */}
+                  {/*                   Sell */}
+                  {/*                 </a> */}
+                  {/*               </div> */}
+                  {/*             </> */}
+                  {/*           )} */}
+                  {/*         </> */}
+                  {/*       )} */}
+                  {/*       <div className="modal-action" onClick={clearNfts}> */}
+                  {/*         <a href="#" className="btn btn-error btn-outline"> */}
+                  {/*           Cancel */}
+                  {/*         </a> */}
+                  {/*       </div> */}
+                  {/*     </div> */}
+                  {/*   </div> */}
+                  {/* </div> */}
                 </div>
               </div>
             </>
