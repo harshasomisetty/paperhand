@@ -4,7 +4,7 @@ import { CgProfile } from "react-icons/cg";
 
 import Link from "next/link";
 
-const tabs: string[] = ["home", "exhibition", "nftamm", "checkout", "carnival"];
+const TABS: string[] = ["home", "exhibition", "nftamm", "checkout", "carnival"];
 const Navbar = () => {
   const router = useRouter();
 
@@ -19,7 +19,7 @@ const Navbar = () => {
       </div>
       <div className="navbar-center">
         <ul className="menu menu-horizontal p-0">
-          {tabs.slice(1).map((tabName) => (
+          {TABS.slice(1).map((tabName) => (
             <li
               className={`${
                 router.pathname.slice(1).split("/")[0] === tabName

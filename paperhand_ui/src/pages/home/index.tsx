@@ -6,6 +6,7 @@ import { PublicKey } from "@solana/web3.js";
 import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
 import ExhibitList from "@/components/ExhibitList";
 import ExploreBanner from "@/components/ExploreBanner";
+import ExplainBanner from "@/components/ExplainBanner";
 
 // TODO add in display of changes account balance after the transaction is completed
 export default function Home() {
@@ -30,7 +31,8 @@ export default function Home() {
   }, []);
   return (
     <div className="flex flex-col w-full space-y-4 ">
-      <ExploreBanner exhibitList={exhibits} />
+      {/* <ExploreBanner exhibitList={exhibits} /> */}
+      <ExplainBanner />
 
       <div className="divider divide-neutral"></div>
       <ExhibitList exhibits={exhibits} />

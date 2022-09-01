@@ -34,7 +34,9 @@ export default function ExhibitCard({ exhibit }: { exhibit: PublicKey }) {
       let images = await getAllNftImages(nfts);
       setExhibitImages(images);
     }
-    fetchData();
+    if (wallet) {
+      fetchData();
+    }
   }, [wallet]);
 
   return (

@@ -29,7 +29,7 @@ const InitSwapCard = ({ userData }: { userData: UserData }) => {
     router.reload(window.location.pathname);
   }
 
-  if (!userData) return <p>sldjfLoading Market Data:</p>;
+  if (!userData) return <p>Loading Market Data:</p>;
   return (
     <>
       <div className="card flex-shrink-0 w-full max-w-sm border shadow-lg bg-base-300">

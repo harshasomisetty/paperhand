@@ -49,12 +49,6 @@ const CarnivalPage = () => {
   const { chosenNfts, clearNfts, nftPrices, groupDetails } =
     useContext(NftContext);
 
-  // TODO dict of chosen nfts that map from mint to price
-  // TODO dict of nft mint that maps to booth
-  // TODO Dict of booth mint to nftList, price, delta, etc
-  // TODO function that takes in booth details, and spits out new price depending on buy or sell
-  // TODO on user selects nft, update booth details, calculate new price array, update lists
-
   const mx = Metaplex.make(connection);
   useEffect(() => {
     async function fetchData() {
