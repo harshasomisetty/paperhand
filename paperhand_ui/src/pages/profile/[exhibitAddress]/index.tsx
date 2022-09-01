@@ -11,29 +11,14 @@ export default function ProfileExhibitPage() {
   // TODO check if exhibit already exists, if not, allow user to create exhibit
   // then go to exhibit page
 
-  const [nftColPics, setNftColPics] = useState([]);
-  const [colNfts, setColNfts] = useState([]);
+  const [nftColPics, setNftColPics] = useState<string[]>([]);
+  const [colNfts, setColNfts] = useState<Nft[]>([]);
   const [colSymbol, setColSymbol] = useState([]);
 
   const { connection } = useConnection();
   const { publicKey } = useWallet();
   const router = useRouter();
   const { exhibitAddress } = router.query;
-
-  // async function executeInitCheckoutAndExhibit() {
-  //   console.log("init checkout exhibit");
-
-  //   let nft = chosenNfts[Object.keys(chosenNfts)[0]];
-
-  //   console.log("creating checkout ", nft.name);
-  //   await instructionInitCheckoutExhibit(
-  //     wallet,
-  //     publicKey,
-  //     signTransaction,
-  //     connection,
-  //     nft
-  //   );
-  // }
 
   const mx = Metaplex.make(connection);
 
@@ -63,10 +48,16 @@ export default function ProfileExhibitPage() {
     }
   }, [publicKey]);
 
+  if (!colNfts[0] || !colSymbol) {
+    return <p>loading data</p>;
+  }
+
   return (
-    <div className="grid grid-cols-2 items-center">
+    <div className="grid grid-cols-2">
       <NftList nftList={colNfts} title={"Your " + colSymbol + "s"} />
-      <InitVisitCard />
+      <div className="flex flex-col  items-center pt-14">
+        <InitVisitCard nft={colNfts[0]} exhibitSymbol={colSymbol} />
+      </div>
     </div>
   );
 }

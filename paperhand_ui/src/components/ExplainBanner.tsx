@@ -1,12 +1,11 @@
 import Link from "next/link";
 
 const ExplainBanner = () => {
-  const TABS: string[] = ["exhibition", "nftamm", "checkout", "carnival"];
   const tabs: Record<string, string> = {
     exhibition:
       "Vault and Accounting system that creates exhibits, where nfts belonging to a particular collection can be deposited into",
     nftamm:
-      "Initial implementation of how NFT trading liqudity could be improved. Converts NFTs to tokens, which can be traded to SOL in an AMM",
+      "Initial implementation of how NFT trading liquidity could be improved. Converts NFTs to tokens, which can be traded to SOL in an AMM",
     checkout:
       "Provides instant liquidity to NFT sellers. Tracks NFT bidders who commit SOL, and market sells nfts to the highest bidder.",
     carnival:
@@ -22,7 +21,9 @@ const ExplainBanner = () => {
               <p className="text-xs">{tabs[tab]}</p>
               <div className="card-actions justify-end">
                 <Link href={"/" + tab}>
-                  <button className="btn btn-primary btn-sm ">Try {tab}</button>
+                  <button className="btn btn-primary btn-sm text-sm">
+                    Try {tab}
+                  </button>
                 </Link>
               </div>
             </div>

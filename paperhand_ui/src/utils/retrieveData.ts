@@ -271,10 +271,8 @@ export async function getUserVouchersFulfilled(
       matchedStorage,
       wallet
     );
-    console.log("ordre filled", orderFilled);
     uFilled = orderFilled[publicKey.toString()];
   }
-  console.log("uVouchers, uFilled", uVoucher, uFilled);
 
   if (uFilled) {
     return uVoucher + uFilled;
