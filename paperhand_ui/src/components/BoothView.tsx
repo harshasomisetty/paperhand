@@ -130,28 +130,31 @@ const BoothView = ({ exhibitSymbol }: { exhibitSymbol: string }) => {
             </thead>
 
             <tbody>
-              {Object.values(left ? boothList : userBooths).map((val) => (
-                <tr
-                  onClick={(e) => {
-                    handleClick(e, val);
-                  }}
-                  className="hover cursor-pointer"
-                >
-                  <td>{Number(val.data.boothId)}</td>
-                  <td>
-                    {Number(val.data.spotPrice / LAMPORTS_PER_SOL).toFixed(3)}
-                  </td>
-                  <td>{Number(val.data.nfts)}</td>
-                  <td>
-                    {(Number(val.data.sol) / LAMPORTS_PER_SOL).toFixed(3)} ◎
-                  </td>
-                  <td>
-                    {Number(val.data.delta / LAMPORTS_PER_SOL).toFixed(3)}
-                  </td>
-                  <td>{Number(val.data.fee)}</td>
-                  <td>{Number(val.data.tradeCount)}</td>
-                </tr>
-              ))}
+              {Object.values(left ? boothList : userBooths).map(
+                (val, index) => (
+                  <tr
+                    onClick={(e) => {
+                      handleClick(e, val);
+                    }}
+                    className="hover cursor-pointer"
+                    key={index}
+                  >
+                    <td>{Number(val.data.boothId)}</td>
+                    <td>
+                      {Number(val.data.spotPrice / LAMPORTS_PER_SOL).toFixed(3)}
+                    </td>
+                    <td>{Number(val.data.nfts)}</td>
+                    <td>
+                      {(Number(val.data.sol) / LAMPORTS_PER_SOL).toFixed(3)} ◎
+                    </td>
+                    <td>
+                      {Number(val.data.delta / LAMPORTS_PER_SOL).toFixed(3)}
+                    </td>
+                    <td>{Number(val.data.fee)}</td>
+                    <td>{Number(val.data.tradeCount)}</td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>

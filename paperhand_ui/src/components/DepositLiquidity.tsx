@@ -83,19 +83,19 @@ const DepositLiquidity = ({
                   Deposit Liquidity
                 </button>
               ) : (
-                <button class="btn" disabled="disabled">
+                <button className="btn" disabled="disabled">
                   Choose an amount to Add
                 </button>
               )}
             </>
           ) : (
-            <button class="btn" disabled="disabled">
+            <button className="btn" disabled="disabled">
               Need more balance to Add Liquidity
             </button>
           )}
         </>
       ) : (
-        <button class="btn" disabled="disabled">
+        <button className="btn" disabled="disabled">
           Connect wallet to Swap
         </button>
       )}

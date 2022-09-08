@@ -92,7 +92,7 @@ export default function NftList({
   return (
     <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300">
       <div className="flex flex-col p-4 m-2">
-        {title && <h1 className="text-xl font-extrabold p-2">{title}</h1>}
+        {title && <h1 className="text-3xl font-extrabold p-2">{title}</h1>}
         <div className="flex flex-row flex-wrap gap-4 place-items-stretch auto-cols-max">
           {nftList && nftList.length > 0 ? (
             <>

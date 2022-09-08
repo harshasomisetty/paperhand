@@ -1,5 +1,5 @@
 {
-        "name": "app",
+        "name": "paperhand_v0",
         "version": "1.0.0",
         "scripts": {
                 "dev": "next dev",

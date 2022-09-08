@@ -247,7 +247,7 @@ const Orderbook = () => {
                         userCancel[bid] && "border-2 border-secondary-focus"
                       }`}
                     >
-                      <td>
+                      <td key={index}>
                         {Number(Number(bid) / LAMPORTS_PER_SOL).toFixed(2)}
                       </td>
                       <td>{userBids[bid].length}</td>

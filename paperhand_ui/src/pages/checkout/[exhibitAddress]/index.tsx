@@ -84,10 +84,10 @@ const CheckoutPage = () => {
         }}
       >
         <li>
-          <a className={`${bidSide && "active"}`}>Bid NFT</a>
+          <a className={`${bidSide && "active"}`}>Panic Sell NFT</a>
         </li>
         <li>
-          <a className={`${!bidSide && "active"}`}>Panic Sell NFT</a>
+          <a className={`${!bidSide && "active"}`}>Bid NFT</a>
         </li>
       </ul>
     );
@@ -100,6 +100,15 @@ const CheckoutPage = () => {
           <div className="grid grid-cols-2">
             {bidSide ? (
               <>
+                <NftList nftList={userNftList} title={"Paperhand Your NFTs"} />
+                <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
+                  <PanicMenu />
+                  <PanicCard userNftList={userNftList} />
+                  <Orderbook />
+                </div>
+              </>
+            ) : (
+              <>
                 <div className="opacity-50 pointer-events-none">
                   <NftList
                     nftList={exhibitNftList}
@@ -109,15 +118,6 @@ const CheckoutPage = () => {
                 <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
                   <PanicMenu />
                   <BidCard userNftList={userNftList} />
-                  <Orderbook />
-                </div>
-              </>
-            ) : (
-              <>
-                <NftList nftList={userNftList} title={"Your NFTs"} />
-                <div className="flex flex-col border rounded-md border-base-300 p-4 m-2 items-center">
-                  <PanicMenu />
-                  <PanicCard userNftList={userNftList} />
                   <Orderbook />
                 </div>
               </>

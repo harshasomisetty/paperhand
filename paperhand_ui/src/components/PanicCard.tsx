@@ -86,7 +86,7 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
           <div className="shadow flex flex-row items-center">
             <div className="stat">
               <div className="stat-title">
-                phb (Market Sell {Object.keys(chosenNfts).length} NFTs)
+                Market Sell {Object.keys(chosenNfts).length} NFTs
               </div>
               <div className="stat-value text-success">
                 +{" "}
