@@ -3,18 +3,16 @@
 Paperhand is a suite of NFTAMM implementatios.
 
 The core of paperhand allows nfts to be algorithimically associated with a collection, allowing for trading of NFTs through traditional AMMs, an instantaneous FloorBid, and through an aggregation of user-created pools (a structure heavily inspired by Sudoswap)
-
 * Architecture
 *** Exhibition
 Exhibition is a Collection identification system. It creates PDAs hashed from the verified creators of a nft, and associates all other NFTs with the same identification system as the same collection.
 
 In the future, the collection identification can happen through (Hyperspace way, and one other way)
 
- expand exhibition to be ultimate filtering contract, make subset filtering, solving many-to-some-to-one problem
+expand exhibition to be ultimate filtering contract, make subset filtering, solving many-to-some-to-one problem
 
 Exhibition also ties in a vault accounting system that allows users to deposit NFTs of the same collection, and receive a "voucher" token back (each representing an NFT)
 *** Shop
-
 Shop is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
 
 The Shop has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
@@ -26,9 +24,48 @@ This involved storing using commited SOL for buy orders in a heap data structure
 Checkout thus manages a heap to store user bids, and a DLL to store fulfilled orders
 *** Carnival
 Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
-
-** Future work
-*** bid on certain features
-**** market sell certain features
-*** check token account pubkeys to see if they are owned properly by the user
-*** make each card reload reset user selected nfts
+* Next steps
+** Exhibition add update authority to seeds for pda
+** big nice hero page similar to sudoswap and magic eden
+** New pages
+*** your nfts
+*** explore collections page
+*** your pools
+** new modals
+*** dont see your own collection? add your own button
+*** search collections bar
+** new functionality
+*** when creating exhbiit, store default image as nft used to create exhibit
+** un/verified collections
+*** list of top 100 collections and default ids
+** init checkout with exhibit in profile
+*** this happens in profile page nft list modal
+*** delete leaking through in modal
+** carnival ui feature parity with sudoswap
+***  instructions
+**** delete booths frontend
+**** withdraw funds frontend
+**** change type of pool
+**** proper fee mechanics
+*** ui
+**** display traits in booth cards
+**** correct floor price
+**** search nfts by traits
+**** activity page
+***** list out activity like in sudoswap
+** javascript
+*** sign all transactions multiple nft stuff
+** finsihing touches main page ui
+** maybe edit the bid nft interface in checkout
+** each card resolt reset user select nfts
+** deploy vercel
+** launch on devnet to start
+** make sure have entire collections on website, make sure deploye dvercel reflects devnet data
+** launch female dog collection
+*** ability paperhand bitch
+** Trait gating pools
+*** Design
+create process for people to create shacks of what types of nfts can be sold
+allow people to vote on tranches
+*** have a creator defind groupping list, that allows people to bid for specific type of nfts
+this is important since people want to idenity iwith a group, but some times there is too much confusion about what subgroup within in the commuity they want to identiy wiht. With a simple way for creators to be define their visuion for the collection, users can also quickly idenity with a group

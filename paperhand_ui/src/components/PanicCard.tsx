@@ -129,11 +129,11 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
             }}
           />
           {Object.keys(chosenNfts).length > 0 ? (
-            <button className="btn btn-error" onClick={executeBidFloor}>
-              Market Sell
+            <button className="btn btn-error btn-lg" onClick={executeBidFloor}>
+              Panic Sell
             </button>
           ) : (
-            <button className="btn" disabled="disabled">
+            <button className="btn btn-disabled btn-lg" aria-disabled="true">
               Pick NFT To market Sell
             </button>
           )}

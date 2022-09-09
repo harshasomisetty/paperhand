@@ -197,13 +197,6 @@ const Orderbook = () => {
             <a className={`${!leftside && "active"}`}>Your Bids</a>
           </li>
         </ul>
-        {Object.keys(userCancel).length > 0 ? (
-          <button className="btn btn-warning" onClick={executeCancelBid}>
-            Cancel All Selected Bids
-          </button>
-        ) : (
-          <button className="btn btn-disabled">Choose bid to cancel</button>
-        )}
 
         {leftside ? (
           <div className="relative h-80 w-40">
@@ -255,6 +248,18 @@ const Orderbook = () => {
                   ))}
             </tbody>
           </table>
+        )}
+
+        {!leftside && (
+          <>
+            {Object.keys(userCancel).length > 0 ? (
+              <button className="btn btn-warning" onClick={executeCancelBid}>
+                Cancel All Selected Bids
+              </button>
+            ) : (
+              <button className="btn btn-disabled">Choose bid to cancel</button>
+            )}
+          </>
         )}
       </div>
     </div>
