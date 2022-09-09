@@ -109,7 +109,6 @@ const CarnivalPage = () => {
           <CarnivalInfoCard
             carnivalNfts={boothNfts}
             exhibitSymbol={exhibitSymbol}
-            floor={floor}
           />
           <CarnivalBidCard
             exhibitSymbol={exhibitSymbol}

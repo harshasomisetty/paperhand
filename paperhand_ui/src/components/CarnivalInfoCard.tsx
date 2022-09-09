@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Link from "next/link";
-import { PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   getAllExhibitArtifacts,
   getAllNftImages,
@@ -10,18 +10,19 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import DisplayImages from "./DisplayImages";
 import { useRouter } from "next/router";
 import { Nft } from "@metaplex-foundation/js";
+import { NftContext } from "@/context/NftContext";
 
 const CarnivalInfoCard = ({
   carnivalNfts,
   exhibitSymbol,
-  floor,
 }: {
   carnivalNfts: Nft[];
   exhibitSymbol: string;
-  floor: number;
 }) => {
   const { wallet } = useWallet();
   const [exhibitImages, setExhibitImages] = useState<string[]>([]);
+
+  const { nftPrices, groupDetails } = useContext(NftContext);
 
   useEffect(() => {
     async function fetchData() {
@@ -45,7 +46,17 @@ const CarnivalInfoCard = ({
         <div>
           <h2 className="card-title text-2xl">{exhibitSymbol}</h2>
           <p>Listed: {exhibitImages.length}</p>
-          <p>Floor: {floor.toString()} ◎</p>
+          {nftPrices && (
+            <p>
+              Floor:{" "}
+              {Number(
+                (typeof Object.values(nftPrices)[0] === "string"
+                  ? Number(groupDetails[Object.values(nftPrices)[0]].startPrice)
+                  : Object.values(nftPrices)[0]) / LAMPORTS_PER_SOL
+              ).toFixed(2)}{" "}
+              ◎
+            </p>
+          )}
         </div>
       </div>
     </div>
