@@ -4,6 +4,8 @@ use anchor_spl::token::Token;
 
 use crate::state::accounts::CarnivalAccount;
 
+use exhibition::state::metaplex_anchor::TokenMetadata;
+
 #[derive(Accounts)]
 pub struct InitializeCarnival<'info> {
     /// CHECK: escrow only purpose is to store sol
@@ -30,7 +32,7 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
 
     /// CHECK: escrow only purpose is to store sol
     #[account(mut)]
-    pub nft_metadata: AccountInfo<'info>,
+    pub nft_metadata: Box<Account<'info, TokenMetadata>>,
 
     /// CHECK: escrow only purpose is to store sol
     #[account(
@@ -49,5 +51,12 @@ seeds = [b"carnival", exhibit.key().as_ref()], bump)]
 }
 
 pub fn init_carnival(ctx: Context<InitializeCarnival>) -> Result<()> {
+    ctx.accounts.carnival.exhibit_symbol = ctx
+        .accounts
+        .nft_metadata
+        .data
+        .symbol
+        .trim_matches(char::from(0))
+        .to_string();
     Ok(())
 }

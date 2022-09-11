@@ -15,9 +15,11 @@ import { NftContext } from "@/context/NftContext";
 const CarnivalInfoCard = ({
   carnivalNfts,
   exhibitSymbol,
+  floor,
 }: {
   carnivalNfts: Nft[];
   exhibitSymbol: string;
+  floor: number;
 }) => {
   const { wallet } = useWallet();
   const [exhibitImages, setExhibitImages] = useState<string[]>([]);
@@ -48,13 +50,8 @@ const CarnivalInfoCard = ({
           <p>Listed: {exhibitImages.length}</p>
           {nftPrices && (
             <p>
-              Floor:{" "}
-              {Number(
-                (typeof Object.values(nftPrices)[0] === "string"
-                  ? Number(groupDetails[Object.values(nftPrices)[0]].startPrice)
-                  : Object.values(nftPrices)[0]) / LAMPORTS_PER_SOL
-              ).toFixed(2)}{" "}
-              ◎
+              Floor:
+              {" " + Number((floor / LAMPORTS_PER_SOL).toFixed(3)).toString()}◎
             </p>
           )}
         </div>

@@ -59,7 +59,6 @@ const CarnivalPage = () => {
       setExhibitSymbol(exhibitInfo.exhibitSymbol);
       let { carnival } = await getCarnivalAccounts(exhibit);
 
-      // console.log("booth info", carnival, connection, wallet);
       let numBooths = await getOpenBoothId(carnival, connection, wallet);
 
       let fetchedBoothInfos = await getAllBooths(
@@ -70,6 +69,17 @@ const CarnivalPage = () => {
       );
 
       setBoothInfos(fetchedBoothInfos);
+
+      let actualFloor = Number.MAX_VALUE;
+      for (let index of Object.keys(fetchedBoothInfos)) {
+        let data = fetchedBoothInfos[index].data;
+        let tempFloor = Number(data.spotPrice);
+
+        if (tempFloor < actualFloor) {
+          actualFloor = tempFloor;
+        }
+      }
+      setFloor(actualFloor);
 
       let boothNftObj = {};
 
@@ -109,6 +119,7 @@ const CarnivalPage = () => {
           <CarnivalInfoCard
             carnivalNfts={boothNfts}
             exhibitSymbol={exhibitSymbol}
+            floor={floor}
           />
           <CarnivalBidCard
             exhibitSymbol={exhibitSymbol}
