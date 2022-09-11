@@ -25,44 +25,7 @@ Checkout thus manages a heap to store user bids, and a DLL to store fulfilled or
 *** Carnival
 Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
 * Next steps
-** Exhibition add update authority to seeds for pda
-** big nice hero page similar to sudoswap and magic eden
-** New pages
-*** your nfts
-*** explore collections page
-*** your pools
-** new modals
-*** dont see your own collection? add your own button
-*** search collections bar
-** new functionality
-*** when creating exhbiit, store default image as nft used to create exhibit
-** un/verified collections
-*** list of top 100 collections and default ids
-** init checkout with exhibit in profile
-*** this happens in profile page nft list modal
-*** delete leaking through in modal
-** carnival ui feature parity with sudoswap
-***  instructions
-**** delete booths frontend
-**** withdraw funds frontend
-**** change type of pool
-**** proper fee mechanics
-*** ui
-**** display traits in booth cards
-**** correct floor price
-**** search nfts by traits
-**** activity page
-***** list out activity like in sudoswap
-** javascript
-*** sign all transactions multiple nft stuff
-** finsihing touches main page ui
-** maybe edit the bid nft interface in checkout
 ** each card resolt reset user select nfts
-** deploy vercel
-** launch on devnet to start
-** make sure have entire collections on website, make sure deploye dvercel reflects devnet data
-** launch female dog collection
-*** ability paperhand bitch
 ** Trait gating pools
 *** Design
 create process for people to create shacks of what types of nfts can be sold

@@ -182,7 +182,14 @@ pub fn deposit_nft(
 
     exhibition::cpi::artifact_insert(cpi_ctx)?;
 
+    msg!(
+        "nft count {}, {}",
+        ctx.accounts.booth.nfts,
+        ctx.accounts.carnival.nft_listings
+    );
+
     ctx.accounts.booth.nfts = ctx.accounts.booth.nfts + 1;
+    ctx.accounts.carnival.nft_listings = ctx.accounts.carnival.nft_listings + 1;
 
     msg!(
         "\n\ndepoing info: {}, prev nfts: {}\n\n",

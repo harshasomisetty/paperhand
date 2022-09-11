@@ -181,6 +181,14 @@ pub fn withdraw_nft(
     exhibition::cpi::artifact_withdraw(cpi_ctx)?;
 
     msg!("finished withdraw nft with cpi");
+    msg!(
+        "nft count {}, {}",
+        ctx.accounts.booth.nfts,
+        ctx.accounts.carnival.nft_listings
+    );
+
+    ctx.accounts.booth.nfts = ctx.accounts.booth.nfts - 1;
+    ctx.accounts.carnival.nft_listings = ctx.accounts.carnival.nft_listings - 1;
 
     Ok(())
 }

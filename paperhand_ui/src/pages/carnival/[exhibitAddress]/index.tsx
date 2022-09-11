@@ -119,26 +119,17 @@ const CarnivalPage = () => {
           />
         </div>
         <div className="flex flex-col items-center col-span-2">
-          <div className="tabs justify-self-center">
-            <a
-              className={`tab tab-lifted ${tab == 0 && "tab-active"}`}
-              onClick={() => setTab(0)}
-            >
-              Buy
-            </a>
-            <a
-              className={`tab tab-lifted ${tab == 1 && "tab-active"}`}
-              onClick={() => setTab(1)}
-            >
-              Sell
-            </a>
-            <a
-              className={`tab tab-lifted ${tab == 2 && "tab-active"}`}
-              onClick={() => setTab(2)}
-            >
-              Booths
-            </a>
-          </div>
+          <ul className="menu menu-horizontal justify-self-center bg-base-100 w-56">
+            <li className={`${tab == 0 && "bordered"}`}>
+              <a onClick={() => setTab(0)}>Buy</a>
+            </li>
+            <li className={`${tab == 1 && "bordered"}`}>
+              <a onClick={() => setTab(1)}>Sell</a>
+            </li>
+            <li className={`${tab == 2 && "bordered"}`}>
+              <a onClick={() => setTab(2)}>Booths</a>
+            </li>
+          </ul>
           {tab == 0 && <NftList nftList={boothNfts} title={"Carnival NFTS"} />}
           {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
           {tab == 2 && <BoothView exhibitSymbol={exhibitSymbol} />}

@@ -9,6 +9,7 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   getExhibitProgramAndProvider,
   getCheckoutProgramAndProvider,
+  getCarnivalProgramAndProvider,
 } from "@/utils/constants";
 import { MarketData, UserData, BidInterface } from "@/utils/interfaces";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
@@ -17,6 +18,7 @@ import {
   getNftDerivedAddresses,
   getShopAccounts,
   getCheckoutAccounts,
+  getCarnivalAccounts,
 } from "@/utils/accountDerivation";
 
 export async function getAllExhibitArtifacts(
@@ -81,6 +83,15 @@ export async function getExhibitAccountData(
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
   let exhibitInfo = await Exhibition.account.exhibit.fetch(exhibit);
   return exhibitInfo;
+}
+
+export async function getCarnivalAccountData(
+  carnival: PublicKey,
+  wallet: Wallet
+) {
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
+  let carnivalInfo = await Carnival.account.carnivalAccount.fetch(carnival);
+  return carnivalInfo;
 }
 
 export async function getUserData(

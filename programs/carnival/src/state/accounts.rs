@@ -32,4 +32,6 @@ pub struct Quote {
 #[repr(C)]
 pub struct CarnivalAccount {
     pub booth_id_count: u64,
+    pub nft_listings: u64,
+    pub floor: u64,
 }
