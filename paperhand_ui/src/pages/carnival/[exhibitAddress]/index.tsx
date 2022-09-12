@@ -1,13 +1,8 @@
-import { AccountInfo, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-import { useState, useEffect, useContext } from "react";
+import { AccountInfo, PublicKey } from "@solana/web3.js";
+import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/router";
-import {
-  bundlrStorage,
-  keypairIdentity,
-  Metaplex,
-  Nft,
-} from "@metaplex-foundation/js";
+import { Metaplex, Nft } from "@metaplex-foundation/js";
 
 import {
   TOKEN_PROGRAM_ID,
@@ -17,18 +12,16 @@ import {
 } from "@solana/spl-token";
 
 import { getExhibitProgramAndProvider } from "@/utils/constants";
-import { checkIfAccountExists } from "@/utils/retrieveData";
 import {
   getAllBooths,
   getBoothNfts,
   getOpenBoothId,
 } from "@/utils/carnival_data";
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
-import NftList from "@/components/NftList";
 import CarnivalInfoCard from "@/components/CarnivalInfoCard";
-import BoothView from "@/components/BoothView";
 import CarnivalBidCard from "@/components/CarnivalBidCard";
-import { NftContext, NftProvider } from "@/context/NftContext";
+import { NftProvider } from "@/context/NftContext";
+import CarnivalAssets from "@/components/CarnivalAssets";
 
 const CarnivalPage = () => {
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
@@ -45,9 +38,6 @@ const CarnivalPage = () => {
   >({});
   const [userNftList, setUserNftList] = useState<Nft[]>([]);
   const [tab, setTab] = useState(0);
-
-  const { chosenNfts, clearNfts, nftPrices, groupDetails } =
-    useContext(NftContext);
 
   const mx = Metaplex.make(connection);
   useEffect(() => {
@@ -129,22 +119,13 @@ const CarnivalPage = () => {
             buy={tab == 0 ? true : false}
           />
         </div>
-        <div className="flex flex-col items-center col-span-2">
-          <ul className="menu menu-horizontal justify-self-center bg-base-100 w-56">
-            <li className={`${tab == 0 && "bordered"}`}>
-              <a onClick={() => setTab(0)}>Buy</a>
-            </li>
-            <li className={`${tab == 1 && "bordered"}`}>
-              <a onClick={() => setTab(1)}>Sell</a>
-            </li>
-            <li className={`${tab == 2 && "bordered"}`}>
-              <a onClick={() => setTab(2)}>Booths</a>
-            </li>
-          </ul>
-          {tab == 0 && <NftList nftList={boothNfts} title={"Carnival NFTS"} />}
-          {tab == 1 && <NftList nftList={userNftList} title={"Your NFTS"} />}
-          {tab == 2 && <BoothView exhibitSymbol={exhibitSymbol} />}
-        </div>
+        <CarnivalAssets
+          boothNfts={boothNfts}
+          userNftList={userNftList}
+          exhibitSymbol={exhibitSymbol}
+          tab={tab}
+          setTab={setTab}
+        />
       </div>
     </NftProvider>
   );

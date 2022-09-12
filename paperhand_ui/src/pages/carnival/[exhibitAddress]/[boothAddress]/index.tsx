@@ -33,13 +33,11 @@ import {
 } from "@/utils/retrieveData";
 import NftList from "@/components/NftList";
 import DisplayImages from "@/components/DisplayImages";
-import BoothCard from "@/components/BoothCard";
+import { BoothCard, BoothAssets, BoothPricing } from "@/components/BoothCard";
 
 const BoothPage = () => {
-  const router = useRouter();
-  const { asPath } = useRouter();
   const { wallet, publicKey, signTransaction } = useWallet();
-  const { exhibitAddress, boothAddress } = router.query;
+
   const { connection } = useConnection();
 
   const [boothNfts, setBoothNfts] = useState<Nft[]>([]);
@@ -47,6 +45,10 @@ const BoothPage = () => {
   const [boothInfo, setBoothInfo] = useState();
 
   const [exhibitSymbol, setExhibitSymbol] = useState<string>("");
+
+  const router = useRouter();
+  const { asPath } = useRouter();
+  const { exhibitAddress, boothAddress } = router.query;
 
   const mx = Metaplex.make(connection);
 
@@ -77,14 +79,26 @@ const BoothPage = () => {
   if (!boothInfo || !boothImages) {
     return <p>loading data</p>;
   }
+
   return (
-    <div>
+    <div className="flex flex-col">
       <BoothCard
-        exhibitSymbol={exhibitSymbol}
         boothImages={boothImages}
         boothInfo={boothInfo}
+        exhibitSymbol={exhibitSymbol}
       />
-      <NftList nftList={boothNfts} title={"Booth NFTs"} />
+      <div className="flex flex-row">
+        <div className="flex flex-col w-1/2">
+          <BoothAssets
+            boothInfo={boothInfo}
+            exhibitSymbol={exhibitSymbol}
+            boothNfts={boothNfts}
+          />
+        </div>
+        <div className="w-1/2">
+          <BoothPricing boothInfo={boothInfo} exhibitSymbol={exhibitSymbol} />
+        </div>
+      </div>
     </div>
   );
 };

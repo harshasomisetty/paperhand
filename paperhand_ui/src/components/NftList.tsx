@@ -20,10 +20,12 @@ export default function NftList({
   nftList,
   exhibitKey,
   title,
+  size,
 }: {
   nftList: Nft[] | null;
   exhibitKey?: string;
   title?: string;
+  size?: number;
 }) {
   const [nftImages, setNftImages] = useState<string[]>();
   const { connection } = useConnection();
@@ -108,6 +110,7 @@ export default function NftList({
                           key={ind}
                           price={nftPrices[nft.mint.toString()]}
                           index={ind}
+                          size={size}
                         />
                       </>
                     ) : (
@@ -116,6 +119,7 @@ export default function NftList({
                         nftImage={nftImages[ind]}
                         key={ind}
                         index={ind}
+                        size={size}
                       />
                     )}
                   </div>

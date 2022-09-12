@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { EXHIBITION_PROGRAM_ID } from "@/utils/constants";
-import ExhibitList from "@/components/ExhibitList";
-import ExplainBanner from "@/components/ExplainBanner";
 import {
   checkIfAccountExists,
   getAllExhibitArtifacts,
   getAllNftImages,
   getCarnivalAccountData,
-  getExhibitAccountData,
 } from "@/utils/retrieveData";
 import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import DisplayImages from "@/components/DisplayImages";
@@ -30,7 +27,6 @@ export default function Collections() {
       let exhibitsData = {};
 
       for (let i = 0; i < allExhibitAccounts.length; i++) {
-        // console.log("exhibit?", allExhibitAccounts[i]);
         let { carnival } = await getCarnivalAccounts(
           allExhibitAccounts[i].pubkey
         );

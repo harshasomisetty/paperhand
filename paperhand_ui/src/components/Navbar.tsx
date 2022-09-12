@@ -6,9 +6,9 @@ import Link from "next/link";
 
 const TABS: string[] = [
   "home",
-  // "exhibition",
-  // "nftamm",
-  // "checkout",
+  "exhibition",
+  "nftamm",
+  "checkout",
   "collections",
   "carnival",
 ];
