@@ -14,7 +14,7 @@ export default function NftCard({
   nftImage,
   index,
   price,
-  size = 96,
+  size,
 }: {
   nft: Nft;
   nftImage: string;
@@ -100,47 +100,53 @@ export default function NftCard({
 
   return (
     <div
-      className={`card card-compact w-min bg-base-300 cursor-pointer shadow-xl border-transparent border hover:border-4 hover:opacity-75 ${
+      className={`card card-compact w-min bg-base-300 cursor-pointer shadow-xl  border-transparent border hover:opacity-75 ${
         chosenNfts[nft.mint.toString()] ? "border-primary-focus" : "opacity-50"
       }
       `}
       onClick={imageClick}
     >
       {nftImage ? (
-        <figure>
-          {exhibitKey && (
-            <div className="absolute left-1.5 top-1.5">
-              <Link
-                href={"/exhibition/" + exhibitKey + "/" + nft.mint.toString()}
-              >
-                <button className="btn  btn-info btn-circle btn-xs btn-outline hover:btn-info">
-                  i
-                </button>
-              </Link>
-            </div>
-          )}
-
+        <div className="flex justify-self-start">
           <img src={nftImage} alt={nft.name} width={size} />
-        </figure>
+        </div>
       ) : (
         <p>loading image</p>
       )}
 
       <div className="card-body">
         <div>
-          <h2 className="card-title">{nft.name}</h2>
-          {!exhibitKey && <p className="text-bold text-accent">{nft.symbol}</p>}
-        </div>
-        {price && (
-          <div className="stat-value text-xl bg-neutral-focus rounded-xl px-2">
-            {Number(
-              (typeof price === "string"
-                ? Number(groupDetails[price].startPrice)
-                : price) / LAMPORTS_PER_SOL
-            ).toFixed(2)}{" "}
-            ◎
+          <div>
+            <h2 className="card-title">{nft.name}</h2>
+            <div className="badge badge-primary">{nft.symbol}</div>
           </div>
-        )}
+
+          <div className="flex flex-row justify-between">
+            {price && (
+              <p className="">
+                {Number(
+                  (typeof price === "string"
+                    ? Number(groupDetails[price].startPrice)
+                    : price) / LAMPORTS_PER_SOL
+                )
+                  .toFixed(2)
+                  .toString() + "◎"}
+              </p>
+            )}
+
+            {exhibitKey && (
+              <div className="">
+                <Link
+                  href={"/exhibition/" + exhibitKey + "/" + nft.mint.toString()}
+                >
+                  <div className="badge badge-ghost hover:badge-secondary text-xs">
+                    Details
+                  </div>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

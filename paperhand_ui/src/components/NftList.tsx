@@ -20,7 +20,7 @@ export default function NftList({
   nftList,
   exhibitKey,
   title,
-  size,
+  size = 300,
 }: {
   nftList: Nft[] | null;
   exhibitKey?: string;
