@@ -39,7 +39,6 @@ export default function NftList({
 
   const mx = Metaplex.make(connection);
   useEffect(() => {
-    // fetch data is run twice, so need to see if metadata task is currently running
     async function fetchData() {
       let images = await getAllNftImages(nftList);
       setNftImages(images);
@@ -93,7 +92,7 @@ export default function NftList({
   }, [nftList]);
 
   return (
-    <div className="card flex-shrink-0 w-full border border-neutral-focus shadow-lg bg-base-300">
+    <div className="card flex-shrink-0 w-full border border-base-100 bg-base-300">
       <div className="flex flex-col p-4 m-2">
         {title && <h1 className="text-3xl font-extrabold p-2">{title}</h1>}
         <div className="flex flex-row flex-wrap gap-4 place-items-stretch auto-cols-max">

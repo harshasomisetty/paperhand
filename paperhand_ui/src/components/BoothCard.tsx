@@ -33,32 +33,34 @@ export const BoothCard = ({
   }
 
   return (
-    <div>
-      <div className="flex flex-row space-x-4 w-full border ">
-        <div>
-          {boothImages && (
-            <div className="avatar">
-              <div className="w-32 rounded-full">
-                <DisplayImages images={boothImages} />
-              </div>
+    <div className="flex flex-row space-x-4 w-full p-4 items-center bg-base-200 w-min rounded-xl h-min">
+      <div>
+        {boothImages && (
+          <div className="avatar">
+            <div className="w-32 rounded-full">
+              <DisplayImages images={boothImages} />
             </div>
-          )}
-        </div>
-        <div>
-          <h1 className="flex flex-row text-3xl items-center">
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col space-y-4 ">
+        <h1 className="flex flex-row space-x-4 text-3xl items-center">
+          <div className="flex flex-row items-center">
             {exhibitSymbol} {mapBoothType()} SOL{" "}
-          </h1>
-          <h3 className="text-sm">{boothAddress}</h3>
-          <button className="btn btn-sm">All Booths</button>
-          <button className="btn btn-sm">{exhibitSymbol} Collection</button>
+          </div>
+          {publicKey.toString() === boothInfo.boothOwner.toString() && (
+            <div className="badge badge-primary">Your Booth</div>
+          )}
+        </h1>
+        <h3 className="text-sm bg-info-content px-4 py-4 rounded">
+          {boothAddress}
+        </h3>
+
+        <div className="flex flex-row space-x-4">
+          <button className="btn btn-sm">View All Booths</button>
+          <button className="btn btn-sm">View {exhibitSymbol}s</button>
         </div>
       </div>
-
-      {/* {publicKey.toString() === boothInfo.boothOwner.toString() ? ( */}
-      {/*   <button className="btn">Your Booth</button> */}
-      {/* ) : ( */}
-      {/*   <button className="btn">Trade with this Booth</button> */}
-      {/* )} */}
     </div>
   );
 };
@@ -73,7 +75,7 @@ export const BoothAssets = ({
   boothNfts: Nft[];
 }) => {
   return (
-    <div className="card card-compact bg-base-300 text-neutral-content">
+    <div className="card card-compact bg-base-300 text-neutral-content h-min">
       <div className="card-body items-center text-center">
         <h2 className="card-title">Assets</h2>
         <button className="btn btn-sm">Withdraw All</button>
@@ -111,7 +113,7 @@ export const BoothPricing = ({
   exhibitSymbol: string;
 }) => {
   return (
-    <div className="card card-compact bg-base-300 text-neutral-content">
+    <div className="card card-compact bg-base-300 text-neutral-content h-min">
       <div className="card-body items-center text-center">
         <h2 className="card-title">Pricing</h2>
         <div className="stats shadow items-stretch">

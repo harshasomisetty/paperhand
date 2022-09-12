@@ -81,24 +81,20 @@ const BoothPage = () => {
   }
 
   return (
-    <div className="flex flex-col">
-      <BoothCard
-        boothImages={boothImages}
+    <div className="grid grid-cols-2 gap-4 m-4">
+      <div className="col-span-2 place-self-center">
+        <BoothCard
+          boothImages={boothImages}
+          boothInfo={boothInfo}
+          exhibitSymbol={exhibitSymbol}
+        />
+      </div>
+      <BoothAssets
         boothInfo={boothInfo}
         exhibitSymbol={exhibitSymbol}
+        boothNfts={boothNfts}
       />
-      <div className="flex flex-row">
-        <div className="flex flex-col w-1/2">
-          <BoothAssets
-            boothInfo={boothInfo}
-            exhibitSymbol={exhibitSymbol}
-            boothNfts={boothNfts}
-          />
-        </div>
-        <div className="w-1/2">
-          <BoothPricing boothInfo={boothInfo} exhibitSymbol={exhibitSymbol} />
-        </div>
-      </div>
+      <BoothPricing boothInfo={boothInfo} exhibitSymbol={exhibitSymbol} />
     </div>
   );
 };
