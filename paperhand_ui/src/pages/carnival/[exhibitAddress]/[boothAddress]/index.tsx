@@ -31,9 +31,8 @@ import {
   getAllNftImages,
   getExhibitAccountData,
 } from "@/utils/retrieveData";
-import NftList from "@/components/NftList";
-import DisplayImages from "@/components/DisplayImages";
 import { BoothCard, BoothAssets, BoothPricing } from "@/components/BoothCard";
+import { NftProvider } from "@/context/NftContext";
 
 const BoothPage = () => {
   const { wallet, publicKey, signTransaction } = useWallet();

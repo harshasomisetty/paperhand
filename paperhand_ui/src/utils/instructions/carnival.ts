@@ -102,6 +102,117 @@ export async function instructionExecuteCreateBooth(
   }
 }
 
+export async function instructionCarnivalDepoSol(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  solAmt: number,
+  exhibit: PublicKey,
+  booth: PublicKey,
+  connection: Connection,
+  signTransaction: any
+) {
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
+
+  let transaction = new Transaction();
+
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
+    await getCarnivalAccounts(exhibit);
+
+  let fetchedBoothInfo = await Carnival.account.booth.fetch(booth);
+  let boothId = fetchedBoothInfo.boothId;
+
+  console.log("function booth", booth.toString());
+
+  // deposit sol
+  if (solAmt > 0) {
+    console.log("in depo sol section");
+    console.log("booth", booth.toString());
+    let depoSolTx = await Carnival.methods
+      .depositSol(
+        new BN(boothId),
+        new BN(solAmt),
+        carnivalAuthBump,
+        escrowSolBump
+      )
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        booth: booth,
+        escrowSol: escrowSol,
+        signer: publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(depoSolTx);
+    console.log("added depo tx");
+  } else {
+    let withdrawSolTx = await Carnival.methods
+      .withdrawSol(
+        new BN(boothId),
+        new BN(Math.abs(solAmt)),
+        carnivalAuthBump,
+        escrowSolBump
+      )
+      .accounts({
+        exhibit: exhibit,
+        carnival: carnival,
+        carnivalAuth: carnivalAuth,
+        booth: booth,
+        escrowSol: escrowSol,
+        signer: publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(withdrawSolTx);
+  }
+
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
+}
+
+export async function instructionCarnivalRemoveSol(
+  wallet: Wallet,
+  publicKey: PublicKey,
+  solAmt: number,
+  exhibit: PublicKey,
+  booth: PublicKey,
+  connection: Connection,
+  signTransaction: any
+) {
+  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
+
+  let transaction = new Transaction();
+
+  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
+    await getCarnivalAccounts(exhibit);
+
+  let fetchedBoothInfo = await Carnival.account.booth.fetch(booth);
+  let boothId = fetchedBoothInfo.boothId;
+
+  console.log("function booth", booth.toString());
+
+  // deposit sol
+  if (solAmt > 0) {
+    console.log("booth", booth.toString());
+
+    console.log("added depo tx");
+  }
+
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
+}
+
 export async function instructionSolToNft(
   wallet: Wallet,
   publicKey: PublicKey,
@@ -120,8 +231,6 @@ export async function instructionSolToNft(
 
     let parsedArtifact = await getAccount(connection, nftArtifact);
     let booth1 = parsedArtifact.delegate;
-    console.log("asdf");
-    console.log("asdf2");
     // console.log("parsed arti", parsedArtifact.delegate.toString());
 
     // let boothId = boothInfo.boothId;
@@ -130,7 +239,6 @@ export async function instructionSolToNft(
     let boothId = fetchedBoothInfo.boothId;
     let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
       await getCarnivalAccounts(exhibit);
-    console.log("asdf3");
 
     let [booth, boothBump] = await PublicKey.findProgramAddress(
       [
@@ -146,14 +254,12 @@ export async function instructionSolToNft(
       publicKey
     );
 
-    console.log("got to nftusertokenadd");
     let userVoucherWallet = await getAssociatedTokenAddress(
       voucherMint,
       publicKey
     );
 
     if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-      console.log("voucher_wallet_ttx");
       let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
         publicKey,
         userVoucherWallet,

@@ -1,11 +1,12 @@
 import { Nft } from "@metaplex-foundation/js";
 import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { useRouter } from "next/router";
 import DisplayImages from "./DisplayImages";
 import NftList from "./NftList";
 import { VscArrowBoth, VscArrowLeft, VscArrowRight } from "react-icons/vsc";
+import { instructionDepositSol } from "@/utils/instructions/carnival";
 
 export const BoothCard = ({
   boothImages,
@@ -20,6 +21,7 @@ export const BoothCard = ({
 
   const router = useRouter();
   const { exhibitAddress, boothAddress } = router.query;
+  const { asPath } = useRouter();
 
   function mapBoothType() {
     let type = boothInfo.boothType;
@@ -57,8 +59,17 @@ export const BoothCard = ({
         </h3>
 
         <div className="flex flex-row space-x-4">
-          <button className="btn btn-sm">View All Booths</button>
-          <button className="btn btn-sm">View {exhibitSymbol}s</button>
+          <button
+            className="btn btn-sm"
+            onClick={() => {
+              router.push(asPath.substring(0, asPath.lastIndexOf("/")));
+            }}
+          >
+            View All Booths
+          </button>
+          <button className="btn btn-sm" onClick={() => {}}>
+            View {exhibitSymbol}s
+          </button>
         </div>
       </div>
     </div>
@@ -74,11 +85,37 @@ export const BoothAssets = ({
   exhibitSymbol: string;
   boothNfts: Nft[];
 }) => {
+  const { wallet, publicKey, signTransaction } = useWallet();
+  const { connection } = useConnection();
+
+  const router = useRouter();
+  const { exhibitAddress, boothAddress } = router.query;
+
+  async function executeModifySol(solAmt: number, depoButton: boolean) {
+    await instructionCarnivalModifySol(
+      wallet,
+      publicKey,
+      solAmt * (depoButton ? 1 : -1),
+      new PublicKey(exhibitAddress),
+      new PublicKey(boothAddress),
+      connection,
+      signTransaction
+    );
+  }
+
+  async function executeDepoNft() {}
+
+  async function executeRemoveNft() {}
+
+  async function executeRemoveAll() {}
+
   return (
     <div className="card card-compact bg-base-300 text-neutral-content h-min">
       <div className="card-body items-center text-center">
         <h2 className="card-title">Assets</h2>
-        <button className="btn btn-sm">Withdraw All</button>
+        <button className="btn btn-sm" onClick={executeRemoveAll}>
+          Withdraw All
+        </button>
         <div className="stats stats-vertical">
           <div className="stat">
             <div className="stat-title">Tokens</div>
@@ -86,16 +123,34 @@ export const BoothAssets = ({
               {(Number(boothInfo.sol) / LAMPORTS_PER_SOL).toFixed(3)}
             </div>
             <div className="stat-actions">
-              <button className="btn btn-sm">Deposit</button>
-              <button className="btn btn-sm">Withdraw</button>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  executeModifySol(10, true);
+                }}
+              >
+                Deposit
+              </button>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  executeModifySol(10, false);
+                }}
+              >
+                Withdraw
+              </button>
             </div>
           </div>
           <div className="stat">
             <div className="stat-title">NFTs</div>
             <div className="stat-value">{Number(boothInfo.nfts)}</div>
             <div className="stat-actions">
-              <button className="btn btn-sm">Deposit</button>
-              <button className="btn btn-sm">Withdraw</button>
+              <button className="btn btn-sm" onClick={executeDepoNft}>
+                Deposit
+              </button>
+              <button className="btn btn-sm" onClick={executeRemoveNft}>
+                Withdraw
+              </button>
             </div>
           </div>
           <NftList nftList={boothNfts} size={80} />
