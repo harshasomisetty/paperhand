@@ -44,7 +44,6 @@ const CarnivalInfoCard = ({
         </div>
       </div>
 
-      <p>bero</p>
       <div className="card-body">
         <div>
           <h2 className="card-title text-2xl">{exhibitSymbol}</h2>
