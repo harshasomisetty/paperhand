@@ -102,7 +102,7 @@ export async function instructionExecuteCreateBooth(
   }
 }
 
-export async function instructionCarnivalDepoSol(
+export async function instructionCarnivalModifySol(
   wallet: Wallet,
   publicKey: PublicKey,
   solAmt: number,
@@ -167,42 +167,6 @@ export async function instructionCarnivalDepoSol(
       .transaction();
 
     transaction = transaction.add(withdrawSolTx);
-  }
-
-  await manualSendTransaction(
-    transaction,
-    publicKey,
-    connection,
-    signTransaction
-  );
-}
-
-export async function instructionCarnivalRemoveSol(
-  wallet: Wallet,
-  publicKey: PublicKey,
-  solAmt: number,
-  exhibit: PublicKey,
-  booth: PublicKey,
-  connection: Connection,
-  signTransaction: any
-) {
-  let { Carnival } = await getCarnivalProgramAndProvider(wallet);
-
-  let transaction = new Transaction();
-
-  let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
-    await getCarnivalAccounts(exhibit);
-
-  let fetchedBoothInfo = await Carnival.account.booth.fetch(booth);
-  let boothId = fetchedBoothInfo.boothId;
-
-  console.log("function booth", booth.toString());
-
-  // deposit sol
-  if (solAmt > 0) {
-    console.log("booth", booth.toString());
-
-    console.log("added depo tx");
   }
 
   await manualSendTransaction(

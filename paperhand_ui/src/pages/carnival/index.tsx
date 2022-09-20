@@ -5,6 +5,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import ExhibitList from "@/components/ExhibitList";
 import * as ExhibitionJson from "@/target/idl/exhibition.json";
+import ExistingCollections from "@/components/ExistingCollections";
 const EXHIBITION_PROGRAM_ID = new PublicKey(
   ExhibitionJson["metadata"]["address"]
 );
@@ -44,6 +45,23 @@ const CarnivalPage: NextPage = () => {
       ) : (
         <p className="text-center">Please connect wallet</p>
       )}
+      <div>
+        <div className="overflow-x-auto w-full">
+          <table className="table w-full">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Listings</th>
+                <th>Floor Price</th>
+                <th>Best Offer</th>
+                {/* <th>Offer TVL</th> */}
+                {/* <th>Volume</th> */}
+              </tr>
+            </thead>
+            <ExistingCollections exhibits={exhibits} />
+          </table>
+        </div>
+      </div>
     </>
   );
 };

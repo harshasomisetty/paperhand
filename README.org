@@ -32,3 +32,55 @@ create process for people to create shacks of what types of nfts can be sold
 allow people to vote on tranches
 *** have a creator defind groupping list, that allows people to bid for specific type of nfts
 this is important since people want to idenity iwith a group, but some times there is too much confusion about what subgroup within in the commuity they want to identiy wiht. With a simple way for creators to be define their visuion for the collection, users can also quickly idenity with a group
+
+update contracts and code
+- add update authority as seeds
+- review code
+- sign all transactions multiple nfts
+- proper fee stuff
+
+THEN START TRYING TO DEPLOY
+mainnet deploy
+- vercel
+- launch dog collection
+- launch on mainnet
+
+
+
+
+finsih all booth page functionality
+
+add in functions in frontned
+view button funcitonality
+- redo page functionality and nagivating fuck
+- add in router push stuff
+
+- withdraw nft
+- withdraw sol
+
+- depo nft
+- depo sol
+
+- withdraw all
+
+
+functionality
+- don't see a collection? create your own unverifed collection
+  - store nft selected image as default collection image
+- search collection
+- edit pricing
+- contract fucntion to edit pricing
+
+new pages
+- verified and unverifed collection pages
+  - top 20 verified magic collections
+
+- new big hero page like sudo/magic
+
+- your nft profile page
+- your pool nft profile page
+
+- activity page
+
+bugs
+- nft price gets stuck when selecting all nfts from a single pool

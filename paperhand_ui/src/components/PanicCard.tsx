@@ -29,12 +29,13 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
   const { connection } = useConnection();
 
   const [bidValue, setBidValue] = useState(0);
-  const [userSol, setUserSol] = useState(0);
   const [userVoucher, setUserVoucher] = useState(0);
   const { exhibitAddress } = router.query;
   const [sellSlider, setSellSlider] = useState(0);
   const [allPrices, setAllPrices] = useState<number[]>([]);
   const [allBids, setAllBids] = useState([]);
+  const [userSol, setUserSol] = useState(0);
+  const [allBidCount, setAllBidCount] = useState(0);
 
   let exhibit = new PublicKey(exhibitAddress);
   const { chosenNfts, chooseNft, clearNfts, addNft, removeNft } =
@@ -46,10 +47,15 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
       let uSol = Number(await connection.getBalance(publicKey));
       setUserSol(uSol);
 
-      let { prices, bids } = await getBidOrderData(exhibit, connection, wallet);
+      let { prices, bids, bidCount } = await getBidOrderData(
+        exhibit,
+        connection,
+        wallet
+      );
 
       setAllPrices(prices);
       setAllBids(bids);
+      setAllBidCount(bidCount);
 
       let uVouchers = await getUserVouchersFulfilled(
         exhibit,
@@ -76,7 +82,35 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
         chosenNfts
       );
     }
-    // router.reload(window.location.pathname);
+    router.reload(window.location.pathname);
+  }
+
+  function RenderButton() {
+    console.log("zeroo", allPrices);
+
+    if (allPrices.length == 0) {
+      console.log("secondddd");
+      return (
+        <button className="btn btn-disabled btn-lg" aria-disabled="true">
+          Not Enough Orders
+        </button>
+      );
+    }
+
+    if (Object.keys(chosenNfts).length <= 0) {
+      console.log("firsttt");
+      return (
+        <button className="btn btn-disabled btn-lg" aria-disabled="true">
+          Pick NFT To market Sell
+        </button>
+      );
+    }
+    console.log("thirddd");
+    return (
+      <button className="btn btn-error btn-lg" onClick={executeBidFloor}>
+        Panic Sell
+      </button>
+    );
   }
 
   return (
@@ -96,12 +130,22 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
                   .toFixed(2)}{" "}
                 SOL
               </div>
+              <div className="stat-title">Balance</div>
+              <div className="stat-value text-info">
+                ={" "}
+                {(
+                  userSol / LAMPORTS_PER_SOL +
+                  allPrices
+                    .slice(0, Object.keys(chosenNfts).length)
+                    .reduce((a, b) => a + b, 0)
+                ).toFixed(2)}
+              </div>
             </div>
           </div>
           <input
             type="range"
             min={0}
-            max={userNftList.length}
+            max={Math.min(userNftList.length, allBidCount)}
             value={sellSlider}
             className="range range-sm"
             onChange={(e) => {
@@ -128,15 +172,7 @@ const PanicCard = ({ userNftList }: { userNftList: Nft[] }) => {
               }
             }}
           />
-          {Object.keys(chosenNfts).length > 0 ? (
-            <button className="btn btn-error btn-lg" onClick={executeBidFloor}>
-              Panic Sell
-            </button>
-          ) : (
-            <button className="btn btn-disabled btn-lg" aria-disabled="true">
-              Pick NFT To market Sell
-            </button>
-          )}
+          <RenderButton />
         </div>
       </div>
     </div>

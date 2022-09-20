@@ -169,7 +169,6 @@ export async function carnivalWithdrawNft(
 
   return transaction.add(withdrawNftTx);
 }
-
 export async function createCarnivalBooth(
   connection: Connection,
   publicKey: PublicKey,

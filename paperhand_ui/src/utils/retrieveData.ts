@@ -154,6 +154,7 @@ export async function getBidOrderData(
   prices: number[];
   size: number[];
   bids: { [key: string]: BidInterface[] };
+  bidCount: number;
 }> {
   let { Checkout } = await getCheckoutProgramAndProvider(wallet);
 
@@ -163,19 +164,19 @@ export async function getBidOrderData(
 
   let prices: number[] = [];
   let size: number[] = [];
+  let bidCount: number = 0;
 
   if (await checkIfAccountExists(bidOrders, connection)) {
     let account = await Checkout.account.bidOrders.fetch(bidOrders);
 
-    let i = 0;
-    while (account.orderbook.items[i].bidPrice > 0) {
-      let curItem: BidInterface = account!.orderbook!.items![i];
+    while (account.orderbook.items[bidCount].bidPrice > 0) {
+      let curItem: BidInterface = account!.orderbook!.items![bidCount];
       if (bids[curItem.bidderPubkey!.toString()]) {
         bids[curItem.bidderPubkey.toString()].push(curItem);
       } else {
         bids[curItem.bidderPubkey.toString()] = [curItem];
       }
-      i++;
+      bidCount++;
     }
 
     for (let pubkey of Object.keys(bids)) {
@@ -213,7 +214,7 @@ export async function getBidOrderData(
     }
   }
   // labels are prices, values are size, bids are bids by user
-  return { prices, size, bids };
+  return { prices, size, bids, bidCount };
 }
 
 export async function getMatchedOrdersAccountData(
