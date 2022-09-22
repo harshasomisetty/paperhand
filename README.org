@@ -2,8 +2,9 @@
 * Overview
 Paperhand is a suite of NFTAMM implementatios.
 
+* Programs
 The core of paperhand allows nfts to be algorithimically associated with a collection, allowing for trading of NFTs through traditional AMMs, an instantaneous FloorBid, and through an aggregation of user-created pools (a structure heavily inspired by Sudoswap)
-* Architecture
+
 *** Exhibition
 Exhibition is a Collection identification system. It creates PDAs hashed from the verified creators of a nft, and associates all other NFTs with the same identification system as the same collection.
 
@@ -13,17 +14,16 @@ expand exhibition to be ultimate filtering contract, make subset filtering, solv
 
 Exhibition also ties in a vault accounting system that allows users to deposit NFTs of the same collection, and receive a "voucher" token back (each representing an NFT)
 *** Shop
-Shop is a AMM contract a trading stand (a trading pool) for an exhibit's voucher tokens, and WSOL.
+Shop is a Bridge-split esque nftamm, where an NFT is turned into a (un)fractionized nft (currently nft is represented as a single fraction, known as a voucher), and contains traded against an AMM (consisting of voucher and sol pools))
 
-The Shop has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to start a market for their collection
+The Shop has 3 functions, Swap, Deposit Liquidity, and Withdraw Liquidity for users to interact with the stand, and an Instantiate Stand function for the exhibit creator to seem the AMM with their own funds for a new (previously unseen) collection
 *** Checkout
-The next stage of the project was to implement a floor bid system, where bidders can place limit buy orders, and sellers can instant sell into these bids.
+Checkout is the reimagination of Paperhands Bitch Tax: a way for collection holders to paperhand (market sell) their nft to loyal holders who place bids (limit orders) to buy an nft.
 
 This involved storing using commited SOL for buy orders in a heap data structure, allowing functionallity for a seller to come market sell to a buyer, and the buyer being able to come redeem their newly acquired nft.
-
-Checkout thus manages a heap to store user bids, and a DLL to store fulfilled orders
 *** Carnival
-Carnival is a an aggregator of mulitple amms for a single collection, the idea heavily inspired by Sudoswap
+Solana's Pseudo Sudoswap. Replicates Sudoswap's structure for people to create their own trading AMM pools to either buy or sell NFTs, and aggregates the various pools into a central marketplace.
+
 * Next steps
 ** each card resolt reset user select nfts
 ** Trait gating pools
@@ -38,6 +38,13 @@ update contracts and code
 - review code
 - sign all transactions multiple nfts
 - proper fee stuff
+
+1) exhibit list redo to regular MagicEden format
+2) init all carnivals and checkouts when initing exhibit
+3) copy into frontend when making new exhibit from nfts
+4) store default nft picture
+5) add in slider to quick buy in carnival
+
 
 THEN START TRYING TO DEPLOY
 mainnet deploy

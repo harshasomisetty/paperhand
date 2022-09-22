@@ -40,6 +40,51 @@ export async function instructionDepositNft(
   let { Exhibition } = await getExhibitProgramAndProvider(wallet);
 
   let transaction = new Transaction();
+
+  let { exhibit, voucherMint } = await getNftDerivedAddresses(
+    Object.values(chosenNfts)[0]
+  );
+
+  if (!(await checkIfAccountExists(exhibit, connection))) {
+    const init_tx = await Exhibition.methods
+      .initializeExhibit()
+      .accounts({
+        exhibit: exhibit,
+        voucherMint: voucherMint,
+        nftMetadata:
+          chosenNfts[Object.values(chosenNfts)[0].mint.toString()]
+            .metadataAccount.publicKey,
+        signer: publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    transaction = transaction.add(init_tx);
+    console.log("initing exhibit", transaction);
+  }
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint!,
+    publicKey
+  );
+
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    let voucher_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    transaction = transaction.add(voucher_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
   for (let nft of Object.values(chosenNfts)) {
     await nft.metadataTask.run();
 
@@ -56,40 +101,6 @@ export async function instructionDepositNft(
       nft.mint,
       publicKey
     );
-
-    if (!(await checkIfAccountExists(exhibit, connection))) {
-      const init_tx = await Exhibition.methods
-        .initializeExhibit()
-        .accounts({
-          exhibit: exhibit,
-          voucherMint: voucherMint,
-          nftMetadata: nft.metadataAccount.publicKey,
-          signer: publicKey,
-          rent: SYSVAR_RENT_PUBKEY,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .transaction();
-
-      transaction = transaction.add(init_tx);
-
-      console.log("initing exhibit");
-    }
-
-    if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-      let voucher_tx = createAssociatedTokenAccountInstruction(
-        publicKey,
-        userVoucherWallet,
-        publicKey,
-        voucherMint,
-        TOKEN_PROGRAM_ID,
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-
-      transaction = transaction.add(voucher_tx);
-    } else {
-      console.log("user voucher already created");
-    }
 
     let insert_nft_tx = await Exhibition.methods
       .artifactInsert()
@@ -111,9 +122,10 @@ export async function instructionDepositNft(
       .transaction();
 
     transaction = transaction.add(insert_nft_tx);
+    console.log("inserted nft!", transaction);
   }
 
-  console.log("about to depo nft");
+  console.log("about to depo nft", transaction);
   await manualSendTransaction(
     transaction,
     publicKey,

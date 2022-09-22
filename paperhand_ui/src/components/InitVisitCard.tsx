@@ -1,10 +1,12 @@
+import { NftContext } from "@/context/NftContext";
 import { instructionInitCheckoutExhibit } from "@/utils/instructions/checkout";
+import { instructionDepositNft } from "@/utils/instructions/exhibition";
 import { checkIfAccountExists } from "@/utils/retrieveData";
 import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 const InitVisitCard = ({
   nft,
@@ -20,17 +22,20 @@ const InitVisitCard = ({
   const router = useRouter();
   const { exhibitAddress } = router.query;
 
-  async function executeInitCheckoutAndExhibit() {
-    console.log("init checkout exhibit");
+  const { chosenNfts, clearNfts } = useContext(NftContext);
 
-    console.log("creating checkout ", nft.name);
-    await instructionInitCheckoutExhibit(
+  async function depositNft() {
+    console.log("init exhibit from depo nft", chosenNfts);
+
+    await instructionDepositNft(
       wallet,
       publicKey,
       signTransaction,
-      connection,
-      nft
+      chosenNfts,
+      connection
     );
+
+    // router.reload(window.location.pathname);
 
     router.push("/exhibition/" + exhibitAddress);
   }
@@ -47,7 +52,6 @@ const InitVisitCard = ({
     }
   }, [exhibitAddress, wallet]);
 
-  console.log("exh symbol", exhibitSymbol);
   return (
     <div className="card w-96 bg-base-300 border border-neutral-focus shadow-lg">
       <div className="card-body items-center text-center">
@@ -58,7 +62,8 @@ const InitVisitCard = ({
               <button
                 className="btn btn-primary"
                 onClick={() => {
-                  router.push("/exhibition/" + exhibitAddress);
+                  depositNft();
+                  /* router.push("/exhibition/" + exhibitAddress); */
                 }}
               >
                 Visit {exhibitSymbol}
@@ -75,7 +80,7 @@ const InitVisitCard = ({
               <button
                 className="btn btn-primary"
                 onClick={() => {
-                  executeInitCheckoutAndExhibit();
+                  depositNft();
                 }}
               >
                 Create {"EXHIBIT"}

@@ -1,5 +1,6 @@
 import InitVisitCard from "@/components/InitVisitCard";
 import NftList from "@/components/NftList";
+import { NftProvider } from "@/context/NftContext";
 import { getNftDerivedAddresses } from "@/utils/accountDerivation";
 import { getAllNftImages } from "@/utils/retrieveData";
 import { Metaplex } from "@metaplex-foundation/js";
@@ -53,11 +54,13 @@ export default function ProfileExhibitPage() {
   }
 
   return (
-    <div className="grid grid-cols-2">
-      <NftList nftList={colNfts} title={"Your " + colSymbol + "s"} />
-      <div className="flex flex-col  items-center pt-14">
-        <InitVisitCard nft={colNfts[0]} exhibitSymbol={colSymbol} />
+    <NftProvider>
+      <div className="grid grid-cols-2">
+        <NftList nftList={colNfts} title={"Your " + colSymbol + "s"} />
+        <div className="flex flex-col  items-center pt-14">
+          <InitVisitCard nft={colNfts[0]} exhibitSymbol={colSymbol} />
+        </div>
       </div>
-    </div>
+    </NftProvider>
   );
 }

@@ -7,21 +7,25 @@ export async function manualSendTransaction(
   signTransaction: any,
   otherSigner?: Keypair
 ) {
-  console.log("in man send tx");
-  transaction.feePayer = publicKey;
-  transaction.recentBlockhash = (
-    await connection.getRecentBlockhash("finalized")
-  ).blockhash;
+  try {
+    console.log("in man send tx");
+    transaction.feePayer = publicKey;
+    transaction.recentBlockhash = (
+      await connection.getRecentBlockhash("finalized")
+    ).blockhash;
 
-  if (otherSigner) {
-    transaction.sign(otherSigner);
+    if (otherSigner) {
+      transaction.sign(otherSigner);
+    }
+
+    transaction = await signTransaction(transaction);
+    const rawTransaction = transaction.serialize();
+
+    let signature = await connection.sendRawTransaction(rawTransaction);
+    console.log("sent raw, waiting");
+    await connection.confirmTransaction(signature, "confirmed");
+    console.log("sent tx!!!");
+  } catch (error) {
+    console.log("man error?", error);
   }
-
-  transaction = await signTransaction(transaction);
-  const rawTransaction = transaction.serialize();
-
-  let signature = await connection.sendRawTransaction(rawTransaction);
-  console.log("sent raw, waiting");
-  await connection.confirmTransaction(signature, "confirmed");
-  console.log("sent tx!!!");
 }

@@ -12,6 +12,7 @@ import { getCarnivalAccounts } from "@/utils/accountDerivation";
 import DisplayImages from "@/components/DisplayImages";
 import { getAllBooths, getOpenBoothId } from "@/utils/carnival_data";
 import Link from "next/link";
+import ExistingCollections from "@/components/ExistingCollections";
 
 export default function Collections() {
   const { connection } = useConnection();
@@ -38,7 +39,6 @@ export default function Collections() {
             connection
           );
 
-          let images = await getAllNftImages(nfts);
           let numBooths = await getOpenBoothId(carnival, connection, wallet);
 
           let fetchedBoothInfos = await getAllBooths(
@@ -64,6 +64,7 @@ export default function Collections() {
             }
           }
 
+          let images = await getAllNftImages(nfts);
           exhibitsData[allExhibitAccounts[i].pubkey.toString()] = {
             nftListings: fetchedData.nftListings,
             images: images,
@@ -71,7 +72,6 @@ export default function Collections() {
             ceil: ceil,
             symbol: fetchedData.exhibitSymbol,
           };
-          console.log("exhibit symbol", fetchedData.exhibitSymbol);
         }
       }
 

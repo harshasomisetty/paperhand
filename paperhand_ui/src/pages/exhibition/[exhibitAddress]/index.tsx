@@ -59,6 +59,7 @@ const ExhibitPage = () => {
       const allUserNfts = await mx.nfts().findAllByOwner(publicKey);
 
       const curNfts = [];
+      console.log("exhibit infO?", exhibitInfo);
       for (let nft of allUserNfts!) {
         if (nft.symbol == exhibitInfo.exhibitSymbol) {
           curNfts.push(nft);
