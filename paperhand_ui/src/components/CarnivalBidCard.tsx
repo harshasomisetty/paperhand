@@ -54,14 +54,6 @@ const CarnivalBidCard = ({
 
   async function executeCarnivalSolToNft() {
     console.log("sol to nft execute");
-    console.log(
-      "wallet",
-      wallet,
-      publicKey,
-      Object.values(chosenNfts),
-      connection,
-      signTransaction
-    );
 
     await instructionSolToNft(
       wallet,
@@ -75,14 +67,7 @@ const CarnivalBidCard = ({
 
   async function executeCarnivalNftToSol() {
     console.log("sol to nft execute");
-    console.log(
-      "wallet",
-      wallet,
-      publicKey,
-      Object.values(chosenNfts),
-      connection,
-      signTransaction
-    );
+
     // await instructionNftToSol(
     //   wallet,
     //   publicKey,
@@ -90,7 +75,7 @@ const CarnivalBidCard = ({
     //   connection,
     //   signTransaction
     // );
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   return (

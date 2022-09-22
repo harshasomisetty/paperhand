@@ -83,7 +83,6 @@ export default function NftList({
       }
 
       setNftPrices(nftsToBooth);
-      console.log("set nft Prices", nftsToBooth);
       setGroupDetails(tempGroupDetails);
     }
     if (wallet && nftList.length > 0) {

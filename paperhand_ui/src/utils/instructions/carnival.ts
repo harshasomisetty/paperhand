@@ -188,18 +188,38 @@ export async function instructionSolToNft(
 
   let transaction = new Transaction();
 
+  let { voucherMint } = await getNftDerivedAddresses(nfts[0]);
+
+  let userVoucherWallet = await getAssociatedTokenAddress(
+    voucherMint,
+    publicKey
+  );
+
+  console.log("user voucher wallet check");
+  if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
+    let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
+      publicKey,
+      userVoucherWallet,
+      publicKey,
+      voucherMint
+    );
+    transaction = transaction.add(voucher_wallet_tx);
+  } else {
+    console.log("user voucher already created");
+  }
+
   for (let nft of nfts) {
     let { exhibit, voucherMint, nftArtifact } = await getNftDerivedAddresses(
       nft
     );
 
     let parsedArtifact = await getAccount(connection, nftArtifact);
-    let booth1 = parsedArtifact.delegate;
-    // console.log("parsed arti", parsedArtifact.delegate.toString());
 
-    // let boothId = boothInfo.boothId;
     // let boothInfo = await getBoothInfo(exhibit, boothId, wallet);
-    let fetchedBoothInfo = await Carnival.account.booth.fetch(booth1);
+    let fetchedBoothInfo = await Carnival.account.booth.fetch(
+      parsedArtifact.delegate
+    );
+
     let boothId = fetchedBoothInfo.boothId;
     let { carnival, carnivalAuth, carnivalAuthBump, escrowSol, escrowSolBump } =
       await getCarnivalAccounts(exhibit);
@@ -213,30 +233,17 @@ export async function instructionSolToNft(
       CARNIVAL_PROGRAM_ID
     );
 
-    let nftUserTokenAddress = await getAssociatedTokenAddress(
-      nft.mint,
-      publicKey
-    );
-
     let userVoucherWallet = await getAssociatedTokenAddress(
       voucherMint,
       publicKey
     );
 
-    if (!(await checkIfAccountExists(userVoucherWallet, connection))) {
-      let voucher_wallet_tx = createAssociatedTokenAccountInstruction(
-        publicKey,
-        userVoucherWallet,
-        publicKey,
-        voucherMint
-      );
-      transaction = transaction.add(voucher_wallet_tx);
-    } else {
-      console.log("user voucher already created");
-    }
+    let nftUserTokenAddress = await getAssociatedTokenAddress(
+      nft.mint,
+      publicKey
+    );
 
     if (!(await checkIfAccountExists(nftUserTokenAddress, connection))) {
-      console.log("user nft_wallet_ttx");
       let user_nft_tx = createAssociatedTokenAccountInstruction(
         publicKey,
         nftUserTokenAddress,
@@ -248,16 +255,6 @@ export async function instructionSolToNft(
       console.log("user user wallet already created");
     }
 
-    let preEscrowBal = await connection.getBalance(escrowSol);
-    let preFetchedBoothInfo = await Carnival.account.booth.fetch(booth);
-
-    console.log(
-      "booth insertt",
-      boothId,
-      carnivalAuthBump,
-      boothBump,
-      escrowSolBump
-    );
     let solToNftTx = await Carnival.methods
       .tradeSolForNft(
         new BN(boothId),
@@ -285,16 +282,12 @@ export async function instructionSolToNft(
       .transaction();
 
     transaction = transaction.add(solToNftTx);
-
-    try {
-      await manualSendTransaction(
-        transaction,
-        publicKey,
-        connection,
-        signTransaction
-      );
-    } catch (error) {
-      console.log("phantom send tx", error);
-    }
   }
+
+  await manualSendTransaction(
+    transaction,
+    publicKey,
+    connection,
+    signTransaction
+  );
 }

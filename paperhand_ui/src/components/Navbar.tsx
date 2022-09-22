@@ -9,9 +9,10 @@ const TABS: string[] = [
   "exhibition",
   "nftamm",
   "checkout",
-  "collections",
+  // "collections",
   "carnival",
 ];
+
 const Navbar = () => {
   const router = useRouter();
 
