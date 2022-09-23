@@ -56,7 +56,7 @@ const RedeemCard = ({
         console.log("acquire nft buf", error);
       }
     }
-    router.reload(window.location.pathname);
+    // router.reload(window.location.pathname);
   }
 
   return (
